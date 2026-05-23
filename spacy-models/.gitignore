@@ -1,0 +1,6 @@
+# Ignore model files (they're cached in ext-dep/)
+*.whl
+
+# Keep this folder in git
+!.gitignore
+

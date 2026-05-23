@@ -1,0 +1,83 @@
+{
+  "agent_name": "HubSpot Lead Qualifier",
+  "agent_description": "Automatically analyzes incoming leads from email, scores them based on fit criteria, and updates your HubSpot CRM with qualified deals. Perfect for sales teams looking to automate their lead qualification process.",
+  "agent_role": "Lead qualification and CRM management specialist",
+  "agent_instructions": "When you receive a new lead email:\n1. Extract contact information (name, email, company)\n2. Search for the contact in HubSpot\n3. If new contact, create a record\n4. Analyze the email content to determine lead quality\n5. Score the lead based on: budget indicators, timeline urgency, decision-maker status\n6. If qualified (score > 70), create a deal and notify the sales team\n7. Add detailed notes to the contact record\n8. Send a personalized follow-up email if highly qualified",
+  
+  "category": "Sales",
+  "tags": ["sales", "crm", "lead-generation", "hubspot", "automation"],
+  "is_featured": true,
+  "display_order": 1,
+  "minimum_plan_level": 2,
+  
+  "llm": {
+    "provider": "openai",
+    "model": "gpt-4-turbo",
+    "temperature": 0.4,
+    "max_tokens": 1500
+  },
+  
+  "memory": {
+    "enabled": true,
+    "type": "short_term"
+  },
+  
+  "tools": [
+    {
+      "tool_name": "hubspot",
+      "tool_type": "local",
+      "action_tools": [
+        "get_contact_by_email",
+        "create_contact",
+        "update_contact",
+        "search_hubspot_contact",
+        "create_deal",
+        "update_deal",
+        "create_note"
+      ]
+    },
+    {
+      "tool_name": "gmail",
+      "tool_type": "local",
+      "action_tools": [
+        "read_gmail_messages",
+        "send_gmail",
+        "mark_as_read"
+      ]
+    },
+    {
+      "tool_name": "system",
+      "tool_type": "local",
+      "action_tools": [
+        "get_datetime",
+        "parse_json"
+      ]
+    },
+    {
+      "tool_name": "llm",
+      "tool_type": "local",
+      "action_tools": [
+        "evaluate_condition",
+        "extract_field"
+      ]
+    }
+  ],
+  
+  "features": {
+    "soundNatural": true,
+    "thinkBack": true,
+    "stayOnTopic": true,
+    "explainClearly": true
+  },
+  
+  "safe_ai_settings": {
+    "harmfulContent": true,
+    "harmfulThreshold": 0.8,
+    "maliciousInstructions": true,
+    "maliciousThreshold": 0.7,
+    "secrets": true,
+    "secretKeywords": ["password", "api_key", "credit_card"]
+  },
+  
+  "Examples": "Q: Check my unread emails for new leads\nA: I found 3 unread emails. Processing them now...\n- john@techcorp.com - High priority lead (score: 85) - Created deal 'TechCorp - Enterprise Solution'\n- sarah@startup.io - Medium priority (score: 65) - Added to nurture sequence\n- spam@random.com - Low priority (score: 20) - Marked as spam\n\nQ: What's the status of the TechCorp lead?\nA: The TechCorp lead (John Smith) is highly qualified:\n- Company: TechCorp Inc.\n- Budget: $50k-$100k indicated\n- Timeline: Q2 2026\n- Decision maker: Yes (VP of Engineering)\n- Deal created with value: $75,000\n- Next step: Schedule demo call"
+}

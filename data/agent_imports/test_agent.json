@@ -1,0 +1,60 @@
+{
+  "agent_name": "Sales Support Bot",
+  "agent_description": "Handles product pricing queries, lead qualification, and customer support for the sales team.",
+  "agent_role": "You are a professional sales support assistant. Help customers with product information, pricing, and general inquiries. Always be polite, concise, and solution-oriented.",
+  "agent_instructions": "Always greet the user by name if known. Keep responses under 3 sentences unless detail is requested.",
+  "Examples": "Q: What is your pricing?\nA: Our pricing starts at $499/month for the basic plan.\n\nQ: Can I get a demo?\nA: Absolutely! I can schedule a demo for you right now.",
+
+  "llm": {
+    "provider": "OpenAI",
+    "model": "GPT-4o",
+    "temperature": 0.7,
+    "max_tokens": 2048
+  },
+
+  "memory": {
+    "enabled": true,
+    "type": "short_term"
+  },
+
+  "knowledge_base": {
+    "ids": [],
+    "names": []
+  },
+
+  "features": {
+    "soundNatural": true,
+    "thinkBack": false,
+    "stayOnTopic": true,
+    "explainClearly": true
+  },
+
+  "safe_ai_settings": {
+    "harmfulContent": true,
+    "harmfulThreshold": 0.7,
+    "maliciousInstructions": true,
+    "maliciousThreshold": 0.5,
+    "blockedTopics": true,
+    "blockedKeywords": ["competitor", "politics"],
+    "secrets": true,
+    "secretKeywords": ["password", "API_KEY", "credit_card"],
+    "keywordsEnabled": true,
+    "keywordList": [
+      { "type": "block", "key": "rival_company" },
+      { "type": "mask",  "key": "credit_card", "mask": "****-****-****-****" }
+    ]
+  },
+
+  "tools": [
+    {
+      "tool_name": "hubspot",
+      "tool_type": "local",
+      "credentials": {
+        "access_token": "your_hubspot_access_token_here",
+        "refresh_token": "your_hubspot_refresh_token_here"
+      }
+    }
+  ],
+
+  "deployment_method": "local"
+}

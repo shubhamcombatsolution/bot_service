@@ -1,0 +1,12 @@
+Our Server 
+python3 -m venv tele
+source tele/bin/activate
+(tele) root@node157277-env-8424536:~/tele#
+
+
+
+Client System
+$ conda create --name tele_env
+$ conda activate tele_env
+$ pip install -r requirements.txt
+$ pip install mysql-connector-python

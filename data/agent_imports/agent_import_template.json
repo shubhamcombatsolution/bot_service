@@ -1,0 +1,252 @@
+{
+  "_comment": "BOT BUILDER — Agent Import Template v2.0 | Share this file with your users. Fill in YOUR values and remove all _comment fields before importing.",
+
+  "agent_name": "My Agent Name",
+  "agent_description": "A short description of what this agent does and who it serves.",
+  "agent_role": "You are a [role]. Your job is to [primary task]. Always [key behavior].",
+  "agent_instructions": "Optional extra instructions. For example: keep responses concise, always ask a follow-up question, etc.",
+  "Examples": "Q: Sample question\nA: Sample answer\n\nQ: Another question\nA: Another answer",
+
+  "llm": {
+    "_comment": "provider must match exactly what is configured in your LLM Settings page",
+    "provider": "OpenAI",
+    "model": "GPT-4o",
+    "temperature": 0.7,
+    "max_tokens": 2048
+  },
+
+  "memory": {
+    "_comment": "type options: short_term | long_term",
+    "enabled": true,
+    "type": "short_term"
+  },
+
+  "knowledge_base": {
+    "_comment": "Provide KB IDs (numbers) or names (strings) from your Knowledge Base page. Leave both empty if not needed.",
+    "ids": [],
+    "names": []
+  },
+
+  "features": {
+    "_comment": "Set any feature to true or false",
+    "soundNatural": true,
+    "thinkBack": false,
+    "stayOnTopic": true,
+    "explainClearly": true
+  },
+
+  "safe_ai_settings": {
+    "_comment": "All fields optional. Remove sections you do not need.",
+    "harmfulContent": true,
+    "harmfulThreshold": 0.7,
+    "maliciousInstructions": true,
+    "maliciousThreshold": 0.5,
+    "allowedTopics": false,
+    "allowedKeywords": [],
+    "blockedTopics": false,
+    "blockedKeywords": [],
+    "secrets": false,
+    "secretKeywords": [],
+    "keywordsEnabled": false,
+    "keywordList": []
+  },
+
+  "_tools_comment": "REQUIRED — at least ONE tool must be included. Choose the tools your agent needs. Remove all tools you are NOT using. See each section below.",
+
+  "tools": [
+
+    {
+      "_comment": "=== OPTION 1: HubSpot CRM (local / API token) ===",
+      "tool_name": "hubspot",
+      "tool_type": "local",
+      "credentials": {
+        "access_token": "YOUR_HUBSPOT_PRIVATE_APP_TOKEN",
+        "refresh_token": "YOUR_HUBSPOT_REFRESH_TOKEN"
+      }
+    },
+
+    {
+      "_comment": "=== OPTION 2: Gmail (Google OAuth) ===",
+      "tool_name": "gmail",
+      "tool_type": "local",
+      "credentials": {
+        "token": "YOUR_GOOGLE_ACCESS_TOKEN",
+        "refresh_token": "YOUR_GOOGLE_REFRESH_TOKEN",
+        "client_id": "YOUR_GOOGLE_CLIENT_ID",
+        "client_secret": "YOUR_GOOGLE_CLIENT_SECRET",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "scopes": ["https://mail.google.com/"]
+      }
+    },
+
+    {
+      "_comment": "=== OPTION 3: Google Calendar (Google OAuth) ===",
+      "tool_name": "google_calendar",
+      "tool_type": "local",
+      "credentials": {
+        "token": "YOUR_GOOGLE_ACCESS_TOKEN",
+        "refresh_token": "YOUR_GOOGLE_REFRESH_TOKEN",
+        "client_id": "YOUR_GOOGLE_CLIENT_ID",
+        "client_secret": "YOUR_GOOGLE_CLIENT_SECRET",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "scopes": ["https://www.googleapis.com/auth/calendar"]
+      }
+    },
+
+    {
+      "_comment": "=== OPTION 4: Google Drive (Google OAuth) ===",
+      "tool_name": "google_drive",
+      "tool_type": "local",
+      "credentials": {
+        "token": "YOUR_GOOGLE_ACCESS_TOKEN",
+        "refresh_token": "YOUR_GOOGLE_REFRESH_TOKEN",
+        "client_id": "YOUR_GOOGLE_CLIENT_ID",
+        "client_secret": "YOUR_GOOGLE_CLIENT_SECRET",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "scopes": ["https://www.googleapis.com/auth/drive"]
+      }
+    },
+
+    {
+      "_comment": "=== OPTION 5: Google Sheets (Google OAuth) ===",
+      "tool_name": "google_sheets",
+      "tool_type": "local",
+      "credentials": {
+        "token": "YOUR_GOOGLE_ACCESS_TOKEN",
+        "refresh_token": "YOUR_GOOGLE_REFRESH_TOKEN",
+        "client_id": "YOUR_GOOGLE_CLIENT_ID",
+        "client_secret": "YOUR_GOOGLE_CLIENT_SECRET",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "scopes": ["https://www.googleapis.com/auth/spreadsheets"]
+      }
+    },
+
+    {
+      "_comment": "=== OPTION 6: Slack ===",
+      "tool_name": "slack",
+      "tool_type": "local",
+      "credentials": {
+        "bot_token": "xoxb-YOUR_SLACK_BOT_TOKEN",
+        "signing_secret": "YOUR_SLACK_SIGNING_SECRET"
+      }
+    },
+
+    {
+      "_comment": "=== OPTION 7: Salesforce ===",
+      "tool_name": "salesforce",
+      "tool_type": "local",
+      "credentials": {
+        "access_token": "YOUR_SALESFORCE_ACCESS_TOKEN",
+        "refresh_token": "YOUR_SALESFORCE_REFRESH_TOKEN",
+        "instance_url": "https://yourorg.salesforce.com",
+        "client_id": "YOUR_CONNECTED_APP_CLIENT_ID",
+        "client_secret": "YOUR_CONNECTED_APP_CLIENT_SECRET"
+      }
+    },
+
+    {
+      "_comment": "=== OPTION 8: Notion ===",
+      "tool_name": "notion",
+      "tool_type": "local",
+      "credentials": {
+        "api_key": "secret_YOUR_NOTION_INTEGRATION_TOKEN"
+      }
+    },
+
+    {
+      "_comment": "=== OPTION 9: Jira ===",
+      "tool_name": "jira",
+      "tool_type": "local",
+      "credentials": {
+        "api_token": "YOUR_JIRA_API_TOKEN",
+        "email": "your_email@company.com",
+        "base_url": "https://yourcompany.atlassian.net"
+      }
+    },
+
+    {
+      "_comment": "=== OPTION 10: GitHub ===",
+      "tool_name": "github",
+      "tool_type": "local",
+      "credentials": {
+        "personal_access_token": "ghp_YOUR_GITHUB_PAT"
+      }
+    },
+
+    {
+      "_comment": "=== OPTION 11: Twilio (SMS / Voice) ===",
+      "tool_name": "twilio",
+      "tool_type": "local",
+      "credentials": {
+        "account_sid": "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "auth_token": "YOUR_TWILIO_AUTH_TOKEN"
+      }
+    },
+
+    {
+      "_comment": "=== OPTION 12: Stripe ===",
+      "tool_name": "stripe",
+      "tool_type": "local",
+      "credentials": {
+        "secret_key": "sk_live_YOUR_STRIPE_SECRET_KEY"
+      }
+    },
+
+    {
+      "_comment": "=== OPTION 13: Shopify ===",
+      "tool_name": "shopify",
+      "tool_type": "local",
+      "credentials": {
+        "api_key": "YOUR_SHOPIFY_API_KEY",
+        "api_secret": "YOUR_SHOPIFY_API_SECRET",
+        "shop_domain": "yourstore.myshopify.com"
+      }
+    },
+
+    {
+      "_comment": "=== OPTION 14: Airtable ===",
+      "tool_name": "airtable",
+      "tool_type": "local",
+      "credentials": {
+        "api_key": "YOUR_AIRTABLE_API_KEY",
+        "base_id": "appXXXXXXXXXXXXXX"
+      }
+    },
+
+    {
+      "_comment": "=== OPTION 15: Zoho CRM ===",
+      "tool_name": "zoho_crm",
+      "tool_type": "local",
+      "credentials": {
+        "access_token": "YOUR_ZOHO_ACCESS_TOKEN",
+        "refresh_token": "YOUR_ZOHO_REFRESH_TOKEN",
+        "client_id": "YOUR_ZOHO_CLIENT_ID",
+        "client_secret": "YOUR_ZOHO_CLIENT_SECRET"
+      }
+    },
+
+    {
+      "_comment": "=== OPTION 16: Custom REST API (any API with an API key) ===",
+      "tool_name": "custom_api",
+      "tool_type": "local",
+      "credentials": {
+        "api_key": "YOUR_API_KEY"
+      }
+    },
+
+    {
+      "_comment": "=== OPTION 17: MCP Server Tool (Model Context Protocol) ===",
+      "tool_name": "my_mcp_tool",
+      "tool_type": "mcp",
+      "mcp_url": "https://your-mcp-server.com/sse",
+      "mcp_json": {
+        "server_name": "my_mcp_tool",
+        "description": "Description of what this MCP tool does",
+        "auth_token": "YOUR_MCP_AUTH_TOKEN_IF_REQUIRED"
+      }
+    }
+
+  ],
+
+  "deployment_method": "local"
+}

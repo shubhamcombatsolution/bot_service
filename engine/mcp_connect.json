@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "maps-and-gmail-server": {
+      "command": "/home/ubuntu/mcp_bot_builder/mcp-env/bin/python",
+      "args": [
+        "/home/ubuntu/mcp_bot_builder/mcp_server.py"
+      ],
+      "env": {
+        "GOOGLE_MAPS_API_KEY": "<YOUR_GOOGLE_MAPS_API_KEY>",
+        "HUBSPOT_API_KEY": "<YOUR_HUBSPOT_API_KEY>",
+        "GMAIL_CREDS_FILE": "/home/ubuntu/bot_builder/client_secret.json",
+        "GMAIL_TOKEN_FILE": "/home/ubuntu/mcp_bot_builder/token.json",
+        "SHEETS_TOKEN_FILE": "/home/ubuntu/mcp_bot_builder/token.json",
+        "CALENDAR_TOKEN_FILE": "/home/ubuntu/mcp_bot_builder/token.json"
+      },
+      "transport": "stdio"
+    }
+  }
+}

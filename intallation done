@@ -1,0 +1,7 @@
+sapva@Lionking MINGW64 /d/Project/BotBuilder/bot_builder (main)
+$ python -m venv botbuilder_env
+
+sapva@Lionking MINGW64 /d/Project/BotBuilder/bot_builder (main)
+$ source botbuilder_env/Scripts/activate
+(botbuilder_env) 
+sapva@Lionking MINGW64 /d/Proj

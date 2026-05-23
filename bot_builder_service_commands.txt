@@ -1,0 +1,47 @@
+Bot Builder Service Management Commands
+======================================
+
+Backend Service (/etc/systemd/system/botbuilder-backend.service)
+--------------------------------------------------------------
+Start:   sudo systemctl start botbuilder-backend.service
+Stop:    sudo systemctl stop botbuilder-backend.service
+Status:  sudo systemctl status botbuilder-backend.service
+Restart: sudo systemctl restart botbuilder-backend.service
+Reload:  sudo systemctl daemon-reload
+Edit:    sudo nano /etc/systemd/system/botbuilder-backend.service
+
+Frontend Service (/etc/systemd/system/botbuilder-frontend.service)
+----------------------------------------------------------------
+Start:   sudo systemctl start botbuilder-frontend.service
+Stop:    sudo systemctl stop botbuilder-frontend.service
+Status:  sudo systemctl status botbuilder-frontend.service
+Restart: sudo systemctl restart botbuilder-frontend.service
+Reload:  sudo systemctl daemon-reload
+Edit:    sudo nano /etc/systemd/system/botbuilder-frontend.service
+
+Qdrant Docker Service (/etc/systemd/system/qdrant.service)
+---------------------------------------------------------
+Start:   sudo systemctl start qdrant.service
+Stop:    sudo systemctl stop qdrant.service
+Status:  sudo systemctl status qdrant.service
+Restart: sudo systemctl restart qdrant.service
+Reload:  sudo systemctl daemon-reload
+Edit:    sudo nano /etc/systemd/system/qdrant.service
+
+All Services
+------------
+Start:   bb_all_start   (source ~/bot_builder_commands.sh first)
+Stop:    bb_all_stop
+Status:  bb_all_status
+Restart: bb_all_restart
+Reload:  bb_all_reload
+
+Notes
+-----
+- Use the shell script '~/bot_builder_commands.sh' for simplified commands.
+- Run 'source ~/bot_builder_commands.sh' to load functions.
+- Use 'bb_help' to list all available script commands.
+- Ensure services are enabled to start on boot:
+  sudo systemctl enable botbuilder-backend.service
+  sudo systemctl enable botbuilder-frontend.service
+  sudo systemctl enable qdrant.service

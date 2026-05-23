@@ -1,0 +1,1414 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chatbot</title>
+    <link rel="stylesheet" href="/custom-bot/JnanicChatbotCss.css" />
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+      :root {
+        --primary-gradient: linear-gradient(
+          to right,
+          #b54b30,
+          #cd7b3c,
+          #4b6eaf
+        ); /* Default gradient */
+        --secondary-gradient: linear-gradient(
+          to right,
+          #e0b79a,
+          #e193b9,
+          #77928b
+        ); /* Default gradient */
+        --tertiary-gradient: linear-gradient(
+          to right,
+          #00c6ff,
+          #0072ff,
+          #4b0082
+        ); /* Default gradient */
+      }
+      :root {
+        --primary-color: #264c68; /* Default color */
+        --secondary-color: #f9f4f8; /* Default color */
+        --tertiary-color: #264c68; /* Default color */
+      }
+
+      .chatbot-container {
+        position: fixed;
+        /* bottom: 20px;
+        top: 15px; */
+        right: 20px;
+        width: 370px;
+        height: 350px;
+        background-color: #fff;
+        border: 2px solid #ccc;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+        scrollbar-width: none;
+        transition: all 0.3s ease-in-out;
+      }
+
+
+      .chatbot-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--primary-gradient); /* Use primary gradient */
+        color: white;
+        font-weight: bold;
+        padding: 10px;
+        border-top-left-radius: 10px;
+        border-top-right-radius: 10px;
+      }
+
+      .message.user {
+        background: #f9f4f8; /* Use secondary color */
+        align-self: flex-end;
+        color: var(--tertiary-color); /* Use tertiary color */
+        font-weight: 400;
+      }
+
+      .message.bot {
+        background: #f9f4f8; /* Use secondary color */
+        color: var(--tertiary-color); /* Use tertiary color */
+        align-self: flex-start;
+        animation: fadeIn 0.5s ease-out;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 15px;
+        width: fit-content;
+        max-width: 90%;
+        line-height: 1.6;
+        font-family: "Segoe UI", "Open Sans", sans-serif;
+        letter-spacing: 0.3px;
+        font-size: 15px;
+        font-weight: 400;
+      }
+
+      .header-icons {
+        display: flex;
+        gap: 10px;
+      }
+
+      .icon-btn {
+        background: none;
+        color: white;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+      }
+
+      .icon-btn:hover {
+        color: #f0f0f0;
+      }
+
+      .chatbot-body {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        overflow-y: scroll;
+        scrollbar-width: none;
+        position: relative;
+        z-index: 4;
+        padding: 0 !important;
+        bottom: 20px;
+        height:370px;
+      }
+
+
+      .messages {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        padding: 10px;
+        gap: 10px; /* Add gap between messages */
+        margin-bottom: 10px;
+      }
+
+      .message {
+        padding: 12px;
+        border-radius: 12px;
+        max-width: 80%;
+        word-wrap: break-word;
+        font-size: 14px;
+        line-height: 1.5;
+        letter-spacing: 0.2px;
+        position: relative;
+        color: var(--tertiary-color); /* Use tertiary color */
+      }
+
+      .chatbot-messagebody {
+        height: 375px;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        display: flex;
+        flex-direction: column;
+        scrollbar-width: none;
+      }
+
+      .message {
+        display: flex;
+        margin-bottom: 10px;
+        color: var(--tertiary-color); /* Use tertiary color */
+      }
+
+      .user-message {
+        background: #f9f4f8;
+        align-self: flex-end;
+        color: var(--tertiary-color);
+        font-weight: 400;
+      }
+
+      .robot-message {
+        background: #f9f4f8;
+        color: var(--tertiary-color);
+        align-self: flex-start;
+        animation: fadeIn 0.5s ease-out;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 15px;
+        width: fit-content;
+        max-width: 90%;
+        line-height: 1.6;
+        font-family: "Segoe UI", "Open Sans", sans-serif;
+        letter-spacing: 0.3px;
+        font-size: 15px;
+        font-weight: 400;
+      }
+
+      .robot-logo {
+        width: 24px;
+        height: 24px;
+        margin-right: 10px;
+      }
+
+      .input-form {
+        position: relative;
+        padding: 10px;
+        border-top: 2px solid var(--primary-gradient);
+        background: var(--primary-gradient);
+        display: flex;
+        color: var(--primary-gradient);
+        align-items: left;
+        justify-content: space-between;
+        gap: 10px;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        border-bottom: 1px solid #fff;
+      }
+
+      .input-form input {
+        flex: 1;
+        border: 1px solid var(--primary-gradient);
+        border-radius: 8px;
+      }
+
+      .input-form input:hover {
+        background: #fff;
+        border-color: var(--primary-gradient);
+      }
+
+      .input-form input:focus {
+        border-color: #007bff;
+        background-color: #fff;
+        outline: none;
+      }
+
+      .input-form button {
+        padding: 12px 20px;
+        background: var(--tertiary-gradient);
+        color: #fff;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        font-size: 14px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transition: background-color 0.3s ease, transform 0.2s ease;
+      }
+
+      .input-form button:hover {
+        background: linear-gradient(135deg, #004085, #004085);
+        transform: translateY(-2px);
+      }
+
+      .chatbot-container.minimized {
+        width: 80px;
+        height: 80px;
+        bottom: 15px;
+        right: 15px;
+        background: var(--primary-gradient);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
+
+      .minimized-content {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+
+      .chatbot-icon {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+      }
+
+      .maximize-btn {
+        background: none;
+        color: white;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+      }
+
+      .maximize-btn:hover {
+        color: #f0f0f0;
+      }
+
+      .message .message-icon {
+        width: 30px;
+        height: 30px;
+        background-size: cover;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      
+      .wave-container {
+          position: relative;
+          width: 100%;
+          min-height: 115px;
+          overflow: hidden;
+          background: linear-gradient(100deg, var(--primary-color-1), var(--primary-color-2), var(--primary-color-3));
+          display: flex;
+          justify-content: center;
+          align-items: flex-start;
+          padding-top: 0px;
+          color: #fff;
+          border-radius: 0px;
+          height: 114px;
+          margin-top: -2px;
+      }
+        .wave-container svg {
+        position: absolute; 
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        z-index: 1; /* Make sure it's behind the button */
+        }
+
+        .wave-container svg path {
+        fill: #ffffff;
+        stroke: #ffffff;
+        width: 100%;
+        }
+
+      .wave-button {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: var(--tertiary-gradient);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        font-size: 16px;
+        font-weight: bold;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        z-index: 2;
+      }
+
+      .header-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .chat-header {
+        background: var(--primary-gradient);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        font-size: 15px;
+        font-weight: normal;
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+        width: 350px;
+        maegin-bottom: 50px;
+      }
+
+      #clear-chat-btn {
+        background: none;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+      }
+
+      .header-title {
+        display: flex;
+        align-items: center;
+        font-size: 20px;
+        padding: 10px;
+      }
+
+      .header-icon {
+        width: 60px;
+        height: 60px;
+        margin-right: 10px;
+        margin-left: 0px;
+      }
+
+      .header-buttons {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 8px;
+        margin-top: -50px;
+        position: relative;
+      }
+
+      .header-buttons button {
+        background: none;
+        border: none;
+        font-size: 15px;
+        color: #ffffff;
+        margin-left: 2px;
+        cursor: pointer;
+        transition: color 0.3s ease;
+        padding-top: 0;
+        padding-right: 15px;
+        padding-bottom: 0;
+        padding-left: 5px;
+      }
+
+      .header-buttons button:hover {
+        color: #949595;
+      }
+
+      .header-buttons button#download-btn {
+        font-size: 18px;
+        padding: 0 5px;
+        transition: color 0.3s ease;
+      }
+
+      .header-buttons button#download-btn:hover {
+        color: white;
+      }
+
+      .trademark-section {
+        text-align: center;
+        padding: 5px 0;
+        font-size: 14px;
+        background: var(--primary-gradient); /* Use primary color */
+        border-radius: 0 0 5px 5px; /* Rounded bottom corners */
+        color: #f0f0f0 !important;
+        height: 25px;
+      }
+
+      .button-group {
+        display: flex;
+        gap: 5px;
+      }
+
+      #chatmenu-btn,
+      #chatclose-btn {
+        background: transparent;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+        padding: 5px;
+      }
+
+      .chatmenu {
+        position: absolute;
+        right: 0;
+        top: 40px;
+        margin-top: -20px;
+        padding: 8px;
+        display: flex;
+        flex-direction: column;
+        border-radius: 5px;
+      }
+
+      .chatmenu ul {
+        list-style: none;
+        padding: 0;
+        margin: 5px;
+      }
+
+      .chatmenu li {
+        padding: 5px;
+      }
+
+      .message {
+        padding: 12px;
+        margin-bottom: 10px;
+        border-radius: 12px;
+        max-width: 90%;
+        word-wrap: break-word;
+        display: flex;
+        align-items: center;
+        font-size: 14px;
+        gap: 10px;
+        font-family: "Segoe UI", Arial, sans-serif;
+        line-height: 1.5;
+        letter-spacing: 0.2px;
+        color: var(--tertiary-color); /* Use tertiary color */
+      }
+
+      .message.user {
+        background: #f9f4f8;
+        align-self: flex-end;
+        color: var(--tertiary-color);
+        font-weight: 400;
+      }
+
+      .message.bot {
+        background: #f9f4f8;
+        color: var(--tertiary-color);
+        align-self: flex-start;
+        animation: fadeIn 0.5s ease-out;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 15px;
+        width: fit-content;
+        max-width: 90%;
+        line-height: 1.6;
+        font-family: "Segoe UI", "Open Sans", sans-serif;
+        letter-spacing: 0.3px;
+        font-size: 15px;
+        font-weight: 400;
+        color: #f9f4f8;
+      }
+      #trademark-text {
+        bottom: 5px;
+        color: #f0f0f0 !important;
+      }
+      .chatbot-container {
+        position: fixed;
+        /* bottom: 20px;
+        top: 15px; */
+        margin-top:70px;
+        right: 20px;
+        width: 300px;
+        height: 463px;
+        background-color: #fff;
+        border: 2px solid #ccc;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+        scrollbar-width: none;
+        transition: all 0.3s ease-in-out;
+      }
+
+
+      .chatbot-container.minimized {
+        width: 80px;
+        height: 80px;
+        bottom: 15px;
+        right: 15px;
+        background: var(--primary-gradient);
+        border-radius: 50%;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        overflow: hidden; /* Prevent any overflow content from showing */
+      }
+
+      /* Hide all elements inside chatbot-container when minimized, except minimized-content */
+      .chatbot-container.minimized .wave-container,
+      .chatbot-container.minimized .chatbot-body {
+        display: none;
+      }
+
+      /* Ensure minimized-content is visible and styled correctly */
+      .minimized-content {
+        display: none; /* Hidden by default */
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+      }
+
+      .chatbot-container.minimized .minimized-content {
+        display: flex; /* Show only when minimized */
+      }
+
+      .chatbot-icon {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover; /* Ensure the image fits properly */
+      }
+
+      .chatmenu {
+        position: absolute;
+        top: 35px;
+        right: -8px;
+        z-index: 1001;
+        display: none; /* Hidden by default */
+      }
+
+      .chatmenu.active {
+        display: flex; /* Show when active */
+      }
+
+      .chatmenu ul {
+        list-style: none;
+        padding: 5px;
+        margin: 0;
+        color: #ffffff !important;
+      }
+
+      .chatmenu li {
+        padding: 5px 10px;
+      }
+
+      .chatmenu li button {
+        background: none;
+        border: none;
+        font-size: 16px;
+        cursor: pointer;
+        color: #333;
+        width: 100%;
+        text-align: left;
+      }
+
+      .chatmenu li button:hover {
+        color: #007bff;
+      }
+
+      .header-buttons {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 8px;
+        position: relative;
+      }
+
+      #chatmenu-btn,
+      #chatclose-btn {
+        background: transparent;
+        border: none;
+        font-size: 18px;
+        color: #ffffff;
+        cursor: pointer;
+        padding: 5px;
+      }
+
+      #chatmenu-btn:hover,
+      #chatclose-btn:hover {
+        color: #d0d0d0;
+      }
+      .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        animation: spin 1s linear infinite;
+        color: var(--secondary-color);
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="chatbot-container" class="chatbot-container minimized">
+      <div class="wave-container">
+        <div class="chat-header">
+          <span class="header-title">
+            <img
+              id="bot-icon"
+              src="/custom-bot/uploads/avatars/chatbot_img.png"
+              alt="Bot Icon"
+              class="header-icon"
+            />
+            <span id="bot-name">Chatbot</span>
+          </span>
+          <div class="header-buttons">
+            <div class="button-group">
+              <button
+                id="chatmenu-btn"
+                aria-label="Open menu"
+                title="Open menu"
+              >
+                ...
+              </button>
+              <button
+                id="chatclose-btn"
+                aria-label="Close chat"
+                title="Close chat"
+              >
+                ×
+              </button>
+            </div>
+            <nav id="chatmenu" class="chatmenu">
+              <ul>
+                <li>
+                  <button
+                    id="download-btn"
+                    aria-label="Download chat"
+                    title="Download chat"
+                  >
+                    ⭳
+                  </button>
+                </li>
+                <li>
+                  <button
+                    id="clear-chat-btn"
+                    aria-label="Clear chat history"
+                    title="Clear chat history"
+                  >
+                    ↻
+                  </button>
+                </li>
+                <li>
+                  <button
+                    id="load-history-btn"
+                    aria-label="Load chat history"
+                    title="Load chat history"
+                  >
+                    ⟳
+                  </button>
+                </li>
+              </ul>
+            </nav>
+          </div>
+        </div>
+        <svg viewBox="0 0 1440 320" preserveAspectRatio="xMidYMid meet">
+          <path
+            fill="none"
+            stroke="#ffffff"
+            stroke-width="20"
+            d="M0,192 C480,320 960,64 1440,192 L1440,320 L0,320 Z"
+          ></path>
+        </svg>
+      </div>
+      <div class="chatbot-body">
+        <div id="chatbot-messagebody" class="chatbot-messagebody">
+          <div id="messages" class="messages"></div>
+        </div>
+        <form id="input-form" class="input-form">
+          <input
+            type="text"
+            id="chat-input"
+            placeholder="Type your message..."
+          />
+          <button type="submit">Send</button>
+        </form>
+        <div class="trademark-section">
+          <a href="#" target="_blank" id="trademark-text"
+            >© 2025 Tata Realty. All rights reserved.</a
+          >
+        </div>
+      </div>
+      <div id="minimized-content" class="minimized-content">
+        <img
+          id="minimized-icon"
+          src="/custom-bot/uploads/avatars/chatbot_img.png"
+          alt="Chatbot Icon"
+          class="chatbot-icon"
+        />
+      </div>
+    </div>
+    <script>
+      document.addEventListener("DOMContentLoaded", async () => {
+        // Configuration
+        sessionStorage.removeItem("tempToken");
+        const protocol = window.location.protocol;
+        const host = window.location.host;
+        const BASE_URL = `${protocol}//${host}`;
+        console.log("Base URL:", BASE_URL);
+        const DEPENDENCY_TIMEOUT = 20000;
+        const TOKEN_REFRESH_INTERVAL = 12 * 60 * 1000;
+        const DEFAULT_GREETING = "Hello! I'm your friendly assistant. How can I help you today?";
+        const DEFAULT_AVATAR = "/custom-bot/uploads/avatars/chatbot_img.png";
+
+        // Extract instanceId from URL path or script tag
+        let instanceId = window.location.pathname.split("/").pop() || window.JnanicInstanceId;
+        console.log("Instance ID:", instanceId);
+
+        // State
+        let isMinimized = true;
+        let isMenuOpen = false;
+        let messages = [];
+        let history = [];
+        let hasFetchedGreeting = false;
+        let botDetails = null;
+        let botId = null;
+        let isVerified = false;
+        let isSending = false;
+        let sendRetryCount = 0;
+        const MAX_RETRIES = 10;
+
+        // Get API key from Flask template context variable
+        const apiKey = "{{ api_key }}";
+        console.log("API Key loaded from template:", apiKey ? "✓" : "✗");
+
+        // DOM Elements
+        const chatbotContainer = document.getElementById("chatbot-container");
+        const botIcon = document.getElementById("bot-icon");
+        const botName = document.getElementById("bot-name");
+        const messagesContainer = document.getElementById("messages");
+        const inputForm = document.getElementById("input-form");
+        const chatInput = document.getElementById("chat-input");
+        const messageBody = document.getElementById("chatbot-messagebody");
+        const trademarkText = document.getElementById("trademark-text");
+        const minimizedContent = document.getElementById("minimized-content");
+        const minimizedIcon = document.getElementById("minimized-icon");
+        const chatMenuBtn = document.getElementById("chatmenu-btn");
+        const chatCloseBtn = document.getElementById("chatclose-btn");
+        const chatMenu = document.getElementById("chatmenu");
+        const downloadBtn = document.getElementById("download-btn");
+        const clearChatBtn = document.getElementById("clear-chat-btn");
+        const loadHistoryBtn = document.getElementById("load-history-btn");
+
+        // Axios instance with API key from Flask template
+        const axiosInstance = axios.create({
+          baseURL: BASE_URL,
+          headers: {
+            "Content-Type": "application/json",
+            "X-API-Key": apiKey
+          },
+          timeout: DEPENDENCY_TIMEOUT,
+        });
+
+        // Check for existing token
+        const tempToken = sessionStorage.getItem("tempToken");
+        if (tempToken) {
+          axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${tempToken}`;
+          isVerified = true;
+        }
+
+        // Apply colors to CSS variables
+        function applyColors(colors) {
+          console.log("Applying colors:", colors);
+          if (colors && typeof colors === "object" && Object.keys(colors).length > 0) {
+            const root = document.documentElement;
+            const colorMap = {
+              set1: '--primary-gradient',
+              set2: '--secondary-gradient',
+              set3: '--tertiary-gradient',
+            };
+            Object.entries(colors).forEach(([key, value]) => {
+              if (colorMap[key] && Array.isArray(value) && value.every(c => /^#[0-9A-Fa-f]{6}$|^rgb/.test(c))) {
+                const gradient = `linear-gradient(to right, ${value.join(", ")})`;
+                root.style.setProperty(colorMap[key], gradient);
+              }
+            });
+          } else {
+            console.warn("No valid colors provided, skipping color application.");
+          }
+        }
+        // Client info and token retrieval
+        async function getClientInfo() {
+          const ipServices = [
+            { url: "https://api.ipify.org?format=json", type: "json" },
+            { url: "https://ipinfo.io/json", type: "json" },
+            { url: "https://ipv4.icanhazip.com", type: "text" },
+            { url: "https://api.myip.com", type: "json" },
+          ];
+
+          let ip = null;
+          try {
+            const results = await Promise.any(
+              ipServices.map(async (service) => {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), DEPENDENCY_TIMEOUT);
+                const res = await fetch(service.url, {
+                  cache: "no-store",
+                  signal: controller.signal,
+                });
+                clearTimeout(timeoutId);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                if (service.type === "text") return (await res.text()).trim();
+                const data = await res.json();
+                return data.ip || data.query;
+              })
+            );
+            ip = results;
+            console.log("Client IP:", ip);
+          } catch (err) {
+            console.error("All IP services failed:", err);
+            messages = [
+              ...messages.slice(0, -1),
+              { text: "Error: Unable to fetch client IP. Please try again later.", sender: "bot" },
+            ];
+            renderMessages();
+            return false;
+          }
+
+          let domain = null;
+          if (ip && ip.includes(".")) {
+            const reversedIp = ip.split(".").reverse().join(".");
+            try {
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), DEPENDENCY_TIMEOUT);
+              const dnsRes = await fetch(
+                `https://dns.google/resolve?name=${reversedIp}.in-addr.arpa&type=PTR`,
+                { signal: controller.signal }
+              );
+              clearTimeout(timeoutId);
+              const dnsData = await dnsRes.json();
+              if (dnsData.Answer?.length > 0) {
+                domain = dnsData.Answer[0].data.replace(/\.$/, "");
+              }
+            } catch (err) {
+              console.warn("Reverse DNS lookup failed", err);
+            }
+          }
+
+          try {
+            if (!botId) {
+              await resolveInstanceId();
+            }
+            console.log("Validating client with:", { bot_id: botId, ip, domain: domain || window.location.hostname });
+            const validationRes = await axiosInstance.post(
+              "/custom-bot/ ",
+              {
+                bot_id: botId,
+                ip: ip,
+                domain: domain || window.location.hostname,
+              },
+              { headers: { 'X-API-Key': apiKey } }
+            );
+            console.log("Client Validation Response:", validationRes.data);
+
+            if (validationRes.data.status === "ok") {
+              isVerified = true;
+              const tempToken = validationRes.data.token;
+              sessionStorage.setItem("tempToken", tempToken);
+              axiosInstance.defaults.headers.common["Authorization"] = `Bearer ${tempToken}`;
+              console.log("Client validated, token set:", tempToken);
+              return true;
+            }
+          } catch (err) {
+            isVerified = false;
+            console.error("Error sending client info to backend:", {
+              message: err.message,
+              status: err.response?.status,
+              data: err.response?.data,
+            });
+            let errorMessage = "Error: Chatbot service not available. Please try again later.";
+            if (err.response?.status === 404) {
+              errorMessage = "Error: Chatbot service not found. Please contact support.";
+            } else if (err.response?.status === 403) {
+              errorMessage = "Error: Access denied. Your IP or domain is not allowed.";
+            } else if (err.response?.status === 401) {
+              errorMessage = "Error: Authentication failed. Please check your API key.";
+            }
+            messages = [
+              ...messages.slice(0, -1),
+              { text: errorMessage, sender: "bot" },
+            ];
+            renderMessages();
+            return false;
+          }
+          return false;
+        }
+
+        // Resolve instance_id to bot_id
+        async function resolveInstanceId() {
+          console.log("apiKey:", apiKey);
+          try {
+            console.log("Resolving instance_id:", instanceId);
+            const response = await axiosInstance.get(`/custom-bot/resolve-instance/${instanceId}`, {
+              headers: { 'X-API-Key': apiKey }
+            });
+            console.log("Resolve Instance API Response:", response.data);
+            botId = response.data.data.bot_id;
+            console.log("Resolved bot_id:", botId);
+            return botId;
+          } catch (error) {
+            console.error("Error resolving instance_id:", {
+              message: error.message,
+              status: error.response?.status,
+              data: error.response?.data,
+            });
+            let errorMessage = "Error: Failed to resolve instance ID.";
+            if (error.response?.status === 404) {
+              errorMessage = `Bot not found for instance ID: ${instanceId}.`;
+            } else if (error.response?.status === 400) {
+              errorMessage = "Invalid request. Instance ID or API key may be missing.";
+            } else if (error.response?.status === 401) {
+              errorMessage = "Unauthorized. Please check your API key.";
+            }
+            messages = [{ text: errorMessage, sender: "bot" }];
+            renderMessages();
+            throw error;
+          }
+        }
+
+        // Update DOM with bot details
+        function updateBotDetails() {
+          botName.textContent = botDetails.chatbotName;
+          botIcon.src = botDetails.avatar;
+          minimizedIcon.src = botDetails.avatar;
+          trademarkText.textContent = botDetails.disclaimerText;
+          messageBody.style.backgroundImage = botDetails.backgroundImage
+            ? `url(${botDetails.backgroundImage})`
+            : "";
+
+        // Fetch and set colors from API
+          async function setColorsFromAPI() {
+            try {
+              const colorResponse = await axiosInstance.get(`/custom-bot/get-customize-by-bot/${botDetails.botId}`, {
+                headers: { 'X-API-Key': apiKey }
+              });
+              const botColors = colorResponse.data.data;
+              console.log("Fetched Colors:", botColors);
+              if (botColors.colors && Object.keys(botColors.colors).length > 0) {
+                applyColors(botColors.colors);
+              } else {
+                console.warn("No colors returned from API, using default colors.");
+                applyColors(botDetails.colors); // Fallback to default colors
+              }
+            } catch (error) {
+              console.error("Failed to fetch bot colors:", {
+                message: error.message,
+                status: error.response?.status,
+                data: error.response?.data,
+              });
+              applyColors(botDetails.colors); // Fallback to default colors on error
+            }
+          }
+
+          setColorsFromAPI();
+        }
+
+        // Fetch bot details
+        async function fetchBotDetails() {
+          if (!instanceId) {
+            console.error("No instanceId provided");
+            botDetails = {
+              botId: null,
+              chatbotName: "Chatbot",
+              disclaimerText: "© 2025 Tata Realty. All rights reserved.",
+              greetingType: "static",
+              greetingMessage: DEFAULT_GREETING,
+              avatar: DEFAULT_AVATAR,
+              colors: {
+                set1: ["#b54b30", "#cd7b3c", "#4b6eaf"],
+                set2: ["#e0b79a", "#e193b9", "#77928b"],
+                set3: ["#00c6ff", "#0072ff", "#4b0082"],
+              },
+              backgroundImage: "",
+            };
+            updateBotDetails();
+            return;
+          }
+
+          try {
+            await resolveInstanceId();
+            if (!botId) {
+              throw new Error("Failed to resolve bot_id");
+            }
+
+            console.log("Fetching bot details for instanceId:", instanceId);
+            const response = await axiosInstance.get(`/custom-bot/get-customize/${instanceId}`, {
+              headers: { 'X-API-Key': apiKey }
+            });
+            console.log("Bot Details API Response:", response.data);
+            const data = response.data.data || {};
+
+            let colors = {
+              set1: ["#b54b30", "#cd7b3c", "#4b6eaf"],
+              set2: ["#e0b79a", "#e193b9", "#77928b"],
+              set3: ["#00c6ff", "#0072ff", "#4b0082"],
+            };
+            try {
+              const colorResponse = await axiosInstance.get(`/custom-bot/get-customize-by-bot/${botId}`, {
+                headers: { 'X-API-Key': apiKey }
+              });
+              console.log("Bot Colors API Response:", colorResponse.data);
+              const botColors = colorResponse.data.data?.colors || {};
+              colors = {
+                set1: Array.isArray(botColors.set1) && botColors.set1.every(c => /^#[0-9A-Fa-f]{6}$|^rgb/.test(c))
+                  ? botColors.set1
+                  : colors.set1,
+                set2: Array.isArray(botColors.set2) && botColors.set2.every(c => /^#[0-9A-Fa-f]{6}$|^rgb/.test(c))
+                  ? botColors.set2
+                  : colors.set2,
+                set3: Array.isArray(botColors.set3) && botColors.set3.every(c => /^#[0-9A-Fa-f]{6}$|^rgb/.test(c))
+                  ? botColors.set3
+                  : colors.set3,
+              };
+              console.log("Transformed Colors:", colors);
+            } catch (error) {
+              console.error("Failed to fetch bot colors:", {
+                message: error.message,
+                status: error.response?.status,
+                data: error.response?.data,
+              });
+            }
+
+            botDetails = {
+              botId: data.bot_id || botId,
+              chatbotName: data.chatbot_name || "Chatbot",
+              disclaimerText: data.disclaimer_text || `© 2025 ${data.chatbot_name || "Chatbot"}. All rights reserved.`,
+              greetingType: data.greeting_type || "dynamic",
+              greetingMessage: data.greeting_type === "static" ? data.greeting_message : null,
+              avatar: data.avatar || DEFAULT_AVATAR,
+              colors: colors,
+              backgroundImage: data.background_image || "",
+            };
+            console.log("Parsed Bot Details:", botDetails);
+            updateBotDetails();
+          } catch (error) {
+            console.error("Error fetching bot details:", {
+              message: error.message,
+              status: error.response?.status,
+              data: error.response?.data,
+            });
+            botDetails = {
+              botId: botId || null,
+              chatbotName: "Chatbot",
+              disclaimerText: "© 2025 Tata Realty. All rights reserved.",
+              greetingType: "static",
+              greetingMessage: DEFAULT_GREETING,
+              avatar: DEFAULT_AVATAR,
+              colors: {
+                set1: ["#b54b30", "#cd7b3c", "#4b6eaf"],
+                set2: ["#e0b79a", "#e193b9", "#77928b"],
+                set3: ["#00c6ff", "#0072ff", "#4b0082"],
+              },
+              backgroundImage: "",
+            };
+            updateBotDetails();
+            messages = [
+              { text: botDetails.greetingMessage, sender: "bot" },
+              {
+                text: `Warning: Failed to load bot details. Using default settings. ${
+                  error.response?.status === 404
+                    ? `Bot not found for instance ID: ${instanceId}.`
+                    : "Please try again later."
+                }`,
+                sender: "bot",
+              },
+            ];
+            renderMessages();
+          }
+        }
+
+        // Initialize chat
+        async function initializeChat() {
+          if (hasFetchedGreeting) return;
+          hasFetchedGreeting = true;
+
+          messages = [{ type: 'loading', sender: 'bot' }];
+          renderMessages();
+
+          try {
+            await fetchBotDetails();
+            if (!botDetails.botId) {
+              messages = [{ text: 'Unable to initialize bot. Please check the instance ID and API key.', sender: 'bot' }];
+              renderMessages();
+              return;
+            }
+
+            if (botDetails.greetingType === 'static' && botDetails.greetingMessage) {
+              messages = [{ text: botDetails.greetingMessage, sender: 'bot' }];
+              renderMessages();
+              return;
+            }
+
+            let historyMessages = [];
+            let historyData = [];
+            try {
+              const token = sessionStorage.getItem("tempToken");
+              const headers = token ? { Authorization: `Bearer ${token}`, 'X-API-Key': apiKey } : { 'X-API-Key': apiKey };
+              const historyResponse = await axiosInstance.get(`/custom-bot/chat-history/${instanceId}`, { headers });
+              console.log('Chat History API Response:', historyResponse.data);
+              historyData = historyResponse.data.data?.history || [];
+              historyMessages = historyData.map(entry => ({
+                text: entry.response,
+                sender: entry.query === 'static_greeting' ? 'bot' : entry.query === 'user' ? 'user' : 'bot'
+              }));
+              history = historyMessages;
+            } catch (error) {
+              console.error('Error fetching chat history:', {
+                message: error.message,
+                status: error.response?.status,
+                data: error.response?.data
+              });
+              if (error.response?.status === 404) {
+                console.log('No chat history found for instanceId:', instanceId);
+                history = [];
+                historyData = [];
+              } else {
+                history = [];
+                historyData = [];
+              }
+            }
+
+            let recentGreeting = historyMessages.find(
+              msg =>
+                msg.sender === 'bot' &&
+                historyData.some(
+                  entry =>
+                    entry.response === msg.text &&
+                    entry.query === 'hello' &&
+                    new Date(entry.created_at) > new Date(Date.now() - 5 * 60 * 1000)
+                )
+            );
+
+            if (recentGreeting) {
+              messages = [{ text: recentGreeting.text, sender: 'bot' }];
+            } else {
+              messages = [{ text: DEFAULT_GREETING, sender: 'bot' }];
+            }
+          } catch (error) {
+            console.error('Error initializing greeting:', {
+              message: error.message,
+              status: error.response?.status,
+              data: error.response?.data
+            });
+            messages = [{ text: DEFAULT_GREETING, sender: 'bot' }];
+          }
+          renderMessages();
+        }
+
+        // Render messages
+        function renderMessages() {
+          messagesContainer.innerHTML = "";
+          messages.forEach((msg, index) => {
+            const messageDiv = document.createElement("div");
+            messageDiv.className = `message ${
+              msg.sender === "user" ? "user-message" : "robot-message"
+            }`;
+            if (msg.type === "loading") {
+              const spinnerDiv = document.createElement("div");
+              spinnerDiv.className = "message-spinner";
+              const spinner = document.createElement("div");
+              spinner.className = "spinner";
+              spinnerDiv.appendChild(spinner);
+              messageDiv.appendChild(spinnerDiv);
+            } else {
+              messageDiv.textContent = msg.text;
+            }
+            messagesContainer.appendChild(messageDiv);
+          });
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // Send message
+        async function sendMessage(e) {
+          e.preventDefault();
+          if (!chatInput.value.trim() || isSending) return;
+          isSending = true;
+
+          if (sendRetryCount >= MAX_RETRIES) {
+            messages = [
+              ...messages.slice(0, -1),
+              { text: "Failed to send message after multiple attempts.", sender: "bot" }
+            ];
+            renderMessages();
+            isSending = false;
+            sendRetryCount = 0;
+            return;
+          }
+
+          const userMessage = { text: chatInput.value, sender: 'user' };
+          messages.push(userMessage, { type: 'loading', sender: 'bot' });
+          renderMessages();
+          chatInput.value = '';
+
+          try {
+            if (!isVerified) {
+              const verified = await getClientInfo();
+              if (!verified) {
+                isSending = false;
+                return;
+              }
+            }
+
+            const token = sessionStorage.getItem("tempToken");
+            if (!token) {
+              messages = [
+                ...messages.slice(0, -1),
+                { text: "Error: Authentication token missing. Please try again.", sender: "bot" }
+              ];
+              renderMessages();
+              isSending = false;
+              return;
+            }
+
+            const response = await axiosInstance.post(
+              '/multi_agents/get_chat',
+              {
+                query: userMessage.text,
+                bot_id: botDetails.botId,
+                history: messages
+                  .filter(msg => msg.type !== 'loading')
+                  .map(msg => ({
+                    query: msg.sender === 'user' ? msg.text : '',
+                    response: msg.sender === 'bot' ? msg.text : ''
+                  }))
+              },
+              {
+                timeout: DEPENDENCY_TIMEOUT,
+                headers: { Authorization: `Bearer ${token}`, 'X-API-Key': apiKey }
+              }
+            );
+            console.log('Message API Response:', response.data);
+            let botResponse = response.data.response || 'No response from bot';
+            botResponse = botResponse.replace(/^"(.*)"$/, '$1');
+            messages = [...messages.slice(0, -1), { text: botResponse, sender: 'bot' }];
+            sendRetryCount = 0;
+          } catch (error) {
+            console.error('Error sending message:', {
+              message: error.message,
+              status: error.response?.status,
+              data: error.response?.data
+            });
+            let errorMessage = 'Error: Failed to process your message. Please try again.';
+            if (error.response?.status === 403) {
+              errorMessage = 'Error: Access denied. Please check your permissions.';
+            } else if (error.response?.status === 404) {
+              errorMessage = 'Error: Chat service not found. Please contact support.';
+            } else if (error.response?.status === 400) {
+              errorMessage = 'Invalid request. Instance ID or API key may be missing.';
+            } else if (error.response?.status === 401) {
+              errorMessage = 'Error: Authentication failed. Please try again.';
+            }
+            messages = [...messages.slice(0, -1), { text: errorMessage, sender: 'bot' }];
+            sendRetryCount++;
+          }
+          renderMessages();
+          isSending = false;
+        }
+
+        // Toggle minimize
+        function toggleMinimize() {
+          isMinimized = !isMinimized;
+          chatbotContainer.classList.toggle("minimized", isMinimized);
+          if (isMenuOpen) {
+            isMenuOpen = false;
+            chatMenu.classList.remove("active");
+          }
+        }
+
+        // Toggle menu
+        function toggleMenu() {
+          isMenuOpen = !isMenuOpen;
+          chatMenu.classList.toggle("active", isMenuOpen);
+        }
+
+        // Clear chat
+        function clearChat() {
+          const greetingMessage =
+            botDetails?.greetingType === "static" && botDetails?.greetingMessage
+              ? botDetails.greetingMessage
+              : DEFAULT_GREETING;
+          messages = [{ text: greetingMessage, sender: "bot" }];
+          renderMessages();
+          toggleMenu();
+        }
+
+        // Download chat
+        function downloadChat() {
+          const chatContent = messages
+            .filter((msg) => msg.type !== "loading")
+            .map((msg) => `${msg.sender}: ${msg.text}`)
+            .join("\n");
+          const blob = new Blob([chatContent], { type: "text/plain" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "chat_history.txt";
+          a.click();
+          URL.revokeObjectURL(url);
+          toggleMenu();
+        }
+
+        // Load chat history
+        async function loadHistory() {
+          try {
+            const token = sessionStorage.getItem("tempToken");
+            if (!token) {
+              messages = [
+                ...messages,
+                { text: "Error: Authentication token missing. Please send a message to authenticate.", sender: "bot" }
+              ];
+              renderMessages();
+              return;
+            }
+            const historyResponse = await axiosInstance.get(`/custom-bot/chat-history/${instanceId}`, {
+              headers: { Authorization: `Bearer ${token}`, 'X-API-Key': apiKey }
+            });
+            console.log('Load History API Response:', historyResponse.data);
+            const historyData = historyResponse.data.data?.history || [];
+            const historyMessages = historyData.map(entry => ({
+              text: entry.response,
+              sender: entry.query === 'static_greeting' ? 'bot' : entry.query === 'user' ? 'user' : 'bot'
+            }));
+            history = historyMessages;
+            messages = [
+              ...historyMessages,
+              ...messages.filter(
+                msg => msg.sender === 'user' || !historyMessages.some(h => h.text === msg.text)
+              )
+            ];
+          } catch (error) {
+            console.error('Error loading chat history:', {
+              message: error.message,
+              status: error.response?.status,
+              data: error.response?.data
+            });
+            let errorMessage =
+              error.response?.status === 404
+                ? 'No chat history available.'
+                : error.response?.status === 400
+                ? 'Invalid request. Instance ID or API key may be missing.'
+                : error.response?.status === 401
+                ? 'Unauthorized. Please check your API key.'
+                : error.response?.status === 403
+                ? 'Access denied. Unable to load chat history.'
+                : 'Failed to load chat history.';
+            messages = [...messages, { text: errorMessage, sender: 'bot' }];
+          }
+          renderMessages();
+          toggleMenu();
+        }
+
+        // Event listeners
+        inputForm.addEventListener("submit", sendMessage);
+        chatCloseBtn.addEventListener("click", toggleMinimize);
+        chatMenuBtn.addEventListener("click", toggleMenu);
+        minimizedContent.addEventListener("click", toggleMinimize);
+        clearChatBtn.addEventListener("click", clearChat);
+        downloadBtn.addEventListener("click", downloadChat);
+        loadHistoryBtn.addEventListener("click", loadHistory);
+
+        // Initialize
+        await initializeChat();
+
+        // Refresh token periodically if verified
+        setInterval(async () => {
+          if (isVerified) {
+            console.log("Refreshing token...");
+            await getClientInfo();
+          }
+        }, TOKEN_REFRESH_INTERVAL);
+      });
+    </script>
+  </body>
+</html>

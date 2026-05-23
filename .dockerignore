@@ -1,0 +1,65 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv/
+ENV/
+env/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Local config
+.env
+.env.*
+!.env.example
+
+# Uploads and generated files
+uploads/
+knowledge_bases/
+*.png
+*.jpg
+*.jpeg
+*.pdf
+*.xlsx
+*.csv
+
+# Misc
+*.md
+*.txt
+!requirements.txt
+!requirements-cpu.txt
+!requirements-gpu.txt
+*.zip
+*.tar.gz
+.DS_Store
+Thumbs.db
+
+# Test files
+tests/
+test_*.py
+*_test.py
+*.ipynb
+
+# Workflow diagrams (generated)
+workflow_graph_*.png
+graph_*.png
+

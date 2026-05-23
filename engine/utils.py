@@ -1,0 +1,1254 @@
+#engine/utils.py
+import os
+import json
+import re
+import requests
+from sqlalchemy.orm import joinedload
+from dotenv import load_dotenv
+
+from app.database.DatabaseOperationPostgreSQL import db_session
+from app.models.mcp_agent_tools import McpAgentTools
+from app.models.mcp_tools import McpTools
+from app.models.agent import Agent
+from app.models.llm import LLM
+from app.models.basellm import BaseLLM
+from app.models.embedding_model import EmbeddingModel
+from app.models.system_embedding_model import SystemEmbeddingModel
+from app.models.knowledge_base import KnowledgeBase
+from app.services.encryption_utils import decrypt_value
+from logging_config import setup_logging
+
+
+load_dotenv()
+
+logger = setup_logging("engine_utils", level="DEBUG")
+
+MCP_SERVICE_URL    = os.getenv("MCP_SERVICE_URL", "http://mcp-service:5006")
+CONSTANT_ENDPOINT = "https://mcp.jnanic.com/call_tool"
+CONSTANT_METHOD   = "POST"
+
+# Tools that are always available — no OAuth / MCP record needed
+UTILITY_TOOLS = {"system", "llm", "text", "file", "invoke", "tavily"}
+
+
+def _normalize_mcp_server_params(mcp_url: str, mcp_json: dict | None) -> dict:
+    """Build runtime MCP server params from DB config."""
+    config = mcp_json if isinstance(mcp_json, dict) else {}
+    transport = str(config.get("transport") or "").strip().lower()
+
+    # Jnanic/default MCP should run through local stdio server.
+    if not transport or transport == "stdio" or "mcp.jnanic.com" in str(mcp_url or ""):
+        logger.info(
+            "[MCP TRANSPORT] Selected stdio | mcp_url=%s | db_transport=%s",
+            mcp_url,
+            transport or "missing",
+        )
+        return {"transport": "stdio"}
+
+    if transport in {"http", "sse", "streamable-http"}:
+        out = {
+            "transport": transport,
+            "url": config.get("url"),
+        }
+        if isinstance(config.get("headers"), dict):
+            out["headers"] = config.get("headers")
+        if config.get("timeout") is not None:
+            out["timeout"] = config.get("timeout")
+        logger.info(
+            "[MCP TRANSPORT] Selected remote | transport=%s | url=%s | headers=%s | timeout=%s",
+            out.get("transport"),
+            out.get("url"),
+            bool(out.get("headers")),
+            out.get("timeout"),
+        )
+        return out
+
+    # Fallback safety
+    logger.warning(
+        "[MCP TRANSPORT] Unsupported DB transport '%s' for mcp_url=%s. Falling back to stdio.",
+        transport,
+        mcp_url,
+    )
+    return {"transport": "stdio"}
+
+
+_mcp_definitions_cache: dict | None = None
+
+
+def _normalize_tool_name(name: str) -> str:
+    return "".join(ch for ch in str(name or "").lower() if ch.isalnum())
+
+
+def _normalize_model_id(provider: str, model_name: str) -> str:
+    """
+    Convert UI/display model labels to provider API model IDs.
+    Keeps unknown values unchanged to avoid breaking custom/private deployments.
+    """
+    raw_model = (model_name or "").strip()
+    if not raw_model:
+        return raw_model
+
+    provider_norm = (provider or "").strip().lower()
+    label_norm = re.sub(r"\s+", " ", raw_model).strip().lower()
+
+    if provider_norm == "openai":
+        openai_aliases = {
+            "gpt-4o (omni)": "gpt-4o",
+            "gpt 4o (omni)": "gpt-4o",
+            "gpt4o (omni)": "gpt-4o",
+            "gpt-4o": "gpt-4o",
+            "gpt 4o": "gpt-4o",
+            "gpt-4o-mini (omni)": "gpt-4o-mini",
+            "gpt 4o mini (omni)": "gpt-4o-mini",
+            "gpt-4o-mini": "gpt-4o-mini",
+            "gpt 4o mini": "gpt-4o-mini",
+            # Realtime models are not valid for the chat-completions path used
+            # by create_agent in this service. Fallback to a compatible model.
+            "gpt-realtime-1.5": "gpt-4o",
+            "gpt realtime 1.5": "gpt-4o",
+            "gpt-realtime": "gpt-4o",
+        }
+        if label_norm in openai_aliases:
+            return openai_aliases[label_norm]
+
+        # Guardrail for any OpenAI realtime model variants that are not
+        # supported by this chat-completions integration path.
+        if "realtime" in label_norm:
+            return "gpt-4o"
+
+        # Fallback: remove parenthetical UI suffixes and normalize spaces.
+        candidate = re.sub(r"\s*\([^)]*\)\s*", "", label_norm).strip()
+        candidate = candidate.replace("_", "-")
+        candidate = re.sub(r"\s+", "-", candidate)
+        candidate = re.sub(r"-+", "-", candidate)
+        if candidate.startswith("gpt-"):
+            return candidate
+
+    elif provider_norm == "anthropic":
+        anthropic_aliases = {
+            "claude 3.5 sonnet": "claude-3-5-sonnet-latest",
+            "claude-3.5-sonnet": "claude-3-5-sonnet-latest",
+            "claude 3 sonnet": "claude-3-sonnet-20240229",
+            "claude-3-sonnet": "claude-3-sonnet-20240229",
+            "claude 3 haiku": "claude-3-haiku-20240307",
+            "claude-3-haiku": "claude-3-haiku-20240307",
+            "claude 3 opus": "claude-3-opus-20240229",
+            "claude-3-opus": "claude-3-opus-20240229",
+        }
+        if label_norm in anthropic_aliases:
+            return anthropic_aliases[label_norm]
+
+    return raw_model
+
+
+def _infer_provider_from_model(model_name: str) -> str:
+    """
+    Best-effort provider inference from model id/label.
+    Returns: "openai", "anthropic", or "" when unknown.
+    """
+    raw = (model_name or "").strip().lower()
+    if not raw:
+        return ""
+
+    # Anthropic family
+    if "claude" in raw:
+        return "anthropic"
+
+    # OpenAI families commonly used in this project
+    if (
+        raw.startswith(("gpt", "o1", "o3", "o4", "text-embedding"))
+        or "realtime" in raw
+    ):
+        return "openai"
+
+    return ""
+
+
+def _infer_embedding_provider_from_model(model_name: str) -> str:
+    raw = (model_name or "").strip().lower()
+    if not raw:
+        return ""
+    if raw.startswith("text-embedding"):
+        return "openai"
+    return ""
+
+
+def _maybe_decrypt_secret(value: str) -> str:
+    if not value:
+        return ""
+    if not isinstance(value, str):
+        return str(value)
+    try:
+        return decrypt_value(value)
+    except Exception:
+        # Value may already be plaintext.
+        return value
+
+
+def _get_mcp_definitions() -> dict:
+    """
+    Fetch all action definitions from the MCP service.
+    Cached per process lifetime (restarted with container).
+    Returns: {"gmail": [{"action": ..., "category": ..., "parameters": [...]}], ...}
+    """
+    global _mcp_definitions_cache
+    if _mcp_definitions_cache is not None:
+        return _mcp_definitions_cache
+
+    try:
+        resp = requests.post(
+            f"{MCP_SERVICE_URL}/connect_mcp",
+            json={
+                "mcpServers": {
+                    "main-server": {
+                        "command": "/usr/local/bin/python",
+                        "args": ["/app/mcp_server.py"],
+                        "env": {},
+                        "transport": "stdio"
+                    }
+                }
+            },
+            timeout=15
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            tools_data = data.get("tools", {})
+            lookup = {}
+            if isinstance(tools_data, dict):
+                for category, actions in tools_data.items():
+                    lookup[category.lower()] = actions
+            _mcp_definitions_cache = lookup
+            logger.info(f"✅ MCP definitions loaded: {list(lookup.keys())}")
+            return lookup
+    except Exception as e:
+        logger.warning(f"⚠️ Could not fetch MCP definitions from service: {e}")
+    return {}
+
+
+def _find_action_in_mcp_definitions(action_name: str) -> dict | None:
+    """
+    Resolve an action from live MCP definitions (category + parameters).
+    Useful when DB stores generic invoker-style actions without category.
+    """
+    defs = _get_mcp_definitions()
+    if not defs:
+        return None
+
+    for category_key, actions in defs.items():
+        if not isinstance(actions, list):
+            continue
+
+        for action in actions:
+            if not isinstance(action, dict):
+                continue
+            if action.get("action") != action_name:
+                continue
+
+            resolved = dict(action)
+            resolved["category"] = resolved.get("category") or str(category_key).capitalize()
+            if not isinstance(resolved.get("parameters"), list):
+                resolved["parameters"] = []
+            return resolved
+
+    return None
+
+
+# def get_agent_kb_collections(agent_id: int) -> list[str]:
+#     """
+#     Fetch collection names for all knowledge bases linked to this agent.
+#     Supports both new: knowledge_base_ids (list) and legacy: knowledge_base_id (single FK).
+#     """
+
+#     session = next(db_session())
+
+#     # Fetch agent
+#     agent = session.query(Agent).filter(
+#         Agent.agent_id == agent_id,
+#         Agent.del_flg == False
+#     ).first()
+
+#     if not agent:
+#         session.close()
+#         raise ValueError(f"Agent ID {agent_id} not found")
+
+#     kb_ids = []
+
+#     # ---- NEW FEATURE: Read multiple KB IDs ----
+#     if agent.knowledge_base_ids and isinstance(agent.knowledge_base_ids, list):
+#         kb_ids.extend(agent.knowledge_base_ids)
+#         logger.info(f"✅ Found knowledge_base_ids: {agent.knowledge_base_ids}")
+
+#     # ---- BACKWARD COMPAT MODE: Read old single field ----
+#     if hasattr(agent, "knowledge_base_id") and agent.knowledge_base_id:
+#         kb_ids.append(agent.knowledge_base_id)
+#         logger.info(f"✅ Found legacy knowledge_base_id: {agent.knowledge_base_id}")
+
+#     # Remove duplicates
+#     kb_ids = list(set([int(k) for k in kb_ids if k is not None]))
+#     logger.info(f"🔍 Final kb_ids to query: {kb_ids}")
+
+#     if not kb_ids:
+#         logger.warning(f"⚠️ No KB IDs found for agent {agent_id}")
+#         session.close()
+#         return []
+
+#     # Fetch valid KB entries
+#     kb_items = session.query(KnowledgeBase).filter(
+#         KnowledgeBase.knowledge_base_id.in_(kb_ids),
+#         KnowledgeBase.del_flg == False,
+#         KnowledgeBase.collection_name.isnot(None),
+#         KnowledgeBase.collection_name != ""
+#     ).all()
+
+#     logger.info(f"🔍 Found {len(kb_items)} KB entries")
+#     for kb in kb_items:
+#         logger.info(f"  - KB {kb.knowledge_base_id}: collection_name = '{kb.collection_name}'")
+
+#     session.close()
+
+#     # Return only the Qdrant collection names
+#     collections = [kb.collection_name for kb in kb_items]
+#     logger.info(f"✅ Returning collections: {collections}")
+#     return collections
+
+def get_agent_kb_collections(agent_id: int, override_kb_ids: list[int] | None = None) -> dict:
+    """
+    Fetch KB metadata for all knowledge bases linked to this agent.
+
+    Supports:
+    - NEW: knowledge_base_ids (list)
+    - LEGACY: knowledge_base_id (single FK)
+
+    Returns:
+    {
+        "knowledge_bases": [
+            {
+                "kb_id": int,
+                "collection_name": str,
+                "summary": str
+            }
+        ],
+        "default_kb_id": Optional[int]
+    }
+    """
+
+    session = next(db_session())
+
+    try:
+        agent = session.query(Agent).filter(
+            Agent.agent_id == agent_id,
+            Agent.del_flg == False
+        ).first()
+        # Verify agent exists and capture its tenant for KB isolation below
+
+
+        if not agent:
+            raise ValueError(f"Agent ID {agent_id} not found")
+
+        kb_ids: list[int] = []
+
+        # ---- KB IDS ----
+        # Priority 1: workflow/node override (if provided)
+        if isinstance(override_kb_ids, list) and len(override_kb_ids) > 0:
+            kb_ids.extend(override_kb_ids)
+            logger.info(f"✅ Using override knowledge_base_ids from workflow node: {override_kb_ids}")
+        else:
+            # Priority 2: persisted agent mapping
+            knowledge_base_ids = getattr(agent, "knowledge_base_ids", None) or []
+            if isinstance(knowledge_base_ids, list):
+                kb_ids.extend(knowledge_base_ids)
+                logger.info(f"✅ Found knowledge_base_ids: {knowledge_base_ids}")
+
+        # Normalize + dedupe (preserve original order)
+        normalized_ids = []
+        seen_ids = set()
+        for raw_id in kb_ids:
+            if raw_id is None:
+                continue
+            kb_id = int(raw_id)
+            if kb_id in seen_ids:
+                continue
+            seen_ids.add(kb_id)
+            normalized_ids.append(kb_id)
+        kb_ids = normalized_ids
+
+        logger.info(f"🔍 Final KB IDs to resolve: {kb_ids}")
+
+        if not kb_ids:
+            logger.warning(f"⚠️ No KB IDs linked to agent {agent_id}")
+            return {
+                "knowledge_bases": [],
+                "default_kb_id": None
+            }
+
+        kb_items = session.query(KnowledgeBase).filter(
+            KnowledgeBase.knowledge_base_id.in_(kb_ids),
+            KnowledgeBase.tenant_id == agent.tenant_id,  # enforce tenant ownership
+            KnowledgeBase.del_flg == False,
+            KnowledgeBase.collection_name.isnot(None),
+            KnowledgeBase.collection_name != ""
+        ).all()
+
+        knowledge_bases = []
+
+        requested_order = [int(k) for k in kb_ids]
+        kb_items_by_id = {int(kb.knowledge_base_id): kb for kb in kb_items}
+
+        eligible_kbs = []
+        skipped_kbs = []
+        for kb_id in requested_order:
+            kb = kb_items_by_id.get(kb_id)
+            if not kb:
+                skipped_kbs.append((kb_id, "missing record/collection"))
+                continue
+
+            # Runtime guard: only use KBs that are actually built and chunked.
+            kb_status = (getattr(kb, "status", "") or "").strip().lower()
+            kb_chunks = int(getattr(kb, "total_chunks", 0) or 0)
+            is_ready = kb_chunks > 0 and kb_status == "completed"
+            if is_ready:
+                eligible_kbs.append(kb)
+            else:
+                skipped_kbs.append(
+                    (kb_id, f"status={kb_status or '-'} total_chunks={kb_chunks}")
+                )
+
+        if skipped_kbs:
+            for kb_id, reason in skipped_kbs:
+                logger.warning(f"⚠️ Skipping KB id={kb_id} because it is not ready ({reason})")
+
+        for kb in eligible_kbs:
+            knowledge_bases.append({
+                "kb_id": kb.knowledge_base_id,
+                "collection_name": kb.collection_name,
+                "summary": kb.kb_summary or ""
+            })
+
+            logger.info(
+                f"📘 KB Loaded | id={kb.knowledge_base_id} "
+                f"| collection={kb.collection_name} "
+                f"| summary_present={bool(kb.kb_summary)}"
+            )
+
+        if not knowledge_bases:
+            logger.warning(
+                "⚠️ No eligible KBs after readiness filtering for agent %s (requested_ids=%s)",
+                agent_id,
+                requested_order,
+            )
+
+        default_kb_id = knowledge_bases[0]["kb_id"] if knowledge_bases else None
+        return {
+            "knowledge_bases": knowledge_bases,
+            "default_kb_id": default_kb_id
+        }
+
+    finally:
+        session.close()
+
+
+def safe_json_load(value):
+    """Safely parse JSON that may be dict, list, or string."""
+    if isinstance(value, (dict, list)):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            return parsed
+        except Exception:
+            return {}
+    return {}
+
+
+def _normalize_action_def(
+    action_name: str,
+    action_def: dict | None,
+    default_category: str,
+    default_description: str,
+) -> dict:
+    """
+    Ensure each tool action matches the langgraph ToolDefinition schema.
+    """
+    normalized = dict(action_def) if isinstance(action_def, dict) else {}
+    normalized["action"] = normalized.get("action") or action_name
+    normalized["category"] = normalized.get("category") or default_category
+    normalized["description"] = normalized.get("description") or default_description
+
+    # Pydantic expects a list for parameters; coerce bad/absent values.
+    if not isinstance(normalized.get("parameters"), list):
+        normalized["parameters"] = []
+
+    return normalized
+
+
+def _resolve_embedding_config(session, agent: Agent, tenant_id: int, agent_id: int) -> dict:
+    """
+    Resolve embedding provider/model/key from DB (dynamic-first).
+
+    Priority:
+    1) Agent safe_ai_settings overrides (if present)
+    2) Tenant LLM rows where base model type is Embedding
+    3) Tenant-specific tbl_embedding_models row
+    4) System tbl_system_embedding_models row
+    5) Tenant OpenAI chat key + embedding model from tbl_basellm (DB catalog)
+    """
+    provider = ""
+    model = ""
+    api_key = ""
+    source = "none"
+
+    # 1) Agent safe_ai_settings overrides
+    safe_ai_raw = getattr(agent, "safe_ai_settings", {}) or {}
+    safe_ai = safe_ai_raw if isinstance(safe_ai_raw, dict) else safe_json_load(safe_ai_raw)
+    if isinstance(safe_ai, dict):
+        provider = str(
+            safe_ai.get("embedding_provider")
+            or safe_ai.get("kb_embedding_provider")
+            or ""
+        ).strip().lower()
+        model = str(
+            safe_ai.get("embedding_model")
+            or safe_ai.get("kb_embedding_model")
+            or ""
+        ).strip()
+        api_key = _maybe_decrypt_secret(
+            safe_ai.get("embedding_api_key")
+            or safe_ai.get("kb_embedding_api_key")
+            or ""
+        )
+        if (model or api_key) and not provider:
+            provider = _infer_embedding_provider_from_model(model)
+        if provider and model and api_key:
+            source = "agent.safe_ai_settings"
+
+    # 2) Tenant LLM row with embedding model type
+    if not (provider and model and api_key):
+        tenant_llms = (
+            session.query(LLM)
+            .options(joinedload(LLM.base_llm))
+            .filter(LLM.tenant_id == tenant_id, LLM.del_flg != True)
+            .order_by(LLM.llm_id.desc())
+            .all()
+        )
+        for tenant_llm in tenant_llms:
+            base = getattr(tenant_llm, "base_llm", None)
+            if not base:
+                continue
+            model_type = str(getattr(base, "base_model_type", "") or "").strip().lower()
+            if "embedding" not in model_type:
+                continue
+
+            resolved_provider = str(getattr(base, "base_provider", "") or "").strip().lower()
+            resolved_model = str(getattr(base, "base_model_name", "") or "").strip()
+            resolved_key = _maybe_decrypt_secret(getattr(tenant_llm, "llm_secret_key", ""))
+
+            if not provider:
+                provider = resolved_provider
+            if not model:
+                model = resolved_model
+            if not api_key:
+                api_key = resolved_key
+            if provider and model and api_key:
+                source = "tbl_llm.embedding"
+                break
+
+    # 3) Tenant embedding model table (legacy/global-style table)
+    if not (provider and model and api_key):
+        tenant_embedding = (
+            session.query(EmbeddingModel)
+            .filter(EmbeddingModel.del_flg != True)
+            .order_by(EmbeddingModel.embedding_id.desc())
+            .first()
+        )
+        if tenant_embedding:
+            if not provider:
+                provider = _infer_embedding_provider_from_model(tenant_embedding.model_name)
+            if not model:
+                model = str(tenant_embedding.model_name or "").strip()
+            if not api_key:
+                api_key = _maybe_decrypt_secret(getattr(tenant_embedding, "api_key", ""))
+            if provider and model and api_key:
+                source = "tbl_embedding_models"
+
+    # 4) System embedding model table
+    if not (provider and model and api_key):
+        system_embedding = (
+            session.query(SystemEmbeddingModel)
+            .filter(SystemEmbeddingModel.del_flg != True)
+            .order_by(SystemEmbeddingModel.embedding_id.desc())
+            .first()
+        )
+        if system_embedding:
+            if not provider:
+                provider = _infer_embedding_provider_from_model(system_embedding.model_name)
+            if not model:
+                model = str(system_embedding.model_name or "").strip()
+            if not api_key:
+                api_key = _maybe_decrypt_secret(getattr(system_embedding, "api_key", ""))
+            if provider and model and api_key:
+                source = "tbl_system_embedding_models"
+
+    # 5) DB-only fallback: use tenant OpenAI key + cataloged OpenAI embedding model
+    if not (provider and model and api_key):
+        if not api_key:
+            tenant_openai_llm = (
+                session.query(LLM)
+                .options(joinedload(LLM.base_llm))
+                .filter(LLM.tenant_id == tenant_id, LLM.del_flg != True)
+                .order_by(LLM.llm_id.desc())
+                .all()
+            )
+            for tenant_llm in tenant_openai_llm:
+                base = getattr(tenant_llm, "base_llm", None)
+                if not base:
+                    continue
+                provider_name = str(getattr(base, "base_provider", "") or "").strip().lower()
+                if provider_name != "openai":
+                    continue
+                api_key = _maybe_decrypt_secret(getattr(tenant_llm, "llm_secret_key", ""))
+                if api_key:
+                    break
+
+        if not model:
+            preferred_models = [
+                "text-embedding-3-small",
+                "text-embedding-3-large",
+                "text-embedding-ada-002",
+            ]
+            for preferred in preferred_models:
+                row = (
+                    session.query(BaseLLM)
+                    .filter(
+                        BaseLLM.del_flg != True,
+                        BaseLLM.base_provider.ilike("openai"),
+                        BaseLLM.base_model_name.ilike(preferred),
+                    )
+                    .first()
+                )
+                if row:
+                    model = row.base_model_name
+                    break
+
+            if not model:
+                row = (
+                    session.query(BaseLLM)
+                    .filter(
+                        BaseLLM.del_flg != True,
+                        BaseLLM.base_provider.ilike("openai"),
+                        BaseLLM.base_model_type.ilike("embedding"),
+                    )
+                    .order_by(BaseLLM.base_llm_id.desc())
+                    .first()
+                )
+                if row:
+                    model = row.base_model_name
+
+        if not provider and model:
+            provider = _infer_embedding_provider_from_model(model)
+        if provider and model and api_key:
+            source = "db_fallback_openai_embedding"
+
+    logger.info(
+        "Embedding config resolved | agent_id=%s source=%s provider=%s model=%s key_present=%s",
+        agent_id,
+        source,
+        provider or "missing",
+        model or "missing",
+        bool(api_key),
+    )
+
+    return {
+        "provider": provider,
+        "model": model,
+        "api_key": api_key,
+        "source": source,
+    }
+
+    
+def prepare_agent_input(
+    agent_id: int,
+    task: str = "",
+    use_temp_llm: bool = False,
+    use_temp_mcp_endpoint: bool = False,
+    override_tenant_id: int = None,
+    override_kb_ids: list[int] | None = None,
+    agent_type: str = None,  # 🆕 ADD THIS
+    llm_model_override: str = None,  # 🆕 ADD THIS FOR DYNAMIC MODEL
+) -> dict:
+    """
+    Prepare the full agent input payload by fetching metadata, MCP tool configs,
+    and LLM info.
+
+    ✅ Keeps same structure and logic
+    ✅ Endpoint constant: https://mcp.jnanic.com/call_tool
+    ✅ Adds 'method': 'POST'
+    ✅ Uses the category name from DB as the key (e.g., "Gmail", not "gmail")
+    ✅ override_tenant_id: use this tenant's MCP tools instead of agent owner's
+       (required for prebuilt/cloned agents so correct OAuth tools are found)
+    """
+
+    session = next(db_session())
+    try:
+        # 1️⃣ Fetch Agent Metadata
+        agent_query = session.query(Agent)
+        if not use_temp_llm:
+            agent_query = agent_query.options(
+                joinedload(Agent.llm_model).joinedload(LLM.base_llm),
+                joinedload(Agent.llm_model).joinedload(LLM.provider),
+                joinedload(Agent.llm_model).joinedload(LLM.model_name),
+            )
+            
+
+        agent = agent_query.filter(
+            Agent.agent_id == agent_id,
+            Agent.del_flg == False
+        ).first()
+
+        if not agent:
+            raise ValueError(f"Agent with id={agent_id} not found")
+
+        # Use override_tenant_id if provided (for prebuilt/cloned agents)
+        # This ensures we look up the RUNNING tenant's tools, not the agent owner's
+        tenant_id = override_tenant_id if override_tenant_id else agent.tenant_id
+        logger.info(
+            f"✅ Agent found: {agent.agent_name} "
+            f"(agent.tenant_id={agent.tenant_id}, resolved_tenant_id={tenant_id})"
+        )
+        logger.info(
+            "Agent DB links | agent_id=%s llm_provider_id=%s llm_model_id=%s llm_rel_id=%s",
+            agent_id,
+            getattr(agent, "llm_provider_id", None),
+            getattr(agent, "llm_model_id", None),
+            getattr(agent, "llm_id", None),
+        )
+
+        # 2️⃣ Fetch Agent Tool Mappings
+        agent_tools = session.query(McpAgentTools).filter(
+            McpAgentTools.agent_id == agent_id,
+            McpAgentTools.del_flag == False
+        ).all()
+
+        # 3️⃣ Fetch Tenant Tools (from tbl_mcp_tools)
+        tenant_tools = session.query(McpTools).filter(
+            McpTools.tenant_id == tenant_id,
+            McpTools.del_flag == False
+        ).all()
+
+        tools_config = {}
+
+        # 4️⃣ Build Tool Config
+        for at in agent_tools:
+            tool_name = at.tool_name.strip()
+            
+            # 🔧 Normalize generic tool names (e.g., 'invoker' → 'gmail') based on actions
+            action_tools_list = []
+            if isinstance(at.action_tools, list):
+                action_tools_list = at.action_tools
+            elif isinstance(at.action_tools, dict):
+                action_tools_list = list(at.action_tools.values())
+            elif isinstance(at.action_tools, str):
+                try:
+                    parsed = json.loads(at.action_tools)
+                    action_tools_list = parsed if isinstance(parsed, list) else []
+                except Exception:
+                    action_tools_list = []
+            
+            # Map generic tool names to specific ones based on actions
+            if tool_name.lower() in ("invoker", "generic", "unknown", ""):
+                if action_tools_list:
+                    all_actions = " ".join(str(a) for a in action_tools_list).lower()
+                    if any(x in all_actions for x in ("gmail", "email", "message_full")):
+                        tool_name = "gmail"
+                    elif any(x in all_actions for x in ("hubspot", "contact", "company", "deal")):
+                        tool_name = "hubspot"
+                    elif any(x in all_actions for x in ("calendar", "event")):
+                        tool_name = "calendar"
+                    elif any(x in all_actions for x in ("sheet", "spreadsheet")):
+                        tool_name = "sheets"
+                    elif any(x in all_actions for x in ("map", "gmaps", "location", "commute")):
+                        tool_name = "gmaps"
+            
+            normalized_tool_name = _normalize_tool_name(tool_name)
+            logger.info(f"⚙️ Processing agent tool: {tool_name}")
+
+            # Match tool in tenant MCP tools
+            mcp_tool = None
+            for t in tenant_tools:
+                try:
+                    mcp_tools_field = t.mcp_tools
+                    if isinstance(mcp_tools_field, str):
+                        mcp_tools_field = json.loads(mcp_tools_field)
+                    if isinstance(mcp_tools_field, dict):
+                        normalized_keys = {_normalize_tool_name(key) for key in mcp_tools_field.keys()}
+                        if normalized_tool_name in normalized_keys:
+                            mcp_tool = t
+                            break
+                    if isinstance(mcp_tools_field, list):
+                        normalized_items = {_normalize_tool_name(item) for item in mcp_tools_field}
+                        if normalized_tool_name in normalized_items:
+                            mcp_tool = t
+                            break
+                except Exception as e:
+                    logger.warning(f"⚠️ Error parsing mcp_tools for {t.mcp_name}: {e}")
+                    continue
+
+            # Fallback match by MCP URL when agent tool_name differs from DB tool key
+            # (common for external MCP where agent tool label is generic like "invoker").
+            if not mcp_tool and getattr(at, "mcp_url", None):
+                agent_mcp_url = str(getattr(at, "mcp_url", "")).strip()
+                mcp_tool = next(
+                    (
+                        t for t in tenant_tools
+                        if str(getattr(t, "mcp_url", "")).strip() == agent_mcp_url
+                    ),
+                    None,
+                )
+                if mcp_tool:
+                    logger.info(
+                        "✅ Matched external MCP by URL for tool '%s' -> mcp_name='%s' url=%s",
+                        tool_name,
+                        getattr(mcp_tool, "mcp_name", "unknown"),
+                        agent_mcp_url,
+                    )
+
+            if not mcp_tool:
+                # ── Fallback: load action defs directly from MCP service ──────
+                # This handles prebuilt/cloned agents whose tools were connected
+                # via OAuth (tbl_tool_authorization) rather than MCP config UI
+                # (tbl_mcp_tools). Utility tools (system, llm etc.) are skipped.
+                tool_base = tool_name.lower().replace("jnanic_mcp_", "")
+
+                if tool_base in UTILITY_TOOLS:
+                    logger.info(f"⚠️ Skipping utility tool '{tool_name}' (no MCP record needed)")
+                    continue
+
+                logger.warning(
+                    f"⚠️ No tbl_mcp_tools match for '{tool_name}' — "
+                    f"falling back to MCP service definitions"
+                )
+
+                mcp_defs = _get_mcp_definitions()
+                fallback_actions = mcp_defs.get(tool_base, [])
+
+                if not fallback_actions:
+                    logger.warning(f"⚠️ MCP service also has no definitions for '{tool_name}' — skipping")
+                    continue
+
+                # Get assigned actions from tbl_mcp_agent_tools
+                assigned_actions = []
+                if isinstance(at.action_tools, list):
+                    assigned_actions = at.action_tools
+                elif isinstance(at.action_tools, dict):
+                    assigned_actions = list(at.action_tools.values())
+                else:
+                    try:
+                        assigned_actions = json.loads(at.action_tools)
+                        if not isinstance(assigned_actions, list):
+                            assigned_actions = []
+                    except Exception:
+                        assigned_actions = []
+
+                # If no specific actions assigned, use all available from MCP
+                if not assigned_actions:
+                    assigned_actions = [
+                        a.get("action") for a in fallback_actions
+                        if isinstance(a, dict) and a.get("action")
+                    ]
+
+                fallback_category = None
+                for action_name in assigned_actions:
+                    raw_action_def = next(
+                        (a for a in fallback_actions
+                         if isinstance(a, dict) and a.get("action") == action_name),
+                        {"action": action_name, "category": tool_base.capitalize(), "parameters": []}
+                    )
+                    action_def = _normalize_action_def(
+                        action_name=action_name,
+                        action_def=raw_action_def,
+                        default_category=tool_base.capitalize(),
+                        default_description=f"{tool_name}:{action_name}",
+                    )
+
+                    # 🔧 FIX: Use tool_name/tool_base as category key, not MCP-returned category
+                    # This ensures "gmail" tools use "Gmail" key, not "Invoker" key
+                    category_key = tool_base.capitalize()
+                    fallback_category = category_key
+
+                    if category_key not in tools_config:
+                        tools_config[category_key] = []
+
+                    tools_config[category_key].append({
+                        "endpoint": CONSTANT_ENDPOINT,
+                        "method":   CONSTANT_METHOD,
+                        **action_def
+                    })
+
+                logger.info(
+                    f"✅ Tool '{tool_name}' configured via MCP fallback under '{fallback_category}'"
+                )
+                continue  # skip the rest of the loop below (which needs mcp_tool)
+
+            # Load action definitions
+            try:
+                mcp_actions_json = (
+                    safe_json_load(mcp_tool.mcp_action_tools)
+                    if isinstance(mcp_tool.mcp_action_tools, str)
+                    else mcp_tool.mcp_action_tools
+                ) or {}
+            except Exception as e:
+                logger.warning(f"⚠️ Failed to parse mcp_action_tools for {mcp_tool.mcp_name}: {e}")
+                mcp_actions_json = {}
+
+            runtime_mcp_server_params = _normalize_mcp_server_params(
+                getattr(mcp_tool, "mcp_url", None),
+                getattr(mcp_tool, "mcp_json", None),
+            )
+            logger.info(
+                "[MCP TOOL CFG] tool=%s mcp_name=%s transport=%s url=%s",
+                tool_name,
+                getattr(mcp_tool, "mcp_name", "unknown"),
+                runtime_mcp_server_params.get("transport"),
+                runtime_mcp_server_params.get("url"),
+            )
+
+            available_actions = []
+            if isinstance(mcp_actions_json, dict):
+                available_actions = mcp_actions_json.get(tool_name, [])
+                if not available_actions:
+                    normalized_tool_key = _normalize_tool_name(tool_name)
+                    for key, actions in mcp_actions_json.items():
+                        if _normalize_tool_name(key) == normalized_tool_key and isinstance(actions, list):
+                            available_actions = actions
+                            break
+                if not available_actions:
+                    # Last fallback for external MCP schemas keyed differently than agent tool_name.
+                    merged_actions = []
+                    for actions in mcp_actions_json.values():
+                        if isinstance(actions, list):
+                            merged_actions.extend(actions)
+                    available_actions = merged_actions
+            elif isinstance(mcp_actions_json, list):
+                available_actions = mcp_actions_json
+
+            # Get assigned actions
+            assigned_actions = []
+            if isinstance(at.action_tools, list):
+                # Accept both ["send_email"] and [{"action":"send_email"}] forms.
+                for item in at.action_tools:
+                    if isinstance(item, str):
+                        assigned_actions.append(item)
+                    elif isinstance(item, dict) and item.get("action"):
+                        assigned_actions.append(str(item.get("action")))
+            elif isinstance(at.action_tools, dict):
+                assigned_actions = list(at.action_tools.values())
+            else:
+                try:
+                    assigned_actions = json.loads(at.action_tools)
+                    if isinstance(assigned_actions, list):
+                        normalized = []
+                        for item in assigned_actions:
+                            if isinstance(item, str):
+                                normalized.append(item)
+                            elif isinstance(item, dict) and item.get("action"):
+                                normalized.append(str(item.get("action")))
+                        assigned_actions = normalized
+                    else:
+                        assigned_actions = []
+                except Exception:
+                    assigned_actions = []
+
+            # If no explicit action assignment is stored, include all available
+            # actions for this connected MCP tool so runtime can still call tools.
+            if not assigned_actions:
+                assigned_actions = [
+                    str(a.get("action"))
+                    for a in available_actions
+                    if isinstance(a, dict) and a.get("action")
+                ]
+                logger.info(
+                    "ℹ️ Tool '%s' had no assigned actions; defaulting to all available actions: %s",
+                    tool_name,
+                    assigned_actions,
+                )
+
+            # 5️⃣ Prepare Config for This Tool (Category key)
+            for action_name in assigned_actions:
+                # Find matching action
+                action_def = None
+                action_category = None
+
+                for a in available_actions:
+                    if isinstance(a, dict) and a.get("action") == action_name:
+                        action_def = a
+                        raw_category = str(a.get("category") or "").strip().lower()
+                        needs_inference = (not raw_category) or (raw_category == "invoker")
+                        if needs_inference:
+                            # Some DB entries (e.g. invoker) miss provider category.
+                            inferred = _find_action_in_mcp_definitions(action_name)
+                            if inferred:
+                                # Prefer inferred MCP registry category over generic DB aliases.
+                                action_def = {**a, **inferred}
+                            else:
+                                # Fallback for external MCPs: use connected MCP name instead of "invoker".
+                                action_def = {**a, "category": getattr(mcp_tool, "mcp_name", tool_name)}
+                        action_category = action_def.get("category") or tool_name
+                        break
+
+                if not action_def:
+                    inferred = _find_action_in_mcp_definitions(action_name)
+                    if inferred:
+                        action_def = inferred
+                        action_category = inferred.get("category") or tool_name.capitalize()
+                    else:
+                        action_def = {"action": action_name, "description": f"{tool_name}:{action_name}"}
+                        action_category = tool_name.capitalize()
+                else:
+                    action_category = action_category or tool_name.capitalize()
+
+                action_def = _normalize_action_def(
+                    action_name=action_name,
+                    action_def=action_def,
+                    default_category=action_category,
+                    default_description=f"{tool_name}:{action_name}",
+                )
+
+                # 🔧 FIX: Use tool_name as category key for tools_config dict
+                # Preserves agent tool assignment (e.g., "Gmail" not "Invoker")
+                # Keep action_def["category"] for documentation/description
+                category_key = tool_name.capitalize()
+
+                if category_key not in tools_config:
+                    tools_config[category_key] = []
+
+                enriched_action = {
+                    "endpoint": CONSTANT_ENDPOINT,
+                    "method": CONSTANT_METHOD,
+                    "mcp_server_params": runtime_mcp_server_params,
+                    **action_def
+                }
+
+                tools_config[category_key].append(enriched_action)
+
+            configured_categories = [
+                category
+                for category, actions in tools_config.items()
+                if any(
+                    isinstance(action, dict)
+                    and action.get("action") in assigned_actions
+                    for action in actions
+                )
+            ]
+            logger.info(
+                "✅ Tool '%s' configured with %s assigned action(s) across categories: %s",
+                tool_name,
+                len(assigned_actions),
+                configured_categories or ["none"],
+            )
+
+        # 6️⃣ LLM Config
+        if use_temp_llm:
+            llm_provider = "openai"
+            llm_model = os.getenv("AGENT_PRIMARY_OPENAI_MODEL", "gpt-4o")
+            llm_api_key = os.getenv("OPENAI_API_KEY", "")
+            fallback_provider = "anthropic"
+            fallback_model = os.getenv("AGENT_FALLBACK_ANTHROPIC_MODEL", "claude-haiku-4-5")
+            fallback_api_key = os.getenv("ANTHROPIC_API_KEY", "")
+        else:
+            llm_provider = None
+            llm_model = None
+            llm_api_key = ""
+            fallback_provider = "anthropic"
+            fallback_model = os.getenv("AGENT_FALLBACK_ANTHROPIC_MODEL", "claude-haiku-4-5")
+            fallback_api_key = os.getenv("ANTHROPIC_API_KEY", "")
+
+            if agent.llm_model:
+                provider_rel = getattr(agent.llm_model, "provider", None)
+                model_name_rel = getattr(agent.llm_model, "model_name", None)
+                base_llm_rel = getattr(agent.llm_model, "base_llm", None)
+
+                # Prefer explicit provider/model relationships; fallback to base_llm.
+                llm_provider = (
+                    getattr(provider_rel, "base_provider", None)
+                    or getattr(base_llm_rel, "base_provider", None)
+                )
+                llm_model = (
+                    getattr(model_name_rel, "base_model_name", None)
+                    or getattr(base_llm_rel, "base_model_name", None)
+                )
+
+                encrypted_key = getattr(agent.llm_model, "llm_secret_key", None)
+                if encrypted_key:
+                    try:
+                        llm_api_key = decrypt_value(encrypted_key)
+                    except Exception as decrypt_err:
+                        logger.warning(
+                            "⚠ Failed to decrypt tenant LLM key for agent_id=%s: %s",
+                            agent_id,
+                            decrypt_err,
+                        )
+
+            if not llm_api_key:
+                provider = (llm_provider or "").strip().lower()
+                if provider == "anthropic":
+                    llm_api_key = os.getenv("ANTHROPIC_API_KEY", "")
+                elif provider == "openai":
+                    llm_api_key = os.getenv("OPENAI_API_KEY", "")
+                else:
+                    # Let downstream service raise a clear provider-specific key error.
+                    llm_api_key = ""
+
+        llm_provider = (llm_provider or "").strip().lower()
+        llm_model = (llm_model or "").strip()
+
+        # Guard against incomplete DB LLM linkage.
+        # Dynamic-from-DB is the default policy; optional fallback can be enabled
+        # explicitly using ALLOW_LLM_DB_FALLBACK=true.
+        allow_llm_db_fallback = str(
+            os.getenv("ALLOW_LLM_DB_FALLBACK", "false")
+        ).strip().lower() in {"1", "true", "yes", "on"}
+
+        if not llm_provider or not llm_model:
+            if not allow_llm_db_fallback:
+                raise ValueError(
+                    "Missing LLM provider/model linkage in DB "
+                    f"for agent_id={agent_id} (llm_provider='{llm_provider}', llm_model='{llm_model}'). "
+                    "Fix tbl_llm provider/model relations or set ALLOW_LLM_DB_FALLBACK=true temporarily."
+                )
+
+            if not llm_provider:
+                llm_provider = (os.getenv("AGENT_DEFAULT_PROVIDER", "openai") or "openai").strip().lower()
+                logger.warning(
+                    "Agent %s missing DB llm_provider; fallback enabled -> using '%s'",
+                    agent_id,
+                    llm_provider,
+                )
+            if not llm_model:
+                if llm_provider == "anthropic":
+                    llm_model = os.getenv("AGENT_FALLBACK_ANTHROPIC_MODEL", "claude-haiku-4-5")
+                else:
+                    llm_model = os.getenv("AGENT_PRIMARY_OPENAI_MODEL", "gpt-4o")
+                logger.warning(
+                    "Agent %s missing DB llm_model; fallback enabled -> using '%s'",
+                    agent_id,
+                    llm_model,
+                )
+
+        if not llm_api_key:
+            if llm_provider == "anthropic":
+                llm_api_key = os.getenv("ANTHROPIC_API_KEY", "")
+            elif llm_provider == "openai":
+                llm_api_key = os.getenv("OPENAI_API_KEY", "")
+
+        normalized_model = _normalize_model_id(llm_provider, llm_model)
+        if normalized_model != llm_model:
+            logger.info(
+                "Normalized model label '%s' -> '%s' for provider '%s'",
+                llm_model,
+                normalized_model,
+                llm_provider,
+            )
+            llm_model = normalized_model
+
+        # 7️⃣ Examples
+        try:
+            examples = json.loads(agent.Examples) if agent.Examples else []
+        except json.JSONDecodeError:
+            examples = []
+
+        # kb_collections = get_agent_kb_collections(agent_id)
+        kb_payload = get_agent_kb_collections(agent_id, override_kb_ids=override_kb_ids)
+        knowledge_bases = kb_payload.get("knowledge_bases", [])
+        default_kb_id = kb_payload.get("default_kb_id")
+
+        
+        logger.info(f"📦 KB paylod: {kb_payload}")
+        logger.info(f"📦 KB knowledge_bases: {knowledge_bases}")
+        logger.info(f"📦 KB default_kb_id: {default_kb_id}")
+        
+
+        # 8️⃣ Resolve agent type:
+        # Prefer explicit runtime override from node formData; otherwise
+        # preserve DB value so planner/reflex/decision flows are honored.
+        resolved_agent_type = (
+            agent_type.strip().lower()
+            if isinstance(agent_type, str) and agent_type.strip()
+            else (str(getattr(agent, "agent_type", "") or "").strip().lower() or "none")
+        )
+
+        # 9️⃣ Final Payload
+        effective_model = llm_model_override or llm_model
+        inferred_provider = _infer_provider_from_model(effective_model)
+        if (
+            llm_model_override
+            and inferred_provider
+            and llm_provider
+            and inferred_provider != llm_provider
+        ):
+            # Keep DB/provider truth as source of truth to avoid cross-provider
+            # mismatches (for example provider=openai + model=claude-...),
+            # which can produce create_agent 422 failures.
+            logger.warning(
+                "Ignoring incompatible llm_model_override='%s' for agent_id=%s "
+                "(db_provider=%s, inferred_provider=%s). Using DB model '%s'.",
+                llm_model_override,
+                agent_id,
+                llm_provider,
+                inferred_provider,
+                llm_model,
+            )
+            effective_model = llm_model
+
+        effective_model = _normalize_model_id(llm_provider, effective_model)
+
+        config = {
+            "name": agent.agent_name,
+            "description": agent.agent_description,
+            "llm_provider": llm_provider,
+            "llm_model": effective_model,
+            "llm_api_key": llm_api_key,
+            "llm_fallback_provider": fallback_provider,
+            "llm_fallback_model": fallback_model,
+            "llm_fallback_api_key": fallback_api_key,
+            "tools_config": tools_config,
+            "knowledge_bases": knowledge_bases,   
+            "default_kb_id": default_kb_id, 
+            "examples": examples,
+            "agent_type": resolved_agent_type,  # 🆕 ADD THIS
+        }
+
+        embedding_cfg = _resolve_embedding_config(
+            session=session,
+            agent=agent,
+            tenant_id=tenant_id,
+            agent_id=agent_id,
+        )
+        if embedding_cfg.get("provider"):
+            config["embedding_provider"] = embedding_cfg.get("provider")
+        if embedding_cfg.get("model"):
+            config["embedding_model"] = embedding_cfg.get("model")
+        if embedding_cfg.get("api_key"):
+            config["embedding_api_key"] = embedding_cfg.get("api_key")
+
+        logger.info(f"📦 Config knowledge_bases before return: {config.get('knowledge_bases')}")
+
+        
+
+        final_payload = {
+            "task": task,
+            "config": config,
+            "tenant_id": tenant_id
+        }
+
+        logger.info(f"📦 Final payload knowledge_bases: {final_payload['config'].get('knowledge_bases')}")
+        logger.info(f"📦 Final payload JSON: {json.dumps(final_payload, default=str)}")
+
+        return final_payload
+
+
+    except Exception as e:
+        logger.error(f"Error in prrpare agent input: {e}")
+        raise 
+    finally:
+        session.close() 
+        
+        
