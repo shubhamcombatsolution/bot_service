@@ -40,7 +40,7 @@ QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 qdrant = QdrantClient(url=QDRANT_URL, timeout=120)
 
 # Default embedding model
-DEFAULT_EMBEDDING_MODEL = 'text-embedding-ada-002'
+DEFAULT_EMBEDDING_MODEL = 'text-embedding-3-large'
 DEFAULT_PROVIDER = 'openai'
 
 knowledge_base_blueprint = Blueprint("knowledge_base", __name__)
@@ -267,7 +267,10 @@ def get_embedding_model(provider: Optional[str] = None, model_name: Optional[str
         try:
             if provider.lower() == "openai":
                 client = OpenAI(api_key=secret_key)
-                vector_size = OPENAI_MODEL_DIMENSIONS.get(model_name, 1536)
+                vector_size = OPENAI_MODEL_DIMENSIONS.get(
+                    model_name,
+                    OPENAI_MODEL_DIMENSIONS[DEFAULT_EMBEDDING_MODEL],
+                )
                 logger.info(f"Using user-provided OpenAI embedding model: {model_name} (vector_size={vector_size})")
                 return {
                     "provider": "openai",
@@ -286,7 +289,10 @@ def get_embedding_model(provider: Optional[str] = None, model_name: Optional[str
         if not openai_api_key:
             raise ValueError("OPENAI_API_KEY environment variable not set.")
         client = OpenAI(api_key=openai_api_key)
-        vector_size = OPENAI_MODEL_DIMENSIONS.get(DEFAULT_EMBEDDING_MODEL, 1536)
+        vector_size = OPENAI_MODEL_DIMENSIONS.get(
+            DEFAULT_EMBEDDING_MODEL,
+            OPENAI_MODEL_DIMENSIONS["text-embedding-3-large"],
+        )
         logger.info(f"Using default OpenAI embedding model: {DEFAULT_EMBEDDING_MODEL} (vector_size={vector_size})")
         return {
             "provider": "openai",

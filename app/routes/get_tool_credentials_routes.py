@@ -4,7 +4,11 @@ from sqlalchemy import func
 
 from app.database.DatabaseOperationPostgreSQL import db_session
 from app.models.tool_authorization import ToolAuthorization
-from app.services.channel_credentials_service import get_legacy_tool_credentials
+from app.services.channel_credentials_service import (
+    get_legacy_tool_credentials,
+    get_slack_credentials_for_bot,
+    get_whatsapp_credentials_for_bot,
+)
 
 
 # Compatibility placeholder blueprint.
@@ -33,6 +37,28 @@ def get_tool_credentials(tool_name: str):
 
     session = next(db_session())
     try:
+        bot_id = request.args.get("bot_id", type=int)
+        normalized_tool = (tool_name or "").strip().lower()
+
+        # Prefer bot-specific channel credentials when bot_id is provided.
+        if bot_id and normalized_tool == "whatsapp":
+            credentials = get_whatsapp_credentials_for_bot(session, bot_id)
+            if credentials:
+                return jsonify({
+                    "status": "success",
+                    "message": "Bot-specific WhatsApp credentials fetched successfully",
+                    "credentials": credentials,
+                }), 200
+
+        if bot_id and normalized_tool == "slack":
+            credentials = get_slack_credentials_for_bot(session, bot_id)
+            if credentials:
+                return jsonify({
+                    "status": "success",
+                    "message": "Bot-specific Slack credentials fetched successfully",
+                    "credentials": credentials,
+                }), 200
+
         credentials = get_legacy_tool_credentials(session, int(tenant_id), tool_name)
         if not credentials:
             auth = (

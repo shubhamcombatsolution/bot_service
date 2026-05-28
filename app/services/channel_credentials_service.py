@@ -2,12 +2,34 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.models.slack_cred import SlackCred
 from app.models.tool_authorization import ToolAuthorization
 from app.models.whatsapp_cred import WhatsAppCred
+
+
+def _normalize_tool_name(value: str) -> str:
+    text = (value or "").strip().lower()
+    return text.replace("jnanic_mcp_", "").replace("_", "").replace("-", "").replace(" ", "")
+
+
+def _tool_aliases(tool_name: str) -> set[str]:
+    base = _normalize_tool_name(tool_name)
+    aliases = {base}
+    alias_map = {
+        "gcalendar": {"calendar", "googlecalendar"},
+        "calendar": {"gcalendar", "googlecalendar"},
+        "gsheets": {"sheets", "googlesheets"},
+        "sheets": {"gsheets", "googlesheets"},
+        "gmail": {"googlemail"},
+        "gmaps": {"maps", "googlemaps"},
+        "maps": {"gmaps", "googlemaps"},
+    }
+    for key, mapped in alias_map.items():
+        if base == key:
+            aliases.update(mapped)
+    return aliases
 
 
 def _safe_dict(value: Any) -> Dict[str, Any]:
@@ -88,27 +110,24 @@ def get_legacy_tool_credentials(session: Session, tenant_id: Optional[int], tool
     if not tenant_id:
         return {}
 
-    auth = (
+    aliases = _tool_aliases(tool_name)
+    auth_rows = (
         session.query(ToolAuthorization)
         .filter(
             ToolAuthorization.tenant_id == int(tenant_id),
-            or_(
-                func.lower(ToolAuthorization.tool_name) == tool_name.lower(),
-                func.lower(ToolAuthorization.tool_name).like(f"%{tool_name.lower()}%"),
-            ),
             ToolAuthorization.del_flag.is_(False),
         )
         .order_by(ToolAuthorization.updated_at.desc())
-        .first()
+        .all()
     )
-    # if not auth:
-    #     return {}
-    # return _flatten_auth_payload(auth.token_json)
-    if not auth:
-        return {}
 
-    creds = _flatten_auth_payload(auth.token_json)
-    if not (creds.get("token") or creds.get("access_token")):
-        return {}
+    for auth in auth_rows:
+        normalized = _normalize_tool_name(getattr(auth, "tool_name", ""))
+        if normalized not in aliases:
+            continue
 
-    return creds
+        creds = _flatten_auth_payload(auth.token_json)
+        if creds.get("token") or creds.get("access_token"):
+            return creds
+
+    return {}

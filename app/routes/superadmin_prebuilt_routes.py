@@ -38,46 +38,73 @@ def _trigger_monorepo_sync(
     action: str = "create",
     prebuilt_agent: dict = None,
     partner_base_url: str = None,
-):
+) -> dict:
     """
-    Fire-and-forget sync to monorepo bridge.
-    Called automatically after import / delete / toggle-active.
+    Send a sync request to the monorepo bridge and return the result.
+    Called ONLY from the explicit "Send to Monorepo" endpoint — never
+    automatically on import.
+
     action: "create" | "update" | "delete"
+
+    Returns:
+        {
+            "success": bool,
+            "http_status_code": int | None,
+            "response_body": str | None,   # truncated to 2 000 chars
+            "error_message": str | None,
+            "duration_ms": float,
+            "monorepo_url": str,
+        }
     """
-    monorepo_url = os.getenv("MONOREPO_SERVICE_URL", "https://monorepo.jnanic.com")
+    import time
+
+    monorepo_base = os.getenv("MONOREPO_SERVICE_URL", "https://monorepo.jnanic.com")
+    endpoint_url = f"{monorepo_base}/sync/agent/{prebuilt_agent_id}"
+
     payload = {"action": action}
     if isinstance(prebuilt_agent, dict) and prebuilt_agent:
         payload["prebuilt_agent"] = prebuilt_agent
     if partner_base_url:
         payload["partner_base_url"] = partner_base_url
 
+    t0 = time.monotonic()
     try:
-        response = requests.post(
-            f"{monorepo_url}/sync/agent/{prebuilt_agent_id}",
-            json=payload,
-            timeout=15
-        )
+        response = requests.post(endpoint_url, json=payload, timeout=15)
+        duration_ms = (time.monotonic() - t0) * 1000
+        success = 200 <= response.status_code < 300
+        response_body = (response.text or "")[:2000]
 
-        if 200 <= response.status_code < 300:
+        if success:
             logger.info(
-                "Monorepo sync success: agent=%d action=%s status=%s partner_base_url=%s",
-                prebuilt_agent_id,
-                action,
-                response.status_code,
-                partner_base_url or "default",
+                "Monorepo sync success: agent=%d action=%s status=%s",
+                prebuilt_agent_id, action, response.status_code,
             )
         else:
             logger.warning(
-                "Monorepo sync failed response: agent=%d action=%s status=%s partner_base_url=%s body=%s",
-                prebuilt_agent_id,
-                action,
-                response.status_code,
-                partner_base_url or "default",
-                (response.text or "")[:300],
+                "Monorepo sync non-2xx: agent=%d action=%s status=%s body=%s",
+                prebuilt_agent_id, action, response.status_code, response_body[:300],
             )
-    except Exception as e:
-        logger.warning("Monorepo sync failed (non-blocking): %s", str(e))
-        pass  # Never block the main import flow
+
+        return {
+            "success": success,
+            "http_status_code": response.status_code,
+            "response_body": response_body,
+            "error_message": None,
+            "duration_ms": round(duration_ms, 2),
+            "monorepo_url": endpoint_url,
+        }
+
+    except Exception as exc:
+        duration_ms = (time.monotonic() - t0) * 1000
+        logger.warning("Monorepo sync exception: agent=%d error=%s", prebuilt_agent_id, str(exc))
+        return {
+            "success": False,
+            "http_status_code": None,
+            "response_body": None,
+            "error_message": str(exc),
+            "duration_ms": round(duration_ms, 2),
+            "monorepo_url": endpoint_url,
+        }
 
 
 def _build_monorepo_sync_payload(saved_agent: dict | None, source_data: dict | None = None) -> dict:
@@ -399,22 +426,8 @@ def get_agent(agent_id):
             if result.get("status") != "success":
                 return jsonify(result), 500
 
-            new_agent_id = result.get("prebuilt_agent_id")
-            partner_base_url = (
-                overrides.get("partner_base_url")
-                or overrides.get("parent_url")
-                or overrides.get("partner_url")
-            )
-            if new_agent_id:
-                _trigger_monorepo_sync(
-                    new_agent_id,
-                    action="create",
-                    prebuilt_agent=_build_monorepo_sync_payload(
-                        result.get("prebuilt_agent"),
-                        source_data=template_data,
-                    ),
-                    partner_base_url=partner_base_url,
-                )
+            # Monorepo sync is intentionally NOT triggered here.
+            # Super Admin must use POST /superadmin/prebuilt/<id>/send-to-monorepo.
 
             return jsonify({
                 "status": "success",
@@ -543,25 +556,9 @@ def import_prebuilt_agent():
             logger.error(f"[CREATE FAILED] result={result}")
             return jsonify(result), 500
 
-        # ---------------- SYNC ----------------
         new_agent_id = result.get("prebuilt_agent_id")
-
         logger.info(f"[AGENT CREATED] id={new_agent_id}")
-
-        if new_agent_id:
-            logger.info(f"[SYNC START] agent_id={new_agent_id}")
-            _trigger_monorepo_sync(
-                new_agent_id,
-                action="create",
-                prebuilt_agent=_build_monorepo_sync_payload(
-                    result.get("prebuilt_agent"),
-                    source_data=data,
-                ),
-                partner_base_url=partner_base_url,
-            )
-            logger.info(f"[SYNC TRIGGERED] agent_id={new_agent_id}")
-
-        logger.info("[IMPORT SUCCESS]")
+        logger.info("[IMPORT SUCCESS] monorepo sync skipped — use 'Send to Monorepo' button")
 
         return jsonify(result), 201 
 
@@ -658,6 +655,181 @@ def delete_prebuilt_agent(prebuilt_agent_id):
         return jsonify({"error": str(exc)}), 500
     finally:
         session.close()
+
+@superadmin_prebuilt_blueprint.route('/<int:prebuilt_agent_id>/send-to-monorepo', methods=['POST'])
+@jwt_required()
+def send_to_monorepo(prebuilt_agent_id):
+    """
+    Manually push a prebuilt agent to the monorepo bridge.
+    Called when Super Admin clicks the "Send to Monorepo" button.
+
+    POST /superadmin/prebuilt/<id>/send-to-monorepo
+    Body (JSON, all optional):
+      {
+        "action": "create" | "update" | "delete",   # default "create"
+        "partner_base_url": "https://..."            # optional
+      }
+
+    Returns:
+      {
+        "status": "success" | "failed",
+        "log": { ...log row... }
+      }
+    """
+    from app.models.prebuilt_agent_monorepo_log import PrebuiltAgentMonorepoLog
+
+    if not is_super_admin():
+        return jsonify({"error": "Super admin access required"}), 403
+
+    claims   = get_jwt()
+    admin_id = claims.get("user_id")
+
+    body             = request.get_json(silent=True) or {}
+    action           = body.get("action", "create")
+    partner_base_url = body.get("partner_base_url") or body.get("partner_url")
+
+    if action not in ("create", "update", "delete"):
+        return jsonify({"error": "Invalid action. Must be 'create', 'update', or 'delete'."}), 400
+
+    # ── Fetch agent + build payload ───────────────────────────────────────────
+    session = next(db_session())
+    try:
+        agent = (
+            session.query(PrebuiltAgent)
+            .filter_by(prebuilt_agent_id=prebuilt_agent_id, del_flg=False)
+            .first()
+        )
+        if not agent:
+            return jsonify({"error": "Prebuilt agent not found"}), 404
+
+        tools = (
+            session.query(PrebuiltAgentTools)
+            .filter_by(prebuilt_agent_id=prebuilt_agent_id)
+            .all()
+        )
+
+        agent_dict = agent.to_dict()
+        if tools:
+            agent_dict["required_tools"] = [
+                {
+                    "tool_name":    t.tool_name,
+                    "action_tools": t.action_tools or [],
+                    "is_required":  t.is_required,
+                }
+                for t in tools
+            ]
+
+        sync_payload = _build_monorepo_sync_payload(agent_dict)
+
+    except Exception as exc:
+        logger.exception("send_to_monorepo: failed to build payload")
+        session.close()
+        return jsonify({"error": str(exc)}), 500
+
+    # ── Call monorepo ─────────────────────────────────────────────────────────
+    result = _trigger_monorepo_sync(
+        prebuilt_agent_id,
+        action=action,
+        prebuilt_agent=sync_payload,
+        partner_base_url=partner_base_url,
+    )
+
+    # ── Write log row ─────────────────────────────────────────────────────────
+    try:
+        log_entry = PrebuiltAgentMonorepoLog(
+            prebuilt_agent_id=prebuilt_agent_id,
+            action=action,
+            status="success" if result["success"] else "failed",
+            triggered_by=admin_id,
+            http_status_code=result["http_status_code"],
+            request_payload=sync_payload,
+            response_body=result["response_body"],
+            error_message=result["error_message"],
+            duration_ms=result["duration_ms"],
+            monorepo_url=result["monorepo_url"],
+        )
+        session.add(log_entry)
+        session.commit()
+        session.refresh(log_entry)
+        log_dict = log_entry.to_dict()
+
+    except Exception as exc:
+        logger.exception("send_to_monorepo: failed to write log")
+        session.rollback()
+        log_dict = None
+    finally:
+        session.close()
+
+    return jsonify({
+        "status": "success" if result["success"] else "failed",
+        "monorepo_http_status": result["http_status_code"],
+        "log": log_dict,
+    }), 200 if result["success"] else 502
+
+
+# ── Monorepo sync logs ────────────────────────────────────────────────────────
+
+@superadmin_prebuilt_blueprint.route('/<int:prebuilt_agent_id>/monorepo-logs', methods=['GET'])
+@jwt_required()
+def get_monorepo_logs(prebuilt_agent_id):
+    """
+    Return the monorepo sync history for one prebuilt agent.
+    Used by the Super Admin UI to display per-agent monorepo status.
+
+    GET /superadmin/prebuilt/<id>/monorepo-logs
+    Query params:
+      limit  (int, default 20, max 100)
+      offset (int, default 0)
+
+    Returns:
+      {
+        "prebuilt_agent_id": <id>,
+        "total": <int>,
+        "logs": [ ...log rows newest-first... ]
+      }
+    """
+    from app.models.prebuilt_agent_monorepo_log import PrebuiltAgentMonorepoLog
+
+    if not is_super_admin():
+        return jsonify({"error": "Super admin access required"}), 403
+
+    try:
+        limit  = min(int(request.args.get("limit",  20)), 100)
+        offset = max(int(request.args.get("offset",  0)),   0)
+    except ValueError:
+        return jsonify({"error": "limit and offset must be integers"}), 400
+
+    session = next(db_session())
+    try:
+        base_query = (
+            session.query(PrebuiltAgentMonorepoLog)
+            .filter_by(prebuilt_agent_id=prebuilt_agent_id)
+        )
+
+        total = base_query.count()
+
+        logs = (
+            base_query
+            .order_by(PrebuiltAgentMonorepoLog.triggered_at.desc())
+            .limit(limit)
+            .offset(offset)
+            .all()
+        )
+
+        return jsonify({
+            "prebuilt_agent_id": prebuilt_agent_id,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "logs": [log.to_dict() for log in logs],
+        }), 200
+
+    except Exception as exc:
+        logger.exception("get_monorepo_logs: error")
+        return jsonify({"error": str(exc)}), 500
+    finally:
+        session.close()
+
 
 @superadmin_prebuilt_blueprint.route('/<int:prebuilt_agent_id>/toggle-active', methods=['POST'])
 @jwt_required()

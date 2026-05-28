@@ -2171,6 +2171,17 @@ def receive_slack_webhook(trigger_node_id: str):
         if event.get("bot_id"):
             return "Ignore bot", 200
 
+        auth_user_id = str(
+            (
+                ((payload.get("authorizations") or [])[0] or {}).get("user_id")
+                if isinstance(payload.get("authorizations"), list) and payload.get("authorizations")
+                else ""
+            )
+            or ""
+        ).strip()
+        if auth_user_id and str(event.get("user") or "").strip() == auth_user_id:
+            return "Ignore bot user", 200
+
         if not text:
             return "No message event", 200
 

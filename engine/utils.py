@@ -225,6 +225,53 @@ def _get_mcp_definitions() -> dict:
     return {}
 
 
+def _resolve_fallback_actions(tool_base: str, mcp_defs: dict) -> list:
+    """
+    Resolve MCP fallback actions even when category keys vary across deployments.
+    """
+    if not isinstance(mcp_defs, dict) or not tool_base:
+        return []
+
+    base_norm = _normalize_tool_name(tool_base)
+    if not base_norm:
+        return []
+
+    direct = mcp_defs.get(tool_base, [])
+    if isinstance(direct, list) and direct:
+        return direct
+
+    alias_map = {
+        "gmail": {"gmail", "googlemail"},
+        "gcalendar": {"gcalendar", "calendar", "googlecalendar"},
+        "gsheets": {"gsheets", "sheets", "googlesheets"},
+        "gmaps": {"gmaps", "maps", "googlemaps"},
+        "hubspot": {"hubspot"},
+        "charges": {"charges", "freight"},
+    }
+    aliases = alias_map.get(base_norm, {base_norm})
+
+    # 1) Category-key match via normalized aliases
+    for category_key, actions in mcp_defs.items():
+        if not isinstance(actions, list) or not actions:
+            continue
+        category_norm = _normalize_tool_name(category_key)
+        if category_norm in aliases:
+            return actions
+
+    # 2) Action-name heuristic match
+    for _category_key, actions in mcp_defs.items():
+        if not isinstance(actions, list) or not actions:
+            continue
+        for action in actions:
+            if not isinstance(action, dict):
+                continue
+            action_name_norm = _normalize_tool_name(action.get("action", ""))
+            if any(alias in action_name_norm for alias in aliases):
+                return actions
+
+    return []
+
+
 def _find_action_in_mcp_definitions(action_name: str) -> dict | None:
     """
     Resolve an action from live MCP definitions (category + parameters).
@@ -253,63 +300,6 @@ def _find_action_in_mcp_definitions(action_name: str) -> dict | None:
     return None
 
 
-# def get_agent_kb_collections(agent_id: int) -> list[str]:
-#     """
-#     Fetch collection names for all knowledge bases linked to this agent.
-#     Supports both new: knowledge_base_ids (list) and legacy: knowledge_base_id (single FK).
-#     """
-
-#     session = next(db_session())
-
-#     # Fetch agent
-#     agent = session.query(Agent).filter(
-#         Agent.agent_id == agent_id,
-#         Agent.del_flg == False
-#     ).first()
-
-#     if not agent:
-#         session.close()
-#         raise ValueError(f"Agent ID {agent_id} not found")
-
-#     kb_ids = []
-
-#     # ---- NEW FEATURE: Read multiple KB IDs ----
-#     if agent.knowledge_base_ids and isinstance(agent.knowledge_base_ids, list):
-#         kb_ids.extend(agent.knowledge_base_ids)
-#         logger.info(f"✅ Found knowledge_base_ids: {agent.knowledge_base_ids}")
-
-#     # ---- BACKWARD COMPAT MODE: Read old single field ----
-#     if hasattr(agent, "knowledge_base_id") and agent.knowledge_base_id:
-#         kb_ids.append(agent.knowledge_base_id)
-#         logger.info(f"✅ Found legacy knowledge_base_id: {agent.knowledge_base_id}")
-
-#     # Remove duplicates
-#     kb_ids = list(set([int(k) for k in kb_ids if k is not None]))
-#     logger.info(f"🔍 Final kb_ids to query: {kb_ids}")
-
-#     if not kb_ids:
-#         logger.warning(f"⚠️ No KB IDs found for agent {agent_id}")
-#         session.close()
-#         return []
-
-#     # Fetch valid KB entries
-#     kb_items = session.query(KnowledgeBase).filter(
-#         KnowledgeBase.knowledge_base_id.in_(kb_ids),
-#         KnowledgeBase.del_flg == False,
-#         KnowledgeBase.collection_name.isnot(None),
-#         KnowledgeBase.collection_name != ""
-#     ).all()
-
-#     logger.info(f"🔍 Found {len(kb_items)} KB entries")
-#     for kb in kb_items:
-#         logger.info(f"  - KB {kb.knowledge_base_id}: collection_name = '{kb.collection_name}'")
-
-#     session.close()
-
-#     # Return only the Qdrant collection names
-#     collections = [kb.collection_name for kb in kb_items]
-#     logger.info(f"✅ Returning collections: {collections}")
-#     return collections
 
 def get_agent_kb_collections(agent_id: int, override_kb_ids: list[int] | None = None) -> dict:
     """
@@ -421,7 +411,10 @@ def get_agent_kb_collections(agent_id: int, override_kb_ids: list[int] | None = 
             knowledge_bases.append({
                 "kb_id": kb.knowledge_base_id,
                 "collection_name": kb.collection_name,
-                "summary": kb.kb_summary or ""
+                "summary": kb.kb_summary or "",
+                # Optional hint; when unknown we leave it null and let query-time
+                # logic auto-detect from Qdrant vector size.
+                "embedding_model": None,
             })
 
             logger.info(
@@ -483,185 +476,51 @@ def _normalize_action_def(
 
 def _resolve_embedding_config(session, agent: Agent, tenant_id: int, agent_id: int) -> dict:
     """
-    Resolve embedding provider/model/key from DB (dynamic-first).
+    Resolve embedding config for KB ingestion/query.
 
-    Priority:
-    1) Agent safe_ai_settings overrides (if present)
-    2) Tenant LLM rows where base model type is Embedding
-    3) Tenant-specific tbl_embedding_models row
-    4) System tbl_system_embedding_models row
-    5) Tenant OpenAI chat key + embedding model from tbl_basellm (DB catalog)
+    The embedding MODEL is always fixed to text-embedding-3-large — no DB or
+    payload override is applied.  Only the API key is resolved from the tenant's
+    stored OpenAI credentials (or env fallback).
     """
-    provider = ""
-    model = ""
+    _FIXED_MODEL = "text-embedding-3-large"
+    _FIXED_PROVIDER = "openai"
+
+    # Resolve API key from the tenant's OpenAI LLM record (key only, model ignored)
     api_key = ""
-    source = "none"
+    tenant_openai_llm = (
+        session.query(LLM)
+        .options(joinedload(LLM.base_llm))
+        .filter(LLM.tenant_id == tenant_id, LLM.del_flg != True)
+        .order_by(LLM.llm_id.desc())
+        .all()
+    )
+    for tenant_llm in tenant_openai_llm:
+        base = getattr(tenant_llm, "base_llm", None)
+        if not base:
+            continue
+        provider_name = str(getattr(base, "base_provider", "") or "").strip().lower()
+        if provider_name != "openai":
+            continue
+        api_key = _maybe_decrypt_secret(getattr(tenant_llm, "llm_secret_key", ""))
+        if api_key:
+            break
 
-    # 1) Agent safe_ai_settings overrides
-    safe_ai_raw = getattr(agent, "safe_ai_settings", {}) or {}
-    safe_ai = safe_ai_raw if isinstance(safe_ai_raw, dict) else safe_json_load(safe_ai_raw)
-    if isinstance(safe_ai, dict):
-        provider = str(
-            safe_ai.get("embedding_provider")
-            or safe_ai.get("kb_embedding_provider")
-            or ""
-        ).strip().lower()
-        model = str(
-            safe_ai.get("embedding_model")
-            or safe_ai.get("kb_embedding_model")
-            or ""
-        ).strip()
-        api_key = _maybe_decrypt_secret(
-            safe_ai.get("embedding_api_key")
-            or safe_ai.get("kb_embedding_api_key")
-            or ""
-        )
-        if (model or api_key) and not provider:
-            provider = _infer_embedding_provider_from_model(model)
-        if provider and model and api_key:
-            source = "agent.safe_ai_settings"
-
-    # 2) Tenant LLM row with embedding model type
-    if not (provider and model and api_key):
-        tenant_llms = (
-            session.query(LLM)
-            .options(joinedload(LLM.base_llm))
-            .filter(LLM.tenant_id == tenant_id, LLM.del_flg != True)
-            .order_by(LLM.llm_id.desc())
-            .all()
-        )
-        for tenant_llm in tenant_llms:
-            base = getattr(tenant_llm, "base_llm", None)
-            if not base:
-                continue
-            model_type = str(getattr(base, "base_model_type", "") or "").strip().lower()
-            if "embedding" not in model_type:
-                continue
-
-            resolved_provider = str(getattr(base, "base_provider", "") or "").strip().lower()
-            resolved_model = str(getattr(base, "base_model_name", "") or "").strip()
-            resolved_key = _maybe_decrypt_secret(getattr(tenant_llm, "llm_secret_key", ""))
-
-            if not provider:
-                provider = resolved_provider
-            if not model:
-                model = resolved_model
-            if not api_key:
-                api_key = resolved_key
-            if provider and model and api_key:
-                source = "tbl_llm.embedding"
-                break
-
-    # 3) Tenant embedding model table (legacy/global-style table)
-    if not (provider and model and api_key):
-        tenant_embedding = (
-            session.query(EmbeddingModel)
-            .filter(EmbeddingModel.del_flg != True)
-            .order_by(EmbeddingModel.embedding_id.desc())
-            .first()
-        )
-        if tenant_embedding:
-            if not provider:
-                provider = _infer_embedding_provider_from_model(tenant_embedding.model_name)
-            if not model:
-                model = str(tenant_embedding.model_name or "").strip()
-            if not api_key:
-                api_key = _maybe_decrypt_secret(getattr(tenant_embedding, "api_key", ""))
-            if provider and model and api_key:
-                source = "tbl_embedding_models"
-
-    # 4) System embedding model table
-    if not (provider and model and api_key):
-        system_embedding = (
-            session.query(SystemEmbeddingModel)
-            .filter(SystemEmbeddingModel.del_flg != True)
-            .order_by(SystemEmbeddingModel.embedding_id.desc())
-            .first()
-        )
-        if system_embedding:
-            if not provider:
-                provider = _infer_embedding_provider_from_model(system_embedding.model_name)
-            if not model:
-                model = str(system_embedding.model_name or "").strip()
-            if not api_key:
-                api_key = _maybe_decrypt_secret(getattr(system_embedding, "api_key", ""))
-            if provider and model and api_key:
-                source = "tbl_system_embedding_models"
-
-    # 5) DB-only fallback: use tenant OpenAI key + cataloged OpenAI embedding model
-    if not (provider and model and api_key):
-        if not api_key:
-            tenant_openai_llm = (
-                session.query(LLM)
-                .options(joinedload(LLM.base_llm))
-                .filter(LLM.tenant_id == tenant_id, LLM.del_flg != True)
-                .order_by(LLM.llm_id.desc())
-                .all()
-            )
-            for tenant_llm in tenant_openai_llm:
-                base = getattr(tenant_llm, "base_llm", None)
-                if not base:
-                    continue
-                provider_name = str(getattr(base, "base_provider", "") or "").strip().lower()
-                if provider_name != "openai":
-                    continue
-                api_key = _maybe_decrypt_secret(getattr(tenant_llm, "llm_secret_key", ""))
-                if api_key:
-                    break
-
-        if not model:
-            preferred_models = [
-                "text-embedding-3-small",
-                "text-embedding-3-large",
-                "text-embedding-ada-002",
-            ]
-            for preferred in preferred_models:
-                row = (
-                    session.query(BaseLLM)
-                    .filter(
-                        BaseLLM.del_flg != True,
-                        BaseLLM.base_provider.ilike("openai"),
-                        BaseLLM.base_model_name.ilike(preferred),
-                    )
-                    .first()
-                )
-                if row:
-                    model = row.base_model_name
-                    break
-
-            if not model:
-                row = (
-                    session.query(BaseLLM)
-                    .filter(
-                        BaseLLM.del_flg != True,
-                        BaseLLM.base_provider.ilike("openai"),
-                        BaseLLM.base_model_type.ilike("embedding"),
-                    )
-                    .order_by(BaseLLM.base_llm_id.desc())
-                    .first()
-                )
-                if row:
-                    model = row.base_model_name
-
-        if not provider and model:
-            provider = _infer_embedding_provider_from_model(model)
-        if provider and model and api_key:
-            source = "db_fallback_openai_embedding"
+    # Env fallback for API key
+    if not api_key:
+        api_key = os.getenv("KB_OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY") or ""
 
     logger.info(
-        "Embedding config resolved | agent_id=%s source=%s provider=%s model=%s key_present=%s",
+        "Embedding config resolved | agent_id=%s model=%s (fixed) key_present=%s",
         agent_id,
-        source,
-        provider or "missing",
-        model or "missing",
+        _FIXED_MODEL,
         bool(api_key),
     )
 
     return {
-        "provider": provider,
-        "model": model,
+        "provider": _FIXED_PROVIDER,
+        "model": _FIXED_MODEL,
         "api_key": api_key,
-        "source": source,
+        "source": "fixed",
     }
 
     
@@ -828,7 +687,7 @@ def prepare_agent_input(
                 )
 
                 mcp_defs = _get_mcp_definitions()
-                fallback_actions = mcp_defs.get(tool_base, [])
+                fallback_actions = _resolve_fallback_actions(tool_base, mcp_defs)
 
                 if not fallback_actions:
                     logger.warning(f"⚠️ MCP service also has no definitions for '{tool_name}' — skipping")
@@ -1050,16 +909,10 @@ def prepare_agent_input(
             llm_provider = "openai"
             llm_model = os.getenv("AGENT_PRIMARY_OPENAI_MODEL", "gpt-4o")
             llm_api_key = os.getenv("OPENAI_API_KEY", "")
-            fallback_provider = "anthropic"
-            fallback_model = os.getenv("AGENT_FALLBACK_ANTHROPIC_MODEL", "claude-haiku-4-5")
-            fallback_api_key = os.getenv("ANTHROPIC_API_KEY", "")
         else:
             llm_provider = None
             llm_model = None
             llm_api_key = ""
-            fallback_provider = "anthropic"
-            fallback_model = os.getenv("AGENT_FALLBACK_ANTHROPIC_MODEL", "claude-haiku-4-5")
-            fallback_api_key = os.getenv("ANTHROPIC_API_KEY", "")
 
             if agent.llm_model:
                 provider_rel = getattr(agent.llm_model, "provider", None)
@@ -1206,9 +1059,6 @@ def prepare_agent_input(
             "llm_provider": llm_provider,
             "llm_model": effective_model,
             "llm_api_key": llm_api_key,
-            "llm_fallback_provider": fallback_provider,
-            "llm_fallback_model": fallback_model,
-            "llm_fallback_api_key": fallback_api_key,
             "tools_config": tools_config,
             "knowledge_bases": knowledge_bases,   
             "default_kb_id": default_kb_id, 

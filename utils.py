@@ -118,11 +118,13 @@ def _parse_core_features_to_tools(raw_core_features, bot_id: str) -> set:
             raw_core_features = json.loads(raw_core_features)
         except json.JSONDecodeError as e:
             logger.error(f"Invalid JSON in core_features for bot_id={bot_id}: {e}")
-            return set(TOOL_FEATURE_MAPPING.values())
+            # Return empty — don't blindly expose all tools on a config error
+            return set()
 
     if not raw_core_features:
-        logger.warning(f"Empty core_features for bot_id={bot_id}. Defaulting to all tools.")
-        return set(TOOL_FEATURE_MAPPING.values())
+        logger.warning(f"Empty core_features for bot_id={bot_id}. No tools enabled.")
+        # User has not configured any features; do not fall back to all tools
+        return set()
 
     # ✅ Handle DICT format: {"Gmail": [...], "Google Calendar": [...]}
     if isinstance(raw_core_features, dict):
@@ -145,11 +147,12 @@ def _parse_core_features_to_tools(raw_core_features, bot_id: str) -> set:
 
     else:
         logger.warning(f"Unexpected core_features type {type(raw_core_features)} for bot_id={bot_id}.")
-        return set(TOOL_FEATURE_MAPPING.values())
+        # Return empty — don't expose all tools on an unexpected format
+        return set()
 
     if not enabled_tools:
-        logger.warning(f"No enabled tools parsed for bot_id={bot_id}. Defaulting to all.")
-        return set(TOOL_FEATURE_MAPPING.values())
+        logger.warning(f"No enabled tools parsed for bot_id={bot_id}. No specific tools will be enabled.")
+        # Do NOT return all tools — fall through so only the maps default is added below
 
     # Product requirement: keep maps available by default for all bots/users.
     if "maps" not in enabled_tools:
@@ -197,7 +200,7 @@ def generate_kb_summary_from_chunks(kb_name: str, qdrant_client, limit: int = 20
     # ---- Step 1: Create base embedding for search ----
     try:
         emb = openai_client.embeddings.create(
-            model="text-embedding-ada-002",
+            model="text-embedding-3-large",  # Must match the model used when indexing KBs
             input="overview of content"
         )
         query_vector = emb.data[0].embedding
@@ -207,12 +210,13 @@ def generate_kb_summary_from_chunks(kb_name: str, qdrant_client, limit: int = 20
 
     # ---- Step 2: Query Qdrant ----
     try:
-        search_results = qdrant_client.search(
+        search_response = qdrant_client.query_points(
             collection_name=kb_name,
-            query_vector=query_vector,
+            query=query_vector,
             limit=40,  # Fetch more → sample later
             with_payload=True
         )
+        search_results = search_response.points if search_response and hasattr(search_response, "points") else []
     except Exception as e:
         logger.error(f"[KB SUMMARY] Qdrant search error: {e}")
         return ""

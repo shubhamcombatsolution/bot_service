@@ -418,9 +418,23 @@ def load_knowledge_retriever(
         if next_offset:
             logger.debug(f"Next offset for pagination: {next_offset}")
 
-        # Initialize embeddings
+        # Initialize embeddings to match collection dimensionality.
+        if vector_size == 3072:
+            embedding_model_name = "text-embedding-3-large"
+        elif vector_size == 1536:
+            embedding_model_name = "text-embedding-3-small"
+        else:
+            embedding_model_name = os.getenv("KB_EMBEDDING_MODEL", "text-embedding-3-large")
+
+        logger.info(
+            "Using embedding model '%s' for collection '%s' (vector_size=%s)",
+            embedding_model_name,
+            collection_name,
+            vector_size,
+        )
         embeddings = OpenAIEmbeddings(
-            model="text-embedding-ada-002", openai_api_key=config.llm_api_key
+            model=embedding_model_name,
+            openai_api_key=config.llm_api_key,
         )
 
         # Create Qdrant vector store

@@ -600,6 +600,7 @@ def build_snapshot(bot: CustomBotNew) -> dict:
         "disclaimer_text":    bot.disclaimer_text,
         "greeting_type":      bot.greeting_type,
         "greeting_message":   bot.greeting_message,
+        "memory_mode":        getattr(bot, "memory_mode", None),
     }
 
     logger.info(

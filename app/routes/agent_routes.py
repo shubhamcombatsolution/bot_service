@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt, create_access_token
-from app.models import Agent, LLM, Tools, KnowledgeBase, BaseLLM, LoginUser,AgentVersion
+from app.models import Agent, LLM, Tools, KnowledgeBase, BaseLLM, LoginUser,AgentVersion, Conversation
 from app.database.DatabaseOperationPostgreSQL import db_session
 from sqlalchemy.orm import aliased
 from langchain_openai import ChatOpenAI
@@ -56,13 +56,16 @@ qdrant = QdrantClient(url="http://localhost:6333", timeout=120)
 
 def get_embedding_model():
     """Return the default OpenAI embedding model configuration."""
-    OPENAI_MODEL_DIMENSIONS = {"text-embedding-ada-002": 1536}
+    OPENAI_MODEL_DIMENSIONS = {
+        "text-embedding-3-small": 1536,
+        "text-embedding-3-large": 3072,
+    }
     try:
         openai_api_key = os.getenv("OPENAI_API_KEY")
         if not openai_api_key:
             raise ValueError("OPENAI_API_KEY environment variable not set.")
         client = OpenAI(api_key=openai_api_key)
-        model_name = "text-embedding-ada-002"
+        model_name = "text-embedding-3-large"
         vector_size = OPENAI_MODEL_DIMENSIONS[model_name]
         logger.info(f"Using default OpenAI embedding model: {model_name}")
         return {
@@ -572,6 +575,13 @@ def chat(agent_id):
             return error_response("Message is required", {}, 400)
 
         memory_type = config.get("memory_mode")
+
+        # Session memory needs a session id to scope history to the current
+        # conversation. Accept one from the client; mint a new one if absent.
+        session_id = data.get("session_id")
+        if normalize_memory_mode(memory_type) == "session" and not session_id:
+            session_id = str(uuid.uuid4())
+
         kb_context = ""
         graph_context = ""
         graph_details = {"nodes": [], "edges": []}
@@ -592,12 +602,13 @@ def chat(agent_id):
                     embedding_config = get_embedding_model()
                     query_embedding = get_embeddings([user_input], embedding_config)[0]
 
-                    search_result = qdrant.search(
+                    search_response = qdrant.query_points(
                         collection_name=knowledge_base.collection_name,
-                        query_vector=query_embedding,
+                        query=query_embedding,
                         limit=5,
                         with_payload=True
                     )
+                    search_result = search_response.points if search_response and hasattr(search_response, "points") else []
 
                     kb_chunks = [
                         hit.payload.get("chunk_text")
@@ -611,48 +622,35 @@ def chat(agent_id):
 
         graph_context = get_graph_context(user_input, agent_id)
 
-        # Memory handling remains same
-        if memory_type:
-            conversation = RunnableWithMessageHistory(
-                runnable=prompt | llm,
-                get_session_history=lambda session_id: get_session_history(agent_id),
-                input_messages_key="input",
-                history_messages_key="history"
-            )
+        # Memory handling: load prior turns from DB based on the agent's mode,
+        # run the model with that history, then persist this turn back.
+        history_messages = load_history_from_db(
+            session, tenant_id, agent_id, memory_type, session_id
+        )
 
-            try:
-                response = conversation.invoke(
-                    {
-                        "input": user_input,
-                        "kb_context": kb_context,
-                        "graph_context": graph_context,
-                        "agent_instructions": config.get("agent_instructions", ""),
-                        "additional_instructions": config.get("additional_instructions", ""),
-                        "agent_name": config.get("agent_name"),
-                    },
-                    config={"configurable": {"session_id": str(agent_id)}}
-                ).content
-            except Exception as e:
-                return error_response(f"Failed to get response: {str(e)}", {}, 500)
+        try:
+            response = (prompt | llm).invoke({
+                "input": user_input,
+                "kb_context": kb_context,
+                "graph_context": graph_context,
+                "agent_instructions": config.get("agent_instructions", ""),
+                "additional_instructions": config.get("additional_instructions", ""),
+                "agent_name": config.get("agent_name"),
+                "history": history_messages,
+            }).content
+        except Exception as e:
+            return error_response(f"Failed to get response: {str(e)}", {}, 500)
 
-        else:
-            try:
-                response = (prompt | llm).invoke({
-                    "input": user_input,
-                    "kb_context": kb_context,
-                    "graph_context": graph_context,
-                    "agent_instructions": config.get("agent_instructions", ""),
-                    "additional_instructions": config.get("additional_instructions", ""),
-                    "agent_name": config.get("agent_name"),
-                    "history": []
-                }).content
-            except Exception as e:
-                return error_response(f"Failed to get response: {str(e)}", {}, 500)
+        save_conversation_turn(
+            session, tenant_id, agent_id, memory_type,
+            user_input, response, session_id
+        )
 
         return success_response(
             "Response generated successfully",
             {
                 "response": response,
+                "session_id": session_id,
                 "knowledge_graph": graph_details,
                 "graph_image": f"/{graph_image_path}" if graph_image_path else None
             },
@@ -1050,6 +1048,73 @@ def get_session_history(agent_id):
     if agent_id not in agent_histories:
         agent_histories[agent_id] = InMemoryChatMessageHistory()
     return agent_histories[agent_id]
+
+
+def normalize_memory_mode(memory_mode):
+    """Collapse the various stored memory_mode strings into one of:
+      None        -> no memory (Structured)
+      'session'   -> remember within a conversation (Session)
+      'persistent'-> remember across sessions (Persistent)
+
+    Handles both vocabularies present in the DB:
+      jnanic frontend : 'structured' | 'session' | 'persistent' | 'conversation'
+      legacy frontend : null | 'short_term' | 'long_term'
+    """
+    value = (memory_mode or "").strip().lower()
+    if value in ("session", "short_term", "conversation"):
+        return "session"
+    if value in ("persistent", "long_term"):
+        return "persistent"
+    return None  # 'structured', 'none', '', None
+
+
+def load_history_from_db(session, tenant_id, agent_id, memory_mode, session_id=None, limit=20):
+    """Load prior turns from tbl_conversations as chat history.
+
+    Returns messages oldest-first (chronological order).
+      Structured  -> empty.
+      Session     -> only turns from this session_id.
+      Persistent  -> all turns for (tenant_id, agent_id).
+    """
+    mode = normalize_memory_mode(memory_mode)
+    if not mode:
+        return []
+
+    query = session.query(Conversation).filter_by(
+        tenant_id=tenant_id, agent_id=agent_id
+    )
+    if mode == "session":
+        if not session_id:
+            return []  # new session, nothing to load yet
+        query = query.filter_by(session_id=session_id)
+
+    rows = (
+        query.order_by(Conversation.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+    messages = []
+    for row in reversed(rows):  # oldest -> newest
+        messages.append(HumanMessage(content=row.user_input))
+        messages.append(AIMessage(content=row.response))
+    return messages
+
+
+def save_conversation_turn(session, tenant_id, agent_id, memory_mode, user_input, response, session_id=None):
+    """Persist one received/generated turn. No-op for Structured mode."""
+    mode = normalize_memory_mode(memory_mode)
+    if not mode:
+        return
+    session.add(Conversation(
+        tenant_id=tenant_id,
+        agent_id=agent_id,
+        memory_type=mode,
+        session_id=session_id,
+        user_input=user_input,
+        response=response,
+    ))
+    session.commit()
 
 # Create prompt template
 prompt = ChatPromptTemplate.from_messages([

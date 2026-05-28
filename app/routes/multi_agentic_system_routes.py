@@ -4,6 +4,7 @@ from datetime import datetime,timedelta
 import os
 from app.models import CustomBot,KnowledgeBase
 from app.models import ToolAuthorization
+from app.models.mcp_tools import McpTools
 from app.utils import update_remaining_messages
 from Tools.CalendarTool import CalendarTool
 from Tools.GSheetsTool import GSheetsTool
@@ -582,15 +583,17 @@ def mcp_google():
         }
 
         # ✅ Detect which tools user granted
+        # Use the SAME names as the MCP catalog (McpTools.mcp_tools) so the
+        # authorized_tools intersection in get_mcps() matches correctly.
         def detect_tools(scopes: list[str]) -> list[str]:
             tools = []
             for s in scopes:
                 if "gmail" in s:
-                    tools.append("Jnanic_MCP_Gmail")
+                    tools.append("Gmail")
                 if "calendar" in s:
-                    tools.append("Jnanic_MCP_Calendar")
+                    tools.append("Gcalendar")
                 if "spreadsheets" in s or "drive" in s:
-                    tools.append("Jnanic_MCP_GSheets")
+                    tools.append("Gsheets")
             return list(set(tools))
 
         granted_tools = detect_tools(scope.split())
@@ -599,11 +602,11 @@ def mcp_google():
         if requested_tool_name:
             requested_norm = requested_tool_name.strip().lower().replace(" ", "").replace("-", "").replace("_", "")
             if "gmail" in requested_norm:
-                granted_tools = ["Jnanic_MCP_Gmail"]
+                granted_tools = ["Gmail"]
             elif "calendar" in requested_norm:
-                granted_tools = ["Jnanic_MCP_Calendar"]
+                granted_tools = ["Gcalendar"]
             elif "sheet" in requested_norm or "spreadsheet" in requested_norm or "drive" in requested_norm:
-                granted_tools = ["Jnanic_MCP_GSheets"]
+                granted_tools = ["Gsheets"]
 
         if not granted_tools:
             granted_tools = ["MCP_Google_Generic"]
@@ -637,6 +640,7 @@ def mcp_google():
                     auth.mcp_json = {
                         "mcp_name": mcp_name,
                         "tool_name": requested_tool_name or tool_name,
+                        "tgi": True,
                     } if mcp_name or requested_tool_name else auth.mcp_json
                     auth.updated_at = datetime.utcnow()
                     updated_tools.append(tool_name)
@@ -651,6 +655,7 @@ def mcp_google():
                         mcp_json={
                             "mcp_name": mcp_name,
                             "tool_name": requested_tool_name or tool_name,
+                            "tgi": True,
                         } if mcp_name or requested_tool_name else None,
                         del_flag=False,
                         created_at=datetime.utcnow(),
@@ -660,6 +665,39 @@ def mcp_google():
                     created_tools.append(tool_name)
 
             Session.commit()
+
+            # ✅ Sync granted tools into the MCP catalog (McpTools.mcp_tools)
+            # Without this, /mcp_tools/tools never shows the OAuth'd tool even though
+            # credentials are saved — because get_mcps() intersects catalog vs auth.
+            if mcp_name:
+                try:
+                    mcp_record = Session.query(McpTools).filter_by(
+                        tenant_id=int(tenant_id),
+                        mcp_name=mcp_name
+                    ).first()
+                    if mcp_record:
+                        current_catalog = list(mcp_record.mcp_tools or [])
+                        changed = False
+                        for granted in granted_tools:
+                            if granted not in current_catalog:
+                                current_catalog.append(granted)
+                                changed = True
+                                logger.info(
+                                    "[MCP] Added '%s' to catalog for mcp_name='%s' tenant=%s",
+                                    granted, mcp_name, tenant_id
+                                )
+                        if changed:
+                            mcp_record.mcp_tools = current_catalog
+                            Session.commit()
+                    else:
+                        logger.warning(
+                            "[MCP] No McpTools record found for mcp_name='%s' tenant=%s — "
+                            "tool will not appear until MCP server is registered.",
+                            mcp_name, tenant_id
+                        )
+                except Exception as catalog_err:
+                    logger.warning("[MCP] Could not update MCP catalog: %s", catalog_err)
+
         finally:
             Session.close()
 
@@ -1199,10 +1237,11 @@ def get_or_create_multi_agent_system(
     kb_ids: list = None,
     instructions: list = None,
     core_features: list = None,
-    kb_functionalities: list = None
+    kb_functionalities: list = None,
+    memory_mode: str = None
 ) -> MultiAgentSystem:
 
-    cache_key = f"{tenant_id}_{bot_id or 'default'}_{session_id}"
+    cache_key = f"{tenant_id}_{bot_id or 'default'}_{session_id}_{memory_mode or 'session'}"
     logger.info(
         f"[get_or_create_mas] Request | cache_key={cache_key} | "
         f"kb_ids={kb_ids} | kb_ids_type={type(kb_ids).__name__} | "
@@ -1256,7 +1295,8 @@ def get_or_create_multi_agent_system(
             kb_ids=kb_ids or [],
             instructions=instructions or [],
             core_features=core_features or [],
-            kb_functionalities=kb_functionalities or []
+            kb_functionalities=kb_functionalities or [],
+            memory_mode=memory_mode
         )
     except Exception as e:
         logger.exception(f"[get_or_create_mas] Failed to initialize MultiAgentSystem for bot={bot_id}: {e}")
@@ -1420,7 +1460,8 @@ def get_chat():
             kb_ids=config.get("kb_ids", []),
             instructions=config.get("instructions", []),
             core_features=config.get("core_features", []),
-            kb_functionalities=config.get("kb_functionalities", [])
+            kb_functionalities=config.get("kb_functionalities", []),
+            memory_mode=config.get("memory_mode")
         )
 
         agent_response = multi_agent.ask(query)

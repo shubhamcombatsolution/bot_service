@@ -138,7 +138,11 @@ class CustomBotNew(db.Model):
         nullable=True,
         default="Hello! I'm your friendly assistant. How can I help you today?"
     )
-    
+
+    # Conversation memory behavior: 'structured' | 'session' | 'persistent'.
+    # NULL is treated as 'session' (load/save scoped to the current session).
+    memory_mode = db.Column(db.String(30), nullable=True, default=None)
+
     published_version_id = db.Column(
         db.Integer,
         db.ForeignKey("tbl_bot_versions.version_id"),

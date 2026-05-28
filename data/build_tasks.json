@@ -779,116 +779,6 @@
       "dynamic_wait": "15"
     }
   },
-  "3ddb5c42-af3a-439c-9016-5403858516d6": {
-    "task_id": "3ddb5c42-af3a-439c-9016-5403858516d6",
-    "tenant_id": 185,
-    "knowledge_base_name": "Tata Realty",
-    "knowledge_base_id": 854,
-    "status": "completed",
-    "progress": 100,
-    "current_step": "Completed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-06T09:05:14.407574",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-06T09:05:14.467868",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-06T09:05:14.486479",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-06T09:05:14.505720",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-06T09:05:14.525619",
-        "message": "\ud83c\udf10 Starting web crawl: 1 URL(s)"
-      },
-      {
-        "timestamp": "2026-05-06T09:10:16.769019",
-        "message": "\u2705 Crawled: https://tatarealty.in/... \u2192 101 chunks (88,449 chars) [\ud83d\udcca 24 pages, 20 credits; mode=MULTI_DOMAIN_GRAPH flags=DEDUP_STRICT,REDIRECT_CHAIN_TRACK,PAGINATION_SAFE]"
-      },
-      {
-        "timestamp": "2026-05-06T09:10:16.781170",
-        "message": "\ud83d\udcca Total crawl: 24 pages from 1 URLs (20 credits used)"
-      },
-      {
-        "timestamp": "2026-05-06T09:10:16.792976",
-        "message": "Creating Qdrant collection with 101 chunks"
-      },
-      {
-        "timestamp": "2026-05-06T09:10:16.850342",
-        "message": "Processing 101 chunks"
-      },
-      {
-        "timestamp": "2026-05-06T09:10:18.162508",
-        "message": "Analyzing content for summary"
-      },
-      {
-        "timestamp": "2026-05-06T09:10:18.646110",
-        "message": "Finalizing knowledge base record"
-      },
-      {
-        "timestamp": "2026-05-06T09:10:18.664700",
-        "message": "\u2705 KB created: 101 chunks from 0 docs, 1 URLs"
-      }
-    ],
-    "created_at": "2026-05-06T09:05:14.407328",
-    "updated_at": "2026-05-06T09:10:18.664696",
-    "started_at": "2026-05-06T09:05:14.467859",
-    "completed_at": "2026-05-06T09:10:18.664682",
-    "error_message": null,
-    "metadata": {
-      "upload_dir": "Uploads/async_20260506090514_185",
-      "files": [],
-      "scrap_urls": [
-        "https://tatarealty.in/"
-      ],
-      "raw_text": "",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "20",
-      "max_crawl_depth": "20",
-      "dynamic_wait": "15"
-    },
-    "build_summary": {
-      "total_chunks": 101,
-      "documents_processed": 0,
-      "urls_crawled": 1,
-      "failed_items": 0,
-      "collection_name": "tenant_185_tata_realty",
-      "content_sources": [
-        {
-          "type": "url",
-          "name": "https://tatarealty.in/",
-          "chunks_created": 101,
-          "char_count": 88449,
-          "pages_crawled": 24,
-          "credits_used": 20,
-          "crawled_urls": [
-            "https://tatarealty.in/",
-            "https://tatarealty.in/blogs/realty-guide/real-estate-guide",
-            "https://tatarealty.in/sitemap.xml",
-            "https://tatarealty.in/blogs/home-and-lifestyle-trends/home-decor",
-            "https://tatarealty.in/blogs/vaastu-tips-for-home-flooring",
-            "https://tatarealty.in/blogs/home-and-lifestyle-trends/hacks-and-tips",
-            "https://tatarealty.in/management-team",
-            "https://tatarealty.in/blogs/what-is-rera-act",
-            "https://tatarealty.in/onlinepayment/privacy-policy.html",
-            "https://tatarealty.in/blogs/reason-to-invest-in-mumbai-real-estate"
-          ],
-          "sample": "![](https://tatarealty.in/assets/images/intellion_app_desktop.png)\n\n# About Tata Realty and Infrastructure Ltd\n\nA 100 percent subsidiary of Tata Sons Pvt Ltd, founded by the great visionary Jamsetji N"
-        }
-      ]
-    }
-  },
   "b8f48fe5-11ed-414e-a1a6-7bdb5355bebf": {
     "task_id": "b8f48fe5-11ed-414e-a1a6-7bdb5355bebf",
     "tenant_id": 182,
@@ -941,226 +831,6 @@
       "dynamic_wait": "10"
     }
   },
-  "f7093e4f-2d43-4af9-9533-89a760534b92": {
-    "task_id": "f7093e4f-2d43-4af9-9533-89a760534b92",
-    "tenant_id": 185,
-    "knowledge_base_name": "True Cars",
-    "knowledge_base_id": 856,
-    "status": "completed",
-    "progress": 100,
-    "current_step": "Completed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-06T10:27:52.725591",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-06T10:27:52.771561",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-06T10:27:52.790438",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-06T10:27:52.811047",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-06T10:27:52.832186",
-        "message": "\ud83c\udf10 Starting web crawl: 1 URL(s)"
-      },
-      {
-        "timestamp": "2026-05-06T10:42:58.868886",
-        "message": "\u2705 Crawled: https://www.truecar.com/... \u2192 124 chunks (111,108 chars) [\ud83d\udcca 23 pages, 30 credits; mode=DEEP_LINK flags=DEDUP_STRICT,REDIRECT_CHAIN_TRACK,PAGINATION_SAFE]"
-      },
-      {
-        "timestamp": "2026-05-06T10:42:58.882948",
-        "message": "\ud83d\udcca Total crawl: 23 pages from 1 URLs (30 credits used)"
-      },
-      {
-        "timestamp": "2026-05-06T10:42:58.902616",
-        "message": "Creating Qdrant collection with 124 chunks"
-      },
-      {
-        "timestamp": "2026-05-06T10:42:59.020091",
-        "message": "Processing 124 chunks"
-      },
-      {
-        "timestamp": "2026-05-06T10:43:01.101568",
-        "message": "Analyzing content for summary"
-      },
-      {
-        "timestamp": "2026-05-06T10:43:02.121607",
-        "message": "Finalizing knowledge base record"
-      },
-      {
-        "timestamp": "2026-05-06T10:43:02.212927",
-        "message": "\u2705 KB created: 124 chunks from 0 docs, 1 URLs"
-      }
-    ],
-    "created_at": "2026-05-06T10:27:52.725570",
-    "updated_at": "2026-05-06T10:43:02.212924",
-    "started_at": "2026-05-06T10:27:52.771547",
-    "completed_at": "2026-05-06T10:43:02.212907",
-    "error_message": null,
-    "metadata": {
-      "upload_dir": "Uploads/async_20260506102752_185",
-      "files": [],
-      "scrap_urls": [
-        "https://www.truecar.com/"
-      ],
-      "raw_text": "",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "20",
-      "max_crawl_depth": "20",
-      "dynamic_wait": "15"
-    },
-    "build_summary": {
-      "total_chunks": 124,
-      "documents_processed": 0,
-      "urls_crawled": 1,
-      "failed_items": 0,
-      "collection_name": "tenant_185_true_cars",
-      "content_sources": [
-        {
-          "type": "url",
-          "name": "https://www.truecar.com/",
-          "chunks_created": 124,
-          "char_count": 111108,
-          "pages_crawled": 23,
-          "credits_used": 30,
-          "crawled_urls": [
-            "https://www.truecar.com/fit-quiz",
-            "https://www.truecar.com/overview/dodge",
-            "https://www.truecar.com/blog/ways-to-upgrade-your-ride",
-            "https://www.truecar.com/overview/buick",
-            "https://www.truecar.com/blog/es/industria-noticias-diario-lunes-noviembre-26-2012",
-            "https://www.truecar.com/deals/fuel-electric",
-            "https://www.truecar.com/blog/november-2012-truetrends-largest-total-incentives",
-            "https://www.truecar.com/overview/ineos",
-            "https://www.truecar.com/audi/s-e-tron-gt/lease",
-            "https://www.truecar.com/compare/chevrolet-silverado-ev-vs-gmc-sierra-ev"
-          ],
-          "sample": "![TrueCar](https://www.truecar.com/assets/_next/static/media/tc-logo-black-500.a0eb27d4.png?auto=format&h=35&w=120)\n\n## Find Your Fit\n\n![Honda Civic](https://www.truecar.com/assets/_next/static/media/"
-        }
-      ]
-    }
-  },
-  "2bdd2520-6e1e-446e-9967-852e72c43da2": {
-    "task_id": "2bdd2520-6e1e-446e-9967-852e72c43da2",
-    "tenant_id": 182,
-    "knowledge_base_name": "Hospital",
-    "knowledge_base_id": 855,
-    "status": "completed",
-    "progress": 100,
-    "current_step": "Completed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-06T11:39:18.026575",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-06T11:39:18.063083",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-06T11:39:18.086595",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-06T11:39:18.115526",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-06T11:39:18.138721",
-        "message": "\ud83c\udf10 Starting web crawl: 1 URL(s)"
-      },
-      {
-        "timestamp": "2026-05-06T12:05:01.334037",
-        "message": "\u2705 Crawled: https://rubyhall.com/... \u2192 367 chunks (328,884 chars) [\ud83d\udcca 74 pages, 79 credits; mode=MULTI_DOMAIN_GRAPH flags=DEDUP_STRICT,REDIRECT_CHAIN_TRACK,PAGINATION_SAFE]"
-      },
-      {
-        "timestamp": "2026-05-06T12:05:01.404902",
-        "message": "\ud83d\udcca Total crawl: 74 pages from 1 URLs (79 credits used)"
-      },
-      {
-        "timestamp": "2026-05-06T12:05:01.475502",
-        "message": "Creating Qdrant collection with 367 chunks"
-      },
-      {
-        "timestamp": "2026-05-06T12:05:02.131757",
-        "message": "Processing 367 chunks"
-      },
-      {
-        "timestamp": "2026-05-06T12:05:31.307827",
-        "message": "Analyzing content for summary"
-      },
-      {
-        "timestamp": "2026-05-06T12:05:32.066737",
-        "message": "Finalizing knowledge base record"
-      },
-      {
-        "timestamp": "2026-05-06T12:05:32.107973",
-        "message": "\u2705 KB created: 367 chunks from 0 docs, 1 URLs"
-      }
-    ],
-    "created_at": "2026-05-06T11:39:18.026557",
-    "updated_at": "2026-05-06T12:05:32.107970",
-    "started_at": "2026-05-06T11:39:18.063071",
-    "completed_at": "2026-05-06T12:05:32.107961",
-    "error_message": null,
-    "metadata": {
-      "upload_dir": "Uploads/update_async_20260506113918_182",
-      "files": [],
-      "scrap_urls": [
-        "https://rubyhall.com/"
-      ],
-      "raw_text": "",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "100",
-      "max_crawl_depth": "120",
-      "dynamic_wait": "20"
-    },
-    "build_summary": {
-      "total_chunks": 367,
-      "documents_processed": 0,
-      "urls_crawled": 1,
-      "failed_items": 0,
-      "collection_name": "tenant_182_hospital",
-      "content_sources": [
-        {
-          "type": "url",
-          "name": "https://rubyhall.com/",
-          "chunks_created": 367,
-          "char_count": 328884,
-          "pages_crawled": 74,
-          "credits_used": 79,
-          "crawled_urls": [
-            "https://rubyhall.com/contact-us",
-            "https://rubyhall.com/gastroenterology",
-            "https://rubyhall.com/ntu/index.php",
-            "https://rubyhall.com/sitemap.xml",
-            "https://rubyhall.com/fetal-medicine",
-            "https://rubyhall.com/clinical-nutrition-dietetics",
-            "https://rubyhall.com/kidney-transplant",
-            "https://rubyhall.com/urology",
-            "https://rubyhall.com/offers.php",
-            "https://rubyhall.com/privacy-policy"
-          ],
-          "sample": "![Contact Us - Ruby Hall Clinic](https://rubyhall.com/img/bg/Contact-us-img.jpg)\n\n# Contact Us\n\n### Get in Touch\n\nSelect Service *Visa Medical Services Health Checkup\n\nSelect Location *Hinjawadi Sasso"
-        }
-      ]
-    }
-  },
   "37c2dece-38ef-4142-8074-7e15c9ffa17b": {
     "task_id": "37c2dece-38ef-4142-8074-7e15c9ffa17b",
     "tenant_id": 185,
@@ -1211,2420 +881,6 @@
       "max_crawl_pages": "100",
       "max_crawl_depth": "50",
       "dynamic_wait": "15"
-    }
-  },
-  "5fe0c383-f3be-4e5e-a4eb-c1ae005e000c": {
-    "task_id": "5fe0c383-f3be-4e5e-a4eb-c1ae005e000c",
-    "tenant_id": 185,
-    "knowledge_base_name": "Tata Realty KB",
-    "knowledge_base_id": 858,
-    "status": "completed",
-    "progress": 100,
-    "current_step": "Completed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-07T04:59:43.873982",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-07T04:59:43.918951",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-07T04:59:43.932106",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-07T04:59:43.957544",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-07T04:59:44.017199",
-        "message": "\ud83c\udf10 Starting web crawl: 1 URL(s)"
-      },
-      {
-        "timestamp": "2026-05-07T05:06:37.176727",
-        "message": "\u2705 Crawled: https://tatarealty.in/... \u2192 123 chunks (107,299 chars) [\ud83d\udcca 31 pages, 25 credits; mode=MULTI_DOMAIN_GRAPH flags=DEDUP_STRICT,REDIRECT_CHAIN_TRACK,PAGINATION_SAFE]"
-      },
-      {
-        "timestamp": "2026-05-07T05:06:37.189119",
-        "message": "\ud83d\udcca Total crawl: 31 pages from 1 URLs (25 credits used)"
-      },
-      {
-        "timestamp": "2026-05-07T05:06:37.200101",
-        "message": "Creating Qdrant collection with 123 chunks"
-      },
-      {
-        "timestamp": "2026-05-07T05:06:37.432540",
-        "message": "Processing 123 chunks"
-      },
-      {
-        "timestamp": "2026-05-07T05:06:40.806956",
-        "message": "Analyzing content for summary"
-      },
-      {
-        "timestamp": "2026-05-07T05:06:41.779127",
-        "message": "Finalizing knowledge base record"
-      },
-      {
-        "timestamp": "2026-05-07T05:06:41.796991",
-        "message": "\u2705 KB created: 123 chunks from 0 docs, 1 URLs"
-      }
-    ],
-    "created_at": "2026-05-07T04:59:43.873406",
-    "updated_at": "2026-05-07T05:06:41.796988",
-    "started_at": "2026-05-07T04:59:43.918942",
-    "completed_at": "2026-05-07T05:06:41.796981",
-    "error_message": null,
-    "metadata": {
-      "upload_dir": "Uploads/async_20260507045943_185",
-      "files": [],
-      "scrap_urls": [
-        "https://tatarealty.in/"
-      ],
-      "raw_text": "",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "25",
-      "max_crawl_depth": "25",
-      "dynamic_wait": "15"
-    },
-    "build_summary": {
-      "total_chunks": 123,
-      "documents_processed": 0,
-      "urls_crawled": 1,
-      "failed_items": 0,
-      "collection_name": "tenant_185_tata_realty_kb",
-      "content_sources": [
-        {
-          "type": "url",
-          "name": "https://tatarealty.in/",
-          "chunks_created": 123,
-          "char_count": 107299,
-          "pages_crawled": 31,
-          "credits_used": 25,
-          "crawled_urls": [
-            "https://tatarealty.in/",
-            "https://tatarealty.in/blogs/realty-guide/real-estate-guide",
-            "https://tatarealty.in/sitemap.xml",
-            "https://tatarealty.in/blogs/home-and-lifestyle-trends/home-decor",
-            "https://tatarealty.in/blogs/vaastu-tips-for-home-flooring",
-            "https://tatarealty.in/blogs/home-and-lifestyle-trends/hacks-and-tips",
-            "https://tatarealty.in/management-team",
-            "https://tatarealty.in/blogs/reason-to-invest-in-mumbai-real-estate",
-            "https://tatarealty.in/blogs/what-is-rera-act",
-            "https://tatarealty.in/blogs/how-to-decorate-home-with-plants"
-          ],
-          "sample": "![Tata Realty Intellion App](https://tatarealty.in/assets/images/intellion_app_desktop.png)\n\n### About Tata Realty and Infrastructure Ltd\n\nA 100 percent subsidiary of Tata Sons Pvt Ltd, founded by the"
-        }
-      ]
-    }
-  },
-  "e2d1e4e0-89e9-4d27-a242-871d505ebd7b": {
-    "task_id": "e2d1e4e0-89e9-4d27-a242-871d505ebd7b",
-    "tenant_id": 46,
-    "knowledge_base_name": "BBT",
-    "knowledge_base_id": 859,
-    "status": "completed",
-    "progress": 100,
-    "current_step": "Completed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-07T07:25:34.049631",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-07T07:25:34.115130",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-07T07:25:34.135265",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-07T07:25:34.167402",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-07T07:25:34.196986",
-        "message": "\ud83c\udf10 Starting web crawl: 1 URL(s)"
-      },
-      {
-        "timestamp": "2026-05-07T07:47:27.530406",
-        "message": "\u2705 Crawled: https://www.bigboytoyz.com... \u2192 350 chunks (316,914 chars) [\ud83d\udcca 71 pages, 71 credits; mode=STANDARD flags=DEDUP_STRICT,REDIRECT_CHAIN_TRACK]"
-      },
-      {
-        "timestamp": "2026-05-07T07:47:27.543837",
-        "message": "\ud83d\udcca Total crawl: 71 pages from 1 URLs (71 credits used)"
-      },
-      {
-        "timestamp": "2026-05-07T07:47:27.558999",
-        "message": "Creating Qdrant collection with 350 chunks"
-      },
-      {
-        "timestamp": "2026-05-07T07:47:27.735804",
-        "message": "Processing 350 chunks"
-      },
-      {
-        "timestamp": "2026-05-07T07:47:36.826632",
-        "message": "Analyzing content for summary"
-      },
-      {
-        "timestamp": "2026-05-07T07:47:37.264212",
-        "message": "Finalizing knowledge base record"
-      },
-      {
-        "timestamp": "2026-05-07T07:47:37.293846",
-        "message": "\u2705 KB created: 350 chunks from 0 docs, 1 URLs"
-      }
-    ],
-    "created_at": "2026-05-07T07:25:34.048888",
-    "updated_at": "2026-05-07T07:47:37.293841",
-    "started_at": "2026-05-07T07:25:34.115106",
-    "completed_at": "2026-05-07T07:47:37.293829",
-    "error_message": null,
-    "metadata": {
-      "upload_dir": "Uploads/async_20260507072534_46",
-      "files": [],
-      "scrap_urls": [
-        "https://www.bigboytoyz.com"
-      ],
-      "raw_text": "",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "70",
-      "max_crawl_depth": "65",
-      "dynamic_wait": "10"
-    },
-    "build_summary": {
-      "total_chunks": 350,
-      "documents_processed": 0,
-      "urls_crawled": 1,
-      "failed_items": 0,
-      "collection_name": "tenant_46_bbt",
-      "content_sources": [
-        {
-          "type": "url",
-          "name": "https://www.bigboytoyz.com",
-          "chunks_created": 350,
-          "char_count": 316914,
-          "pages_crawled": 71,
-          "credits_used": 71,
-          "crawled_urls": [
-            "https://www.bigboytoyz.com/",
-            "https://www.bigboytoyz.com/about-us",
-            "https://www.bigboytoyz.com/team",
-            "https://www.bigboytoyz.com/contact-us",
-            "https://www.bigboytoyz.com/associates",
-            "https://www.bigboytoyz.com/bbt-squad",
-            "https://www.bigboytoyz.com/career",
-            "https://www.bigboytoyz.com/151-check-points",
-            "https://www.bigboytoyz.com/realty",
-            "https://www.bigboytoyz.com/realty/about-us"
-          ],
-          "sample": "![Banner Image](https://www.bigboytoyz.com/images/hp-banner-desk.webp)![Banner Image](https://www.bigboytoyz.com/images/hp-banner-mob.webp)\n\nWelcome to the Dream Destination for Supercar Lovers.\n\n# Su"
-        }
-      ]
-    }
-  },
-  "b7b99bd4-52fe-4305-90cf-64028dc47b3a": {
-    "task_id": "b7b99bd4-52fe-4305-90cf-64028dc47b3a",
-    "tenant_id": 46,
-    "knowledge_base_name": "cardekho",
-    "knowledge_base_id": 860,
-    "status": "completed",
-    "progress": 100,
-    "current_step": "Completed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-07T09:35:38.199373",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-07T09:35:38.253839",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-07T09:35:38.274757",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-07T09:35:38.301284",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-07T09:35:38.354189",
-        "message": "\ud83c\udf10 Starting web crawl: 1 URL(s)"
-      },
-      {
-        "timestamp": "2026-05-07T10:01:03.376566",
-        "message": "\u2705 Crawled: https://www.cardekho.com... \u2192 3 chunks (2,678 chars) [\ud83d\udcca 58 pages, 58 credits; mode=DEEP_LINK flags=DEDUP_STRICT,REDIRECT_CHAIN_TRACK,PAGINATION_SAFE]"
-      },
-      {
-        "timestamp": "2026-05-07T10:01:03.414994",
-        "message": "\ud83d\udcca Total crawl: 58 pages from 1 URLs (58 credits used)"
-      },
-      {
-        "timestamp": "2026-05-07T10:01:03.452397",
-        "message": "Creating Qdrant collection with 3 chunks"
-      },
-      {
-        "timestamp": "2026-05-07T10:01:03.758451",
-        "message": "Processing 3 chunks"
-      },
-      {
-        "timestamp": "2026-05-07T10:01:05.081905",
-        "message": "Analyzing content for summary"
-      },
-      {
-        "timestamp": "2026-05-07T10:01:06.364472",
-        "message": "Finalizing knowledge base record"
-      },
-      {
-        "timestamp": "2026-05-07T10:01:06.433445",
-        "message": "\u2705 KB created: 3 chunks from 0 docs, 1 URLs"
-      }
-    ],
-    "created_at": "2026-05-07T09:35:38.199036",
-    "updated_at": "2026-05-07T10:01:06.433440",
-    "started_at": "2026-05-07T09:35:38.253821",
-    "completed_at": "2026-05-07T10:01:06.433425",
-    "error_message": null,
-    "metadata": {
-      "upload_dir": "Uploads/async_20260507093538_46",
-      "files": [],
-      "scrap_urls": [
-        "https://www.cardekho.com"
-      ],
-      "raw_text": "",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "100",
-      "max_crawl_depth": "100",
-      "dynamic_wait": "20"
-    },
-    "build_summary": {
-      "total_chunks": 3,
-      "documents_processed": 0,
-      "urls_crawled": 1,
-      "failed_items": 0,
-      "collection_name": "tenant_46_cardekho",
-      "content_sources": [
-        {
-          "type": "url",
-          "name": "https://www.cardekho.com",
-          "chunks_created": 3,
-          "char_count": 2678,
-          "pages_crawled": 58,
-          "credits_used": 58,
-          "crawled_urls": [
-            "https://www.cardekho.com/car-videos/magic-tata-harrier-ev-6037.htm"
-          ],
-          "sample": "# Magic - Tata Harrier EV\n\n![Magic - Tata Harrier EV](https://www.cardekho.com/car-videos/images/yt-video-img/userimages/Ryxx83eQ-V4/1777532070410.jpg)\n\n## Compare variants of Tata Harrier EV\n\n### [Ha"
-        }
-      ]
-    }
-  },
-  "ea778192-5dd2-4813-be16-1e50999000f1": {
-    "task_id": "ea778192-5dd2-4813-be16-1e50999000f1",
-    "tenant_id": 46,
-    "knowledge_base_name": "CarDekho",
-    "knowledge_base_id": 861,
-    "status": "failed",
-    "progress": 95,
-    "current_step": "Failed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-07T10:04:49.525452",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-07T10:04:49.571631",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-07T10:04:49.587296",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-07T10:04:49.605581",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-07T10:04:49.645897",
-        "message": "\ud83c\udf10 Starting web crawl: 1 URL(s)"
-      },
-      {
-        "timestamp": "2026-05-07T10:24:52.343355",
-        "message": "\u2705 Crawled: https://www.cardekho.com... \u2192 7 chunks (5,936 chars) [\ud83d\udcca 3 pages, 3 credits; mode=DEEP_LINK flags=DEDUP_STRICT,REDIRECT_CHAIN_TRACK,PAGINATION_SAFE]"
-      },
-      {
-        "timestamp": "2026-05-07T10:24:52.360741",
-        "message": "\ud83d\udcca Total crawl: 3 pages from 1 URLs (3 credits used)"
-      },
-      {
-        "timestamp": "2026-05-07T10:24:52.393591",
-        "message": "Creating Qdrant collection with 7 chunks"
-      },
-      {
-        "timestamp": "2026-05-07T10:24:52.522577",
-        "message": "Processing 7 chunks"
-      },
-      {
-        "timestamp": "2026-05-07T10:24:53.106430",
-        "message": "Analyzing content for summary"
-      },
-      {
-        "timestamp": "2026-05-07T10:24:54.608434",
-        "message": "Finalizing knowledge base record"
-      },
-      {
-        "timestamp": "2026-05-07T10:24:54.648741",
-        "message": "Build failed: UPDATE statement on table 'tbl_knowledge_base' expected to update 1 row(s); 0 were matched."
-      }
-    ],
-    "created_at": "2026-05-07T10:04:49.525430",
-    "updated_at": "2026-05-07T10:24:54.648736",
-    "started_at": "2026-05-07T10:04:49.571620",
-    "completed_at": "2026-05-07T10:24:54.648721",
-    "error_message": "UPDATE statement on table 'tbl_knowledge_base' expected to update 1 row(s); 0 were matched.",
-    "metadata": {
-      "upload_dir": "Uploads/async_20260507100449_46",
-      "files": [],
-      "scrap_urls": [
-        "https://www.cardekho.com"
-      ],
-      "raw_text": "",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "60",
-      "max_crawl_depth": "60",
-      "dynamic_wait": "15"
-    }
-  },
-  "e692d2cd-e73e-4700-bb0a-0440f00384d1": {
-    "task_id": "e692d2cd-e73e-4700-bb0a-0440f00384d1",
-    "tenant_id": 46,
-    "knowledge_base_name": "cardekho",
-    "knowledge_base_id": 862,
-    "status": "completed",
-    "progress": 100,
-    "current_step": "Completed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-07T10:11:30.190042",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-07T10:11:30.236063",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-07T10:11:30.256251",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-07T10:11:30.284411",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-07T10:11:30.329754",
-        "message": "\ud83c\udf10 Starting web crawl: 1 URL(s)"
-      },
-      {
-        "timestamp": "2026-05-07T10:25:22.016769",
-        "message": "\u2705 Crawled: https://www.cardekho.com... \u2192 5 chunks (4,781 chars) [\ud83d\udcc4 single page; mode=DEEP_LINK flags=DEDUP_STRICT,REDIRECT_CHAIN_TRACK,PAGINATION_SAFE]"
-      },
-      {
-        "timestamp": "2026-05-07T10:25:22.032974",
-        "message": "\ud83d\udcca Total crawl: 1 pages from 1 URLs (1 credits used)"
-      },
-      {
-        "timestamp": "2026-05-07T10:25:22.050434",
-        "message": "Creating Qdrant collection with 5 chunks"
-      },
-      {
-        "timestamp": "2026-05-07T10:25:22.077999",
-        "message": "Processing 5 chunks"
-      },
-      {
-        "timestamp": "2026-05-07T10:25:22.522539",
-        "message": "Analyzing content for summary"
-      },
-      {
-        "timestamp": "2026-05-07T10:25:37.658847",
-        "message": "Finalizing knowledge base record"
-      },
-      {
-        "timestamp": "2026-05-07T10:25:37.683038",
-        "message": "\u2705 KB created: 5 chunks from 0 docs, 1 URLs"
-      }
-    ],
-    "created_at": "2026-05-07T10:11:30.190028",
-    "updated_at": "2026-05-07T10:25:37.683033",
-    "started_at": "2026-05-07T10:11:30.236052",
-    "completed_at": "2026-05-07T10:25:37.683019",
-    "error_message": null,
-    "metadata": {
-      "upload_dir": "Uploads/async_20260507101130_46",
-      "files": [],
-      "scrap_urls": [
-        "https://www.cardekho.com"
-      ],
-      "raw_text": "",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "60",
-      "max_crawl_depth": "60",
-      "dynamic_wait": "20"
-    },
-    "build_summary": {
-      "total_chunks": 5,
-      "documents_processed": 0,
-      "urls_crawled": 1,
-      "failed_items": 0,
-      "collection_name": "tenant_46_cardekho",
-      "content_sources": [
-        {
-          "type": "url",
-          "name": "https://www.cardekho.com",
-          "chunks_created": 5,
-          "char_count": 4781,
-          "pages_crawled": 1,
-          "credits_used": 1,
-          "crawled_urls": [
-            "https://www.cardekho.com/"
-          ],
-          "sample": "## The most searched cars\n\n- **SUV**\n- **Hatchback**\n- **Sedan**\n- **MUV**\n- **Luxury**\n\n- ![Tata Sierra](https://stimg.cardekho.com/images/carexteriorimages/630x420/Tata/Sierra/12271/1765181428462/fr"
-        }
-      ]
-    }
-  },
-  "a9f54423-ec2f-4cbe-86e2-be6a30d674b2": {
-    "task_id": "a9f54423-ec2f-4cbe-86e2-be6a30d674b2",
-    "tenant_id": 46,
-    "knowledge_base_name": "car dekho 1",
-    "knowledge_base_id": 863,
-    "status": "completed",
-    "progress": 100,
-    "current_step": "Completed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-07T10:51:57.104263",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-07T10:51:57.143743",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-07T10:51:57.156776",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-07T10:51:57.181931",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-07T10:51:57.204905",
-        "message": "\ud83c\udf10 Starting web crawl: 1 URL(s)"
-      },
-      {
-        "timestamp": "2026-05-07T10:54:14.327731",
-        "message": "\u2705 Crawled: https://www.cardekho.com... \u2192 10 chunks (9,518 chars) [\ud83d\udcc4 single page; mode=DEEP_LINK flags=DEDUP_STRICT,REDIRECT_CHAIN_TRACK,PAGINATION_SAFE]"
-      },
-      {
-        "timestamp": "2026-05-07T10:54:14.339008",
-        "message": "\ud83d\udcca Total crawl: 1 pages from 1 URLs (1 credits used)"
-      },
-      {
-        "timestamp": "2026-05-07T10:54:14.352275",
-        "message": "Creating Qdrant collection with 10 chunks"
-      },
-      {
-        "timestamp": "2026-05-07T10:54:14.445445",
-        "message": "Processing 10 chunks"
-      },
-      {
-        "timestamp": "2026-05-07T10:54:15.616099",
-        "message": "Analyzing content for summary"
-      },
-      {
-        "timestamp": "2026-05-07T10:54:16.598791",
-        "message": "Finalizing knowledge base record"
-      },
-      {
-        "timestamp": "2026-05-07T10:54:16.627392",
-        "message": "\u2705 KB created: 10 chunks from 0 docs, 1 URLs"
-      }
-    ],
-    "created_at": "2026-05-07T10:51:57.104246",
-    "updated_at": "2026-05-07T10:54:16.627387",
-    "started_at": "2026-05-07T10:51:57.143735",
-    "completed_at": "2026-05-07T10:54:16.627376",
-    "error_message": null,
-    "metadata": {
-      "upload_dir": "Uploads/async_20260507105157_46",
-      "files": [],
-      "scrap_urls": [
-        "https://www.cardekho.com"
-      ],
-      "raw_text": "",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "55",
-      "max_crawl_depth": "55",
-      "dynamic_wait": "15"
-    },
-    "build_summary": {
-      "total_chunks": 10,
-      "documents_processed": 0,
-      "urls_crawled": 1,
-      "failed_items": 0,
-      "collection_name": "tenant_46_car_dekho_1",
-      "content_sources": [
-        {
-          "type": "url",
-          "name": "https://www.cardekho.com",
-          "chunks_created": 10,
-          "char_count": 9518,
-          "pages_crawled": 1,
-          "credits_used": 1,
-          "crawled_urls": [
-            "https://www.cardekho.com/"
-          ],
-          "sample": "CarDekho: New Cars, Car Prices, Buy & Sell Used Cars in India All New Used Ad English Login / Register NEW CARS Explore New Cars Electric Cars Maruti Suzuki e Vitara Mahindra BE 6 Tata Punch EV MG Win"
-        }
-      ]
-    }
-  },
-  "0c136081-0d5f-44aa-9790-5ad22268799f": {
-    "task_id": "0c136081-0d5f-44aa-9790-5ad22268799f",
-    "tenant_id": 46,
-    "knowledge_base_name": "car wale",
-    "knowledge_base_id": 864,
-    "status": "completed",
-    "progress": 100,
-    "current_step": "Completed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-07T11:29:18.819911",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-07T11:29:18.861899",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-07T11:29:18.877441",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-07T11:29:18.911649",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-07T11:29:18.935332",
-        "message": "\ud83c\udf10 Starting web crawl: 1 URL(s)"
-      },
-      {
-        "timestamp": "2026-05-07T11:30:45.293543",
-        "message": "\u2705 Crawled: https://www.carwale.com... \u2192 2 chunks (1,859 chars) [\ud83d\udcc4 single page; mode=DEEP_LINK flags=DEDUP_STRICT,REDIRECT_CHAIN_TRACK,PAGINATION_SAFE]"
-      },
-      {
-        "timestamp": "2026-05-07T11:30:45.309890",
-        "message": "\ud83d\udcca Total crawl: 1 pages from 1 URLs (1 credits used)"
-      },
-      {
-        "timestamp": "2026-05-07T11:30:45.327128",
-        "message": "Creating Qdrant collection with 2 chunks"
-      },
-      {
-        "timestamp": "2026-05-07T11:30:45.420337",
-        "message": "Processing 2 chunks"
-      },
-      {
-        "timestamp": "2026-05-07T11:30:46.403534",
-        "message": "Analyzing content for summary"
-      },
-      {
-        "timestamp": "2026-05-07T11:31:04.326842",
-        "message": "Finalizing knowledge base record"
-      },
-      {
-        "timestamp": "2026-05-07T11:31:04.419795",
-        "message": "\u2705 KB created: 2 chunks from 0 docs, 1 URLs"
-      }
-    ],
-    "created_at": "2026-05-07T11:29:18.819895",
-    "updated_at": "2026-05-07T11:31:04.419788",
-    "started_at": "2026-05-07T11:29:18.861889",
-    "completed_at": "2026-05-07T11:31:04.419773",
-    "error_message": null,
-    "metadata": {
-      "upload_dir": "Uploads/async_20260507112918_46",
-      "files": [],
-      "scrap_urls": [
-        "https://www.carwale.com"
-      ],
-      "raw_text": "",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "55",
-      "max_crawl_depth": "60",
-      "dynamic_wait": "15"
-    },
-    "build_summary": {
-      "total_chunks": 2,
-      "documents_processed": 0,
-      "urls_crawled": 1,
-      "failed_items": 0,
-      "collection_name": "tenant_46_car_wale",
-      "content_sources": [
-        {
-          "type": "url",
-          "name": "https://www.carwale.com",
-          "chunks_created": 2,
-          "char_count": 1859,
-          "pages_crawled": 1,
-          "credits_used": 1,
-          "crawled_urls": [
-            "https://www.carwale.com/"
-          ],
-          "sample": "# Maruti Suzuki Victoris: is it really the \"Got-It-All\" SUV? Sneak Peek.\n\n[Watch on YouTube](https://www.youtube.com/watch?v=OaguHFjZw6Q)\n\n![thumbnail-image](https://yt3.ggpht.com/faanjG2GX5lCZ0QDtb-S"
-        }
-      ]
-    }
-  },
-  "518de11c-81c4-4485-9c15-7f02cae5e911": {
-    "task_id": "518de11c-81c4-4485-9c15-7f02cae5e911",
-    "tenant_id": 46,
-    "knowledge_base_name": "cars24",
-    "knowledge_base_id": 866,
-    "status": "completed",
-    "progress": 100,
-    "current_step": "Completed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-07T11:46:00.957101",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-07T11:46:01.263200",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-07T11:46:01.307777",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-07T11:46:01.473390",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-07T11:46:01.621237",
-        "message": "\ud83c\udf10 Starting web crawl: 1 URL(s)"
-      },
-      {
-        "timestamp": "2026-05-07T11:48:19.098426",
-        "message": "\u2705 Crawled: https://www.cars24.com... \u2192 4 chunks (3,365 chars) [\ud83d\udcc4 single page; mode=MULTI_DOMAIN_GRAPH flags=DEDUP_STRICT,REDIRECT_CHAIN_TRACK,PAGINATION_SAFE]"
-      },
-      {
-        "timestamp": "2026-05-07T11:48:19.111364",
-        "message": "\ud83d\udcca Total crawl: 1 pages from 1 URLs (1 credits used)"
-      },
-      {
-        "timestamp": "2026-05-07T11:48:19.125436",
-        "message": "Creating Qdrant collection with 4 chunks"
-      },
-      {
-        "timestamp": "2026-05-07T11:48:19.188785",
-        "message": "Processing 4 chunks"
-      },
-      {
-        "timestamp": "2026-05-07T11:48:19.557673",
-        "message": "Analyzing content for summary"
-      },
-      {
-        "timestamp": "2026-05-07T11:48:20.303034",
-        "message": "Finalizing knowledge base record"
-      },
-      {
-        "timestamp": "2026-05-07T11:48:20.320384",
-        "message": "\u2705 KB created: 4 chunks from 0 docs, 1 URLs"
-      }
-    ],
-    "created_at": "2026-05-07T11:46:00.957079",
-    "updated_at": "2026-05-07T11:48:20.320381",
-    "started_at": "2026-05-07T11:46:01.263189",
-    "completed_at": "2026-05-07T11:48:20.320373",
-    "error_message": null,
-    "metadata": {
-      "upload_dir": "Uploads/async_20260507114600_46",
-      "files": [],
-      "scrap_urls": [
-        "https://www.cars24.com"
-      ],
-      "raw_text": "",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "55",
-      "max_crawl_depth": "60",
-      "dynamic_wait": "20"
-    },
-    "build_summary": {
-      "total_chunks": 4,
-      "documents_processed": 0,
-      "urls_crawled": 1,
-      "failed_items": 0,
-      "collection_name": "tenant_46_cars24",
-      "content_sources": [
-        {
-          "type": "url",
-          "name": "https://www.cars24.com",
-          "chunks_created": 4,
-          "char_count": 3365,
-          "pages_crawled": 1,
-          "credits_used": 1,
-          "crawled_urls": [
-            "https://www.cars24.com/"
-          ],
-          "sample": "Cars24: Buy and sell used cars, get car loans, and check new car details with Cars24. Explore services like challan payment, car scrapping, and more. Mumbai Login Buy used car Sell car Loans Challan C"
-        }
-      ]
-    }
-  },
-  "e4def5d0-2bf9-46d0-8714-39080a4eae06": {
-    "task_id": "e4def5d0-2bf9-46d0-8714-39080a4eae06",
-    "tenant_id": 46,
-    "knowledge_base_name": "cars24",
-    "knowledge_base_id": 867,
-    "status": "completed",
-    "progress": 100,
-    "current_step": "Completed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-07T11:59:53.900055",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-07T11:59:53.931386",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-07T11:59:53.945184",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-07T11:59:53.961979",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-07T11:59:53.980753",
-        "message": "\ud83c\udf10 Starting web crawl: 1 URL(s)"
-      },
-      {
-        "timestamp": "2026-05-07T12:19:22.412013",
-        "message": "\u2705 Crawled: https://www.cars24.com... \u2192 103 chunks (94,023 chars) [\ud83d\udcca 22 pages, 22 credits; mode=MULTI_DOMAIN_GRAPH flags=DEDUP_STRICT,REDIRECT_CHAIN_TRACK,PAGINATION_SAFE]"
-      },
-      {
-        "timestamp": "2026-05-07T12:19:22.424574",
-        "message": "\ud83d\udcca Total crawl: 22 pages from 1 URLs (22 credits used)"
-      },
-      {
-        "timestamp": "2026-05-07T12:19:22.437418",
-        "message": "Creating Qdrant collection with 103 chunks"
-      },
-      {
-        "timestamp": "2026-05-07T12:19:22.488929",
-        "message": "Processing 103 chunks"
-      },
-      {
-        "timestamp": "2026-05-07T12:19:25.217256",
-        "message": "Analyzing content for summary"
-      },
-      {
-        "timestamp": "2026-05-07T12:19:25.924952",
-        "message": "Finalizing knowledge base record"
-      },
-      {
-        "timestamp": "2026-05-07T12:19:25.952409",
-        "message": "\u2705 KB created: 103 chunks from 0 docs, 1 URLs"
-      }
-    ],
-    "created_at": "2026-05-07T11:59:53.900037",
-    "updated_at": "2026-05-07T12:19:25.952405",
-    "started_at": "2026-05-07T11:59:53.931371",
-    "completed_at": "2026-05-07T12:19:25.952393",
-    "error_message": null,
-    "metadata": {
-      "upload_dir": "Uploads/async_20260507115953_46",
-      "files": [],
-      "scrap_urls": [
-        "https://www.cars24.com"
-      ],
-      "raw_text": "",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "55",
-      "max_crawl_depth": "60",
-      "dynamic_wait": "20"
-    },
-    "build_summary": {
-      "total_chunks": 103,
-      "documents_processed": 0,
-      "urls_crawled": 1,
-      "failed_items": 0,
-      "collection_name": "tenant_46_cars24",
-      "content_sources": [
-        {
-          "type": "url",
-          "name": "https://www.cars24.com",
-          "chunks_created": 103,
-          "char_count": 94023,
-          "pages_crawled": 22,
-          "credits_used": 22,
-          "crawled_urls": [
-            "https://www.cars24.com/buy-used-maruti-alto-2011-cars-palwal-29993864729",
-            "https://www.cars24.com/buy-used-renault-kiger-2021-cars-palwal-11028465736",
-            "https://www.cars24.com/buy-used-skoda-octavia-2018-cars-palwal-29924461784",
-            "https://www.cars24.com/buy-used-toyota-fortuner-2021-cars-palwal-11079764726",
-            "https://www.cars24.com/buy-used-hyundai-grand-i10-nios-2022-cars-palwal-29992563755",
-            "https://www.cars24.com/buy-used-maruti-swift-2017-cars-palwal-29949163734",
-            "https://www.cars24.com/buy-used-ford-figo-aspire-2019-cars-palwal-29908063722",
-            "https://www.cars24.com/buy-used-maruti-grand-vitara-2024-cars-bulandshahar-25285265752",
-            "https://www.cars24.com/buy-used-honda-city-2012-cars-bulandshahar-25228507720",
-            "https://www.cars24.com/sitemaps/buy-used-cars-udaipur.xml"
-          ],
-          "sample": "## Overview\n\n![2011 Maruti Alto LXI, CNG, Manual, 2,73,719 km, exterior](https://marketplace-cdn.cars24.com/production/29993864729/exterior/2026-02-22/car_replace_bg_a7371d96-1172-4d3c-b532-310050d948"
-        }
-      ]
-    }
-  },
-  "530fd71f-12cd-4e6b-91e9-e29c87ee0b69": {
-    "task_id": "530fd71f-12cd-4e6b-91e9-e29c87ee0b69",
-    "tenant_id": 174,
-    "knowledge_base_name": "trip booking",
-    "knowledge_base_id": null,
-    "status": "failed",
-    "progress": 0,
-    "current_step": "Failed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-08T04:29:11.913684",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-08T04:29:11.950815",
-        "message": "Build failed: (psycopg2.errors.StringDataRightTruncation) value too long for type character varying(255)\n\n[SQL: INSERT INTO tbl_knowledge_base (tenant_id, knowledge_base_name, description, upload_pdf, upload_media, scrap_url, max_crawl_pages, max_crawl_depth, dynamic_wait, raw_text, chunk_size, chunk_overlap, collection_name, media_collection_name, media_type, kb_summary, status, build_task_id, total_chunks, processed_chunks, error_message, started_at, completed_at, updated_at, del_flg) VALUES (%(tenant_id)s, %(knowledge_base_name)s, %(description)s, %(upload_pdf)s, %(upload_media)s, %(scrap_url)s, %(max_crawl_pages)s, %(max_crawl_depth)s, %(dynamic_wait)s, %(raw_text)s, %(chunk_size)s, %(chunk_overlap)s, %(collection_name)s, %(media_collection_name)s, %(media_type)s, %(kb_summary)s, %(status)s, %(build_task_id)s, %(total_chunks)s, %(processed_chunks)s, %(error_message)s, %(started_at)s, %(completed_at)s, now(), %(del_flg)s) RETURNING tbl_knowledge_base.knowledge_base_id, tbl_knowledge_base.created_at, tbl_knowledge_base.updated_at]\n[parameters: {'tenant_id': 174, 'knowledge_base_name': 'trip booking', 'description': ',vc', 'upload_pdf': None, 'upload_media': None, 'scrap_url': 'https://r.search.yahoo.com/rdclks/dWU9MW1ucjBxMWt2cXBkNSZ1dD0xNzc4MjE0MzA5OTI3JnVvPTc0MzU0NDkwMDA1NjU3Jmx0PTImcz0xJmVzPVJFV2lDWl8zZmRRZDRwSENya1dFTmE ... (1248 characters truncated) ... pjSoVxIdkn5SWo-;_ylt=Awr1SfelZf1pdAIAkLu7HAx.;_ylu=Y29sbwNzZzMEcG9zAzEEdnRpZAMEc2VjA292LXRvcA--;_ylc=X3IDMgRydAMw?IG=0af549f7f01e4f31a900d89620700978', 'max_crawl_pages': '60', 'max_crawl_depth': '65', 'dynamic_wait': '5', 'raw_text': '', 'chunk_size': 1024, 'chunk_overlap': 50, 'collection_name': None, 'media_collection_name': None, 'media_type': None, 'kb_summary': '', 'status': 'pending', 'build_task_id': '530fd71f-12cd-4e6b-91e9-e29c87ee0b69', 'total_chunks': 0, 'processed_chunks': 0, 'error_message': None, 'started_at': None, 'completed_at': None, 'del_flg': False}]\n(Background on this error at: https://sqlalche.me/e/20/9h9h)"
-      }
-    ],
-    "created_at": "2026-05-08T04:29:11.912999",
-    "updated_at": "2026-05-08T04:29:11.950810",
-    "started_at": null,
-    "completed_at": "2026-05-08T04:29:11.950795",
-    "error_message": "(psycopg2.errors.StringDataRightTruncation) value too long for type character varying(255)\n\n[SQL: INSERT INTO tbl_knowledge_base (tenant_id, knowledge_base_name, description, upload_pdf, upload_media, scrap_url, max_crawl_pages, max_crawl_depth, dynamic_wait, raw_text, chunk_size, chunk_overlap, collection_name, media_collection_name, media_type, kb_summary, status, build_task_id, total_chunks, processed_chunks, error_message, started_at, completed_at, updated_at, del_flg) VALUES (%(tenant_id)s, %(knowledge_base_name)s, %(description)s, %(upload_pdf)s, %(upload_media)s, %(scrap_url)s, %(max_crawl_pages)s, %(max_crawl_depth)s, %(dynamic_wait)s, %(raw_text)s, %(chunk_size)s, %(chunk_overlap)s, %(collection_name)s, %(media_collection_name)s, %(media_type)s, %(kb_summary)s, %(status)s, %(build_task_id)s, %(total_chunks)s, %(processed_chunks)s, %(error_message)s, %(started_at)s, %(completed_at)s, now(), %(del_flg)s) RETURNING tbl_knowledge_base.knowledge_base_id, tbl_knowledge_base.created_at, tbl_knowledge_base.updated_at]\n[parameters: {'tenant_id': 174, 'knowledge_base_name': 'trip booking', 'description': ',vc', 'upload_pdf': None, 'upload_media': None, 'scrap_url': 'https://r.search.yahoo.com/rdclks/dWU9MW1ucjBxMWt2cXBkNSZ1dD0xNzc4MjE0MzA5OTI3JnVvPTc0MzU0NDkwMDA1NjU3Jmx0PTImcz0xJmVzPVJFV2lDWl8zZmRRZDRwSENya1dFTmE ... (1248 characters truncated) ... pjSoVxIdkn5SWo-;_ylt=Awr1SfelZf1pdAIAkLu7HAx.;_ylu=Y29sbwNzZzMEcG9zAzEEdnRpZAMEc2VjA292LXRvcA--;_ylc=X3IDMgRydAMw?IG=0af549f7f01e4f31a900d89620700978', 'max_crawl_pages': '60', 'max_crawl_depth': '65', 'dynamic_wait': '5', 'raw_text': '', 'chunk_size': 1024, 'chunk_overlap': 50, 'collection_name': None, 'media_collection_name': None, 'media_type': None, 'kb_summary': '', 'status': 'pending', 'build_task_id': '530fd71f-12cd-4e6b-91e9-e29c87ee0b69', 'total_chunks': 0, 'processed_chunks': 0, 'error_message': None, 'started_at': None, 'completed_at': None, 'del_flg': False}]\n(Background on this error at: https://sqlalche.me/e/20/9h9h)",
-    "metadata": {
-      "upload_dir": "Uploads/async_20260508042911_174",
-      "files": [],
-      "scrap_urls": [
-        "https://r.search.yahoo.com/rdclks/dWU9MW1ucjBxMWt2cXBkNSZ1dD0xNzc4MjE0MzA5OTI3JnVvPTc0MzU0NDkwMDA1NjU3Jmx0PTImcz0xJmVzPVJFV2lDWl8zZmRRZDRwSENya1dFTmE5aHNWMlBCMExMMXRRY3EzbnB3eTdGZVlFX2dNSjRETFhCRU5sNGY5c29BNFAycng0Ymtjalpndy0t/RV=2/RE=1780806310/RO=14/RU=https%3a%2f%2fwww.bing.com%2faclick%3fld%3de8CefMNBt3_ZITAUHV8yeVrzVUCUztzBKkNuUThgYGBQiJK2svZ-Y25RK_cdRcbJ7oxfAvguYzNrw9ykx_LN-WitrvcFri8HHzVf5r9on8s9Z-K0_M92FNhNIaJ9AYOiuNa8mtdY7jpArIuCfIRn8DflZIujcip5Ep8p6AmqKjyXhszhSn3sYUWorEyoY0DlaDRckw9aAXcWPKE628rQBFxLLqZAI%26u%3daHR0cHMlM2ElMmYlMmZwaXhlbC5ldmVyZXN0dGVjaC5uZXQlMmYxNjMxJTJmY3ElM2Zldl9zaWQlM2QzJTI2ZXZfbG4lM2QlNjBtYWtlbXl0cmlwJTI2ZXZfbHglM2Rrd2QtNzEwNTY3MDU4MjcwODQlM2Fsb2MtOTAlMjZldl9jcnglM2QlMjZldl9tdCUzZGUlMjZldl9uJTNkbyUyNmV2X2x0eCUzZCUyNmV2X3BsJTNkJTI2ZXZfcG9zJTNkJTI2ZXZfZHZjJTNkYyUyNmV2X2R2bSUzZCUyNmV2X3BoeSUzZDE0ODkxMSUyNmV2X2xvYyUzZCUyNmV2X2N4JTNkMTYwMDA4Nzg2JTI2ZXZfYXglM2Q4MjYyOTQ3ODQlMjZldl9lZmlkJTNkJTNhRyUzYXMlMjZ1cmwlM2RodHRwcyUyNTNBJTI1MkYlMjUyRnd3dy5tYWtlbXl0cmlwLmNvbSUyNTJGZmxpZ2h0cyUyNTNGY21wJTI1M0RTRU0lMjU3Q00lMjU3Q0RGJTI1N0NCJTI1N0NCcmFuZCUyNTdDQl9NX01ha2VteXRyaXBfU2VhcmNoX0V4YWN0JTI1N0NCcmFuZF9Ub3BfNV9FeGFjdCUyNTdDRXhwYW5kZWQlMjU3QyUyNTI2c19rd2NpZCUyNTNEQUwhMTYzMSEzISFlISFvISElMjU2MG1ha2VteXRyaXAlMjUyNmVmX2lkJTI1M0QlMjUzQUclMjUzQXMlMjZtc2Nsa2lkJTNkMzgyZjBmZWMxNjE4MWJiZGI5NmQ2NjExNzNiZTk0OTY%26rlid%3d382f0fec16181bbdb96d661173be9496/RK=2/RS=2SMDF6D46uuOvpjSoVxIdkn5SWo-;_ylt=Awr1SfelZf1pdAIAkLu7HAx.;_ylu=Y29sbwNzZzMEcG9zAzEEdnRpZAMEc2VjA292LXRvcA--;_ylc=X3IDMgRydAMw?IG=0af549f7f01e4f31a900d89620700978"
-      ],
-      "raw_text": "",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "60",
-      "max_crawl_depth": "65",
-      "dynamic_wait": "5"
-    }
-  },
-  "708783f8-f3cb-4d95-95c2-2de5bcf53b1a": {
-    "task_id": "708783f8-f3cb-4d95-95c2-2de5bcf53b1a",
-    "tenant_id": 174,
-    "knowledge_base_name": "trip booking",
-    "knowledge_base_id": null,
-    "status": "failed",
-    "progress": 0,
-    "current_step": "Failed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-08T04:29:33.288238",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-08T04:29:33.313074",
-        "message": "Build failed: (psycopg2.errors.StringDataRightTruncation) value too long for type character varying(255)\n\n[SQL: INSERT INTO tbl_knowledge_base (tenant_id, knowledge_base_name, description, upload_pdf, upload_media, scrap_url, max_crawl_pages, max_crawl_depth, dynamic_wait, raw_text, chunk_size, chunk_overlap, collection_name, media_collection_name, media_type, kb_summary, status, build_task_id, total_chunks, processed_chunks, error_message, started_at, completed_at, updated_at, del_flg) VALUES (%(tenant_id)s, %(knowledge_base_name)s, %(description)s, %(upload_pdf)s, %(upload_media)s, %(scrap_url)s, %(max_crawl_pages)s, %(max_crawl_depth)s, %(dynamic_wait)s, %(raw_text)s, %(chunk_size)s, %(chunk_overlap)s, %(collection_name)s, %(media_collection_name)s, %(media_type)s, %(kb_summary)s, %(status)s, %(build_task_id)s, %(total_chunks)s, %(processed_chunks)s, %(error_message)s, %(started_at)s, %(completed_at)s, now(), %(del_flg)s) RETURNING tbl_knowledge_base.knowledge_base_id, tbl_knowledge_base.created_at, tbl_knowledge_base.updated_at]\n[parameters: {'tenant_id': 174, 'knowledge_base_name': 'trip booking', 'description': ',vc', 'upload_pdf': None, 'upload_media': None, 'scrap_url': 'https://r.search.yahoo.com/rdclks/dWU9MW1ucjBxMWt2cXBkNSZ1dD0xNzc4MjE0MzA5OTI3JnVvPTc0MzU0NDkwMDA1NjU3Jmx0PTImcz0xJmVzPVJFV2lDWl8zZmRRZDRwSENya1dFTmE ... (1248 characters truncated) ... pjSoVxIdkn5SWo-;_ylt=Awr1SfelZf1pdAIAkLu7HAx.;_ylu=Y29sbwNzZzMEcG9zAzEEdnRpZAMEc2VjA292LXRvcA--;_ylc=X3IDMgRydAMw?IG=0af549f7f01e4f31a900d89620700978', 'max_crawl_pages': '60', 'max_crawl_depth': '65', 'dynamic_wait': '5', 'raw_text': '', 'chunk_size': 1024, 'chunk_overlap': 50, 'collection_name': None, 'media_collection_name': None, 'media_type': None, 'kb_summary': '', 'status': 'pending', 'build_task_id': '708783f8-f3cb-4d95-95c2-2de5bcf53b1a', 'total_chunks': 0, 'processed_chunks': 0, 'error_message': None, 'started_at': None, 'completed_at': None, 'del_flg': False}]\n(Background on this error at: https://sqlalche.me/e/20/9h9h)"
-      }
-    ],
-    "created_at": "2026-05-08T04:29:33.287765",
-    "updated_at": "2026-05-08T04:29:33.313069",
-    "started_at": null,
-    "completed_at": "2026-05-08T04:29:33.313053",
-    "error_message": "(psycopg2.errors.StringDataRightTruncation) value too long for type character varying(255)\n\n[SQL: INSERT INTO tbl_knowledge_base (tenant_id, knowledge_base_name, description, upload_pdf, upload_media, scrap_url, max_crawl_pages, max_crawl_depth, dynamic_wait, raw_text, chunk_size, chunk_overlap, collection_name, media_collection_name, media_type, kb_summary, status, build_task_id, total_chunks, processed_chunks, error_message, started_at, completed_at, updated_at, del_flg) VALUES (%(tenant_id)s, %(knowledge_base_name)s, %(description)s, %(upload_pdf)s, %(upload_media)s, %(scrap_url)s, %(max_crawl_pages)s, %(max_crawl_depth)s, %(dynamic_wait)s, %(raw_text)s, %(chunk_size)s, %(chunk_overlap)s, %(collection_name)s, %(media_collection_name)s, %(media_type)s, %(kb_summary)s, %(status)s, %(build_task_id)s, %(total_chunks)s, %(processed_chunks)s, %(error_message)s, %(started_at)s, %(completed_at)s, now(), %(del_flg)s) RETURNING tbl_knowledge_base.knowledge_base_id, tbl_knowledge_base.created_at, tbl_knowledge_base.updated_at]\n[parameters: {'tenant_id': 174, 'knowledge_base_name': 'trip booking', 'description': ',vc', 'upload_pdf': None, 'upload_media': None, 'scrap_url': 'https://r.search.yahoo.com/rdclks/dWU9MW1ucjBxMWt2cXBkNSZ1dD0xNzc4MjE0MzA5OTI3JnVvPTc0MzU0NDkwMDA1NjU3Jmx0PTImcz0xJmVzPVJFV2lDWl8zZmRRZDRwSENya1dFTmE ... (1248 characters truncated) ... pjSoVxIdkn5SWo-;_ylt=Awr1SfelZf1pdAIAkLu7HAx.;_ylu=Y29sbwNzZzMEcG9zAzEEdnRpZAMEc2VjA292LXRvcA--;_ylc=X3IDMgRydAMw?IG=0af549f7f01e4f31a900d89620700978', 'max_crawl_pages': '60', 'max_crawl_depth': '65', 'dynamic_wait': '5', 'raw_text': '', 'chunk_size': 1024, 'chunk_overlap': 50, 'collection_name': None, 'media_collection_name': None, 'media_type': None, 'kb_summary': '', 'status': 'pending', 'build_task_id': '708783f8-f3cb-4d95-95c2-2de5bcf53b1a', 'total_chunks': 0, 'processed_chunks': 0, 'error_message': None, 'started_at': None, 'completed_at': None, 'del_flg': False}]\n(Background on this error at: https://sqlalche.me/e/20/9h9h)",
-    "metadata": {
-      "upload_dir": "Uploads/async_20260508042933_174",
-      "files": [],
-      "scrap_urls": [
-        "https://r.search.yahoo.com/rdclks/dWU9MW1ucjBxMWt2cXBkNSZ1dD0xNzc4MjE0MzA5OTI3JnVvPTc0MzU0NDkwMDA1NjU3Jmx0PTImcz0xJmVzPVJFV2lDWl8zZmRRZDRwSENya1dFTmE5aHNWMlBCMExMMXRRY3EzbnB3eTdGZVlFX2dNSjRETFhCRU5sNGY5c29BNFAycng0Ymtjalpndy0t/RV=2/RE=1780806310/RO=14/RU=https%3a%2f%2fwww.bing.com%2faclick%3fld%3de8CefMNBt3_ZITAUHV8yeVrzVUCUztzBKkNuUThgYGBQiJK2svZ-Y25RK_cdRcbJ7oxfAvguYzNrw9ykx_LN-WitrvcFri8HHzVf5r9on8s9Z-K0_M92FNhNIaJ9AYOiuNa8mtdY7jpArIuCfIRn8DflZIujcip5Ep8p6AmqKjyXhszhSn3sYUWorEyoY0DlaDRckw9aAXcWPKE628rQBFxLLqZAI%26u%3daHR0cHMlM2ElMmYlMmZwaXhlbC5ldmVyZXN0dGVjaC5uZXQlMmYxNjMxJTJmY3ElM2Zldl9zaWQlM2QzJTI2ZXZfbG4lM2QlNjBtYWtlbXl0cmlwJTI2ZXZfbHglM2Rrd2QtNzEwNTY3MDU4MjcwODQlM2Fsb2MtOTAlMjZldl9jcnglM2QlMjZldl9tdCUzZGUlMjZldl9uJTNkbyUyNmV2X2x0eCUzZCUyNmV2X3BsJTNkJTI2ZXZfcG9zJTNkJTI2ZXZfZHZjJTNkYyUyNmV2X2R2bSUzZCUyNmV2X3BoeSUzZDE0ODkxMSUyNmV2X2xvYyUzZCUyNmV2X2N4JTNkMTYwMDA4Nzg2JTI2ZXZfYXglM2Q4MjYyOTQ3ODQlMjZldl9lZmlkJTNkJTNhRyUzYXMlMjZ1cmwlM2RodHRwcyUyNTNBJTI1MkYlMjUyRnd3dy5tYWtlbXl0cmlwLmNvbSUyNTJGZmxpZ2h0cyUyNTNGY21wJTI1M0RTRU0lMjU3Q00lMjU3Q0RGJTI1N0NCJTI1N0NCcmFuZCUyNTdDQl9NX01ha2VteXRyaXBfU2VhcmNoX0V4YWN0JTI1N0NCcmFuZF9Ub3BfNV9FeGFjdCUyNTdDRXhwYW5kZWQlMjU3QyUyNTI2c19rd2NpZCUyNTNEQUwhMTYzMSEzISFlISFvISElMjU2MG1ha2VteXRyaXAlMjUyNmVmX2lkJTI1M0QlMjUzQUclMjUzQXMlMjZtc2Nsa2lkJTNkMzgyZjBmZWMxNjE4MWJiZGI5NmQ2NjExNzNiZTk0OTY%26rlid%3d382f0fec16181bbdb96d661173be9496/RK=2/RS=2SMDF6D46uuOvpjSoVxIdkn5SWo-;_ylt=Awr1SfelZf1pdAIAkLu7HAx.;_ylu=Y29sbwNzZzMEcG9zAzEEdnRpZAMEc2VjA292LXRvcA--;_ylc=X3IDMgRydAMw?IG=0af549f7f01e4f31a900d89620700978"
-      ],
-      "raw_text": "",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "60",
-      "max_crawl_depth": "65",
-      "dynamic_wait": "5"
-    }
-  },
-  "fcd785c6-292c-45ea-8f39-ea7d82783db0": {
-    "task_id": "fcd785c6-292c-45ea-8f39-ea7d82783db0",
-    "tenant_id": 174,
-    "knowledge_base_name": "trip booking",
-    "knowledge_base_id": null,
-    "status": "failed",
-    "progress": 0,
-    "current_step": "Failed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-08T04:29:47.105025",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-08T04:29:47.121999",
-        "message": "Build failed: (psycopg2.errors.StringDataRightTruncation) value too long for type character varying(255)\n\n[SQL: INSERT INTO tbl_knowledge_base (tenant_id, knowledge_base_name, description, upload_pdf, upload_media, scrap_url, max_crawl_pages, max_crawl_depth, dynamic_wait, raw_text, chunk_size, chunk_overlap, collection_name, media_collection_name, media_type, kb_summary, status, build_task_id, total_chunks, processed_chunks, error_message, started_at, completed_at, updated_at, del_flg) VALUES (%(tenant_id)s, %(knowledge_base_name)s, %(description)s, %(upload_pdf)s, %(upload_media)s, %(scrap_url)s, %(max_crawl_pages)s, %(max_crawl_depth)s, %(dynamic_wait)s, %(raw_text)s, %(chunk_size)s, %(chunk_overlap)s, %(collection_name)s, %(media_collection_name)s, %(media_type)s, %(kb_summary)s, %(status)s, %(build_task_id)s, %(total_chunks)s, %(processed_chunks)s, %(error_message)s, %(started_at)s, %(completed_at)s, now(), %(del_flg)s) RETURNING tbl_knowledge_base.knowledge_base_id, tbl_knowledge_base.created_at, tbl_knowledge_base.updated_at]\n[parameters: {'tenant_id': 174, 'knowledge_base_name': 'trip booking', 'description': ',vc', 'upload_pdf': None, 'upload_media': None, 'scrap_url': 'https://r.search.yahoo.com/rdclks/dWU9MW1ucjBxMWt2cXBkNSZ1dD0xNzc4MjE0MzA5OTI3JnVvPTc0MzU0NDkwMDA1NjU3Jmx0PTImcz0xJmVzPVJFV2lDWl8zZmRRZDRwSENya1dFTmE ... (1248 characters truncated) ... pjSoVxIdkn5SWo-;_ylt=Awr1SfelZf1pdAIAkLu7HAx.;_ylu=Y29sbwNzZzMEcG9zAzEEdnRpZAMEc2VjA292LXRvcA--;_ylc=X3IDMgRydAMw?IG=0af549f7f01e4f31a900d89620700978', 'max_crawl_pages': '60', 'max_crawl_depth': '65', 'dynamic_wait': '5', 'raw_text': '', 'chunk_size': 1024, 'chunk_overlap': 50, 'collection_name': None, 'media_collection_name': None, 'media_type': None, 'kb_summary': '', 'status': 'pending', 'build_task_id': 'fcd785c6-292c-45ea-8f39-ea7d82783db0', 'total_chunks': 0, 'processed_chunks': 0, 'error_message': None, 'started_at': None, 'completed_at': None, 'del_flg': False}]\n(Background on this error at: https://sqlalche.me/e/20/9h9h)"
-      }
-    ],
-    "created_at": "2026-05-08T04:29:47.105010",
-    "updated_at": "2026-05-08T04:29:47.121994",
-    "started_at": null,
-    "completed_at": "2026-05-08T04:29:47.121979",
-    "error_message": "(psycopg2.errors.StringDataRightTruncation) value too long for type character varying(255)\n\n[SQL: INSERT INTO tbl_knowledge_base (tenant_id, knowledge_base_name, description, upload_pdf, upload_media, scrap_url, max_crawl_pages, max_crawl_depth, dynamic_wait, raw_text, chunk_size, chunk_overlap, collection_name, media_collection_name, media_type, kb_summary, status, build_task_id, total_chunks, processed_chunks, error_message, started_at, completed_at, updated_at, del_flg) VALUES (%(tenant_id)s, %(knowledge_base_name)s, %(description)s, %(upload_pdf)s, %(upload_media)s, %(scrap_url)s, %(max_crawl_pages)s, %(max_crawl_depth)s, %(dynamic_wait)s, %(raw_text)s, %(chunk_size)s, %(chunk_overlap)s, %(collection_name)s, %(media_collection_name)s, %(media_type)s, %(kb_summary)s, %(status)s, %(build_task_id)s, %(total_chunks)s, %(processed_chunks)s, %(error_message)s, %(started_at)s, %(completed_at)s, now(), %(del_flg)s) RETURNING tbl_knowledge_base.knowledge_base_id, tbl_knowledge_base.created_at, tbl_knowledge_base.updated_at]\n[parameters: {'tenant_id': 174, 'knowledge_base_name': 'trip booking', 'description': ',vc', 'upload_pdf': None, 'upload_media': None, 'scrap_url': 'https://r.search.yahoo.com/rdclks/dWU9MW1ucjBxMWt2cXBkNSZ1dD0xNzc4MjE0MzA5OTI3JnVvPTc0MzU0NDkwMDA1NjU3Jmx0PTImcz0xJmVzPVJFV2lDWl8zZmRRZDRwSENya1dFTmE ... (1248 characters truncated) ... pjSoVxIdkn5SWo-;_ylt=Awr1SfelZf1pdAIAkLu7HAx.;_ylu=Y29sbwNzZzMEcG9zAzEEdnRpZAMEc2VjA292LXRvcA--;_ylc=X3IDMgRydAMw?IG=0af549f7f01e4f31a900d89620700978', 'max_crawl_pages': '60', 'max_crawl_depth': '65', 'dynamic_wait': '5', 'raw_text': '', 'chunk_size': 1024, 'chunk_overlap': 50, 'collection_name': None, 'media_collection_name': None, 'media_type': None, 'kb_summary': '', 'status': 'pending', 'build_task_id': 'fcd785c6-292c-45ea-8f39-ea7d82783db0', 'total_chunks': 0, 'processed_chunks': 0, 'error_message': None, 'started_at': None, 'completed_at': None, 'del_flg': False}]\n(Background on this error at: https://sqlalche.me/e/20/9h9h)",
-    "metadata": {
-      "upload_dir": "Uploads/async_20260508042947_174",
-      "files": [],
-      "scrap_urls": [
-        "https://r.search.yahoo.com/rdclks/dWU9MW1ucjBxMWt2cXBkNSZ1dD0xNzc4MjE0MzA5OTI3JnVvPTc0MzU0NDkwMDA1NjU3Jmx0PTImcz0xJmVzPVJFV2lDWl8zZmRRZDRwSENya1dFTmE5aHNWMlBCMExMMXRRY3EzbnB3eTdGZVlFX2dNSjRETFhCRU5sNGY5c29BNFAycng0Ymtjalpndy0t/RV=2/RE=1780806310/RO=14/RU=https%3a%2f%2fwww.bing.com%2faclick%3fld%3de8CefMNBt3_ZITAUHV8yeVrzVUCUztzBKkNuUThgYGBQiJK2svZ-Y25RK_cdRcbJ7oxfAvguYzNrw9ykx_LN-WitrvcFri8HHzVf5r9on8s9Z-K0_M92FNhNIaJ9AYOiuNa8mtdY7jpArIuCfIRn8DflZIujcip5Ep8p6AmqKjyXhszhSn3sYUWorEyoY0DlaDRckw9aAXcWPKE628rQBFxLLqZAI%26u%3daHR0cHMlM2ElMmYlMmZwaXhlbC5ldmVyZXN0dGVjaC5uZXQlMmYxNjMxJTJmY3ElM2Zldl9zaWQlM2QzJTI2ZXZfbG4lM2QlNjBtYWtlbXl0cmlwJTI2ZXZfbHglM2Rrd2QtNzEwNTY3MDU4MjcwODQlM2Fsb2MtOTAlMjZldl9jcnglM2QlMjZldl9tdCUzZGUlMjZldl9uJTNkbyUyNmV2X2x0eCUzZCUyNmV2X3BsJTNkJTI2ZXZfcG9zJTNkJTI2ZXZfZHZjJTNkYyUyNmV2X2R2bSUzZCUyNmV2X3BoeSUzZDE0ODkxMSUyNmV2X2xvYyUzZCUyNmV2X2N4JTNkMTYwMDA4Nzg2JTI2ZXZfYXglM2Q4MjYyOTQ3ODQlMjZldl9lZmlkJTNkJTNhRyUzYXMlMjZ1cmwlM2RodHRwcyUyNTNBJTI1MkYlMjUyRnd3dy5tYWtlbXl0cmlwLmNvbSUyNTJGZmxpZ2h0cyUyNTNGY21wJTI1M0RTRU0lMjU3Q00lMjU3Q0RGJTI1N0NCJTI1N0NCcmFuZCUyNTdDQl9NX01ha2VteXRyaXBfU2VhcmNoX0V4YWN0JTI1N0NCcmFuZF9Ub3BfNV9FeGFjdCUyNTdDRXhwYW5kZWQlMjU3QyUyNTI2c19rd2NpZCUyNTNEQUwhMTYzMSEzISFlISFvISElMjU2MG1ha2VteXRyaXAlMjUyNmVmX2lkJTI1M0QlMjUzQUclMjUzQXMlMjZtc2Nsa2lkJTNkMzgyZjBmZWMxNjE4MWJiZGI5NmQ2NjExNzNiZTk0OTY%26rlid%3d382f0fec16181bbdb96d661173be9496/RK=2/RS=2SMDF6D46uuOvpjSoVxIdkn5SWo-;_ylt=Awr1SfelZf1pdAIAkLu7HAx.;_ylu=Y29sbwNzZzMEcG9zAzEEdnRpZAMEc2VjA292LXRvcA--;_ylc=X3IDMgRydAMw?IG=0af549f7f01e4f31a900d89620700978"
-      ],
-      "raw_text": "",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "60",
-      "max_crawl_depth": "65",
-      "dynamic_wait": "5"
-    }
-  },
-  "45e5ef5f-44f2-4c02-ab80-d6835e057527": {
-    "task_id": "45e5ef5f-44f2-4c02-ab80-d6835e057527",
-    "tenant_id": 46,
-    "knowledge_base_name": "demo33",
-    "knowledge_base_id": 870,
-    "status": "completed",
-    "progress": 100,
-    "current_step": "Completed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-08T04:49:23.633670",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-08T04:49:23.674339",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-08T04:49:23.687859",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-08T04:49:23.708220",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-08T04:49:23.730596",
-        "message": "\ud83d\udcdd Processing raw text (6 chars)"
-      },
-      {
-        "timestamp": "2026-05-08T04:49:23.744063",
-        "message": "\u2705 Raw text processed \u2192 1 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T04:49:23.757017",
-        "message": "Creating Qdrant collection with 1 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T04:49:23.824393",
-        "message": "Processing 1 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T04:49:24.128839",
-        "message": "Analyzing content for summary"
-      },
-      {
-        "timestamp": "2026-05-08T04:49:24.461198",
-        "message": "Finalizing knowledge base record"
-      },
-      {
-        "timestamp": "2026-05-08T04:49:24.480739",
-        "message": "\u2705 KB created: 1 chunks from 0 docs, 0 URLs"
-      }
-    ],
-    "created_at": "2026-05-08T04:49:23.633656",
-    "updated_at": "2026-05-08T04:49:24.480734",
-    "started_at": "2026-05-08T04:49:23.674327",
-    "completed_at": "2026-05-08T04:49:24.480723",
-    "error_message": null,
-    "metadata": {
-      "upload_dir": "Uploads/async_20260508044923_46",
-      "files": [],
-      "scrap_urls": [],
-      "raw_text": "demo33",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "0",
-      "max_crawl_depth": "0",
-      "dynamic_wait": "0"
-    },
-    "build_summary": {
-      "total_chunks": 1,
-      "documents_processed": 0,
-      "urls_crawled": 0,
-      "failed_items": 0,
-      "collection_name": "tenant_46_demo33",
-      "content_sources": [
-        {
-          "type": "raw_text",
-          "name": "Raw Text Input",
-          "chunks_created": 1,
-          "char_count": 6,
-          "sample": "demo33"
-        }
-      ]
-    }
-  },
-  "33f6a0a0-61ef-4ae2-8f8a-e709dab33688": {
-    "task_id": "33f6a0a0-61ef-4ae2-8f8a-e709dab33688",
-    "tenant_id": 185,
-    "knowledge_base_name": "test",
-    "knowledge_base_id": 871,
-    "status": "completed",
-    "progress": 100,
-    "current_step": "Completed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-08T05:44:51.133859",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-08T05:44:51.175277",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-08T05:44:51.208730",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-08T05:44:51.244932",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-08T05:44:51.270163",
-        "message": "\ud83c\udf10 Starting web crawl: 1 URL(s)"
-      },
-      {
-        "timestamp": "2026-05-08T06:04:43.612884",
-        "message": "\u2705 Crawled: https://tatarealty.in/... \u2192 460 chunks (429,672 chars) [\ud83d\udcca 48 pages, 1149 credits; mode=MULTI_DOMAIN_GRAPH flags=DEDUP_STRICT,REDIRECT_CHAIN_TRACK,PAGINATION_SAFE]"
-      },
-      {
-        "timestamp": "2026-05-08T06:04:43.640895",
-        "message": "\ud83d\udcca Total crawl: 48 pages from 1 URLs (1149 credits used)"
-      },
-      {
-        "timestamp": "2026-05-08T06:04:43.660430",
-        "message": "Creating Qdrant collection with 460 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T06:04:43.873007",
-        "message": "Processing 460 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T06:04:52.196799",
-        "message": "Analyzing content for summary"
-      },
-      {
-        "timestamp": "2026-05-08T06:04:52.449440",
-        "message": "Finalizing knowledge base record"
-      },
-      {
-        "timestamp": "2026-05-08T06:04:52.478795",
-        "message": "\u2705 KB created: 460 chunks from 0 docs, 1 URLs"
-      }
-    ],
-    "created_at": "2026-05-08T05:44:51.133840",
-    "updated_at": "2026-05-08T06:04:52.478790",
-    "started_at": "2026-05-08T05:44:51.175264",
-    "completed_at": "2026-05-08T06:04:52.478776",
-    "error_message": null,
-    "metadata": {
-      "upload_dir": "Uploads/async_20260508054451_185",
-      "files": [],
-      "scrap_urls": [
-        "https://tatarealty.in/"
-      ],
-      "raw_text": "",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "50",
-      "max_crawl_depth": "60",
-      "dynamic_wait": "15"
-    },
-    "build_summary": {
-      "total_chunks": 460,
-      "documents_processed": 0,
-      "urls_crawled": 1,
-      "failed_items": 0,
-      "collection_name": "tenant_185_test",
-      "content_sources": [
-        {
-          "type": "url",
-          "name": "https://tatarealty.in/",
-          "chunks_created": 460,
-          "char_count": 429672,
-          "pages_crawled": 48,
-          "credits_used": 1149,
-          "crawled_urls": [
-            "https://tatarealty.in/",
-            "https://tatarealty.in/privacy-policy",
-            "https://tatarealty.in/property-in-ghansoli",
-            "https://tatarealty.in/management-team",
-            "https://tatarealty.in/about-us",
-            "https://tatarealty.in/disclaimer",
-            "https://tatarealty.in/sales-enquiry",
-            "https://careers.tatarealty.in/",
-            "https://tatarealty.in/tata-code-of-conduct",
-            "https://tatarealty.in/sustainability"
-          ],
-          "sample": "![Intellion App](https://tatarealty.in/assets/images/intellion_app_desktop.png)\n\n# About Tata Realty and Infrastructure Ltd\n\nA 100 percent subsidiary of Tata Sons Pvt Ltd, founded by the great visiona"
-        }
-      ]
-    }
-  },
-  "faaac4ff-cad2-408e-b160-4673703a759b": {
-    "task_id": "faaac4ff-cad2-408e-b160-4673703a759b",
-    "tenant_id": 185,
-    "knowledge_base_name": "Tata Realty 2.0",
-    "knowledge_base_id": 871,
-    "status": "completed",
-    "progress": 100,
-    "current_step": "Completed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-08T06:08:21.158627",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-08T06:08:21.236594",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-08T06:08:21.278764",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-08T06:08:21.329529",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-08T06:08:21.380865",
-        "message": "\ud83c\udf10 Starting web crawl: 1 URL(s)"
-      },
-      {
-        "timestamp": "2026-05-08T06:21:52.670315",
-        "message": "\u2705 Crawled: https://tatarealty.in/... \u2192 475 chunks (444,271 chars) [\ud83d\udcca 53 pages, 521 credits; mode=MULTI_DOMAIN_GRAPH flags=DEDUP_STRICT,REDIRECT_CHAIN_TRACK,PAGINATION_SAFE]"
-      },
-      {
-        "timestamp": "2026-05-08T06:21:52.686385",
-        "message": "\ud83d\udcca Total crawl: 53 pages from 1 URLs (521 credits used)"
-      },
-      {
-        "timestamp": "2026-05-08T06:21:52.698826",
-        "message": "Creating Qdrant collection with 475 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T06:21:52.808868",
-        "message": "Processing 475 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T06:22:25.154837",
-        "message": "Analyzing content for summary"
-      },
-      {
-        "timestamp": "2026-05-08T06:22:25.503894",
-        "message": "Finalizing knowledge base record"
-      },
-      {
-        "timestamp": "2026-05-08T06:22:25.529651",
-        "message": "\u2705 KB created: 475 chunks from 0 docs, 1 URLs"
-      }
-    ],
-    "created_at": "2026-05-08T06:08:21.158606",
-    "updated_at": "2026-05-08T06:22:25.529647",
-    "started_at": "2026-05-08T06:08:21.236575",
-    "completed_at": "2026-05-08T06:22:25.529638",
-    "error_message": null,
-    "metadata": {
-      "upload_dir": "Uploads/update_async_20260508060821_185",
-      "files": [],
-      "scrap_urls": [
-        "https://tatarealty.in/"
-      ],
-      "raw_text": "",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "50",
-      "max_crawl_depth": "60",
-      "dynamic_wait": "15"
-    },
-    "build_summary": {
-      "total_chunks": 475,
-      "documents_processed": 0,
-      "urls_crawled": 1,
-      "failed_items": 0,
-      "collection_name": "tenant_185_tata_realty_2.0",
-      "content_sources": [
-        {
-          "type": "url",
-          "name": "https://tatarealty.in/",
-          "chunks_created": 475,
-          "char_count": 444271,
-          "pages_crawled": 53,
-          "credits_used": 521,
-          "crawled_urls": [
-            "https://tatarealty.in/sitemap.xml",
-            "https://tatarealty.in/",
-            "https://tatarealty.in/privacy-policy",
-            "https://tatarealty.in/board-of-directors",
-            "https://tatarealty.in/management-team",
-            "https://tatarealty.in/it-grievance-officer",
-            "https://tatarealty.in/customer-service",
-            "https://tatarealty.in/sustainability",
-            "https://tatarealty.in/onlinepayment",
-            "https://tatarealty.in/awards"
-          ],
-          "sample": "https://tatarealty.in/2026-01-20daily1.0https://tatarealty.in/management-team2026-01-20daily0.9https://tatarealty.in/disclaimer2026-01-20daily0.9https://tatarealty.in/about-us2026-01-20daily0.9https:/"
-        }
-      ]
-    }
-  },
-  "53c0f3fa-831e-45e2-9080-ef3accb18dc9": {
-    "task_id": "53c0f3fa-831e-45e2-9080-ef3accb18dc9",
-    "tenant_id": 185,
-    "knowledge_base_name": "octal kb",
-    "knowledge_base_id": 872,
-    "status": "completed",
-    "progress": 100,
-    "current_step": "Completed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-08T06:35:17.323832",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-08T06:35:17.362694",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-08T06:35:17.382403",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-08T06:35:17.412749",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-08T06:35:17.430927",
-        "message": "\ud83c\udf10 Starting web crawl: 1 URL(s)"
-      },
-      {
-        "timestamp": "2026-05-08T06:48:25.701926",
-        "message": "\u2705 Crawled: https://octalframes.com... \u2192 162 chunks (137,611 chars) [\ud83d\udcca 52 pages, 52 credits; mode=STANDARD flags=DEDUP_STRICT,REDIRECT_CHAIN_TRACK]"
-      },
-      {
-        "timestamp": "2026-05-08T06:48:25.712485",
-        "message": "\ud83d\udcca Total crawl: 52 pages from 1 URLs (52 credits used)"
-      },
-      {
-        "timestamp": "2026-05-08T06:48:25.724945",
-        "message": "Creating Qdrant collection with 162 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T06:48:25.861455",
-        "message": "Processing 162 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T06:48:29.987676",
-        "message": "Analyzing content for summary"
-      },
-      {
-        "timestamp": "2026-05-08T06:48:30.234202",
-        "message": "Finalizing knowledge base record"
-      },
-      {
-        "timestamp": "2026-05-08T06:48:30.266250",
-        "message": "\u2705 KB created: 162 chunks from 0 docs, 1 URLs"
-      }
-    ],
-    "created_at": "2026-05-08T06:35:17.323816",
-    "updated_at": "2026-05-08T06:48:30.266243",
-    "started_at": "2026-05-08T06:35:17.362683",
-    "completed_at": "2026-05-08T06:48:30.266218",
-    "error_message": null,
-    "metadata": {
-      "upload_dir": "Uploads/async_20260508063517_185",
-      "files": [],
-      "scrap_urls": [
-        "https://octalframes.com"
-      ],
-      "raw_text": "",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "55",
-      "max_crawl_depth": "60",
-      "dynamic_wait": "20"
-    },
-    "build_summary": {
-      "total_chunks": 162,
-      "documents_processed": 0,
-      "urls_crawled": 1,
-      "failed_items": 0,
-      "collection_name": "tenant_185_octal_kb",
-      "content_sources": [
-        {
-          "type": "url",
-          "name": "https://octalframes.com",
-          "chunks_created": 162,
-          "char_count": 137611,
-          "pages_crawled": 52,
-          "credits_used": 52,
-          "crawled_urls": [
-            "https://octalframes.com/portfolio/travel-technologies",
-            "https://octalframes.com/portfolio/digital-transformation",
-            "https://octalframes.com/",
-            "https://octalframes.com/portfolio/cloud-transformation",
-            "https://octalframes.com/portfolio/ai-cognitive-services",
-            "https://octalframes.com/about-us",
-            "https://octalframes.com/services-1",
-            "https://octalframes.com/portfolios",
-            "https://octalframes.com/digital-transformation",
-            "https://octalframes.com/travel-technologies"
-          ],
-          "sample": "# Travel Technologies\n\nThere are many variations of passages of Lorem Ipsum available but the majority suffered alteration some form by injected humour randomised words which don\u2019t look slightly belie"
-        }
-      ]
-    }
-  },
-  "908cb977-e21a-4cb4-a2db-444c6466a090": {
-    "task_id": "908cb977-e21a-4cb4-a2db-444c6466a090",
-    "tenant_id": 174,
-    "knowledge_base_name": "kbb",
-    "knowledge_base_id": 874,
-    "status": "completed",
-    "progress": 100,
-    "current_step": "Completed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-08T09:17:25.419586",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-08T09:17:25.535592",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-08T09:17:25.554032",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-08T09:17:25.583381",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-08T09:17:25.639720",
-        "message": "\ud83c\udf10 Starting web crawl: 1 URL(s)"
-      },
-      {
-        "timestamp": "2026-05-08T09:31:44.995498",
-        "message": "\u2705 Crawled: https://www.makemytrip.com... \u2192 198 chunks (179,501 chars) [\ud83d\udcca 50 pages, 54 credits; mode=STANDARD flags=DEDUP_STRICT,REDIRECT_CHAIN_TRACK]"
-      },
-      {
-        "timestamp": "2026-05-08T09:31:45.026758",
-        "message": "\ud83d\udcca Total crawl: 50 pages from 1 URLs (54 credits used)"
-      },
-      {
-        "timestamp": "2026-05-08T09:31:45.048832",
-        "message": "\ud83d\udcdd Processing raw text (3 chars)"
-      },
-      {
-        "timestamp": "2026-05-08T09:31:45.066245",
-        "message": "\u2705 Raw text processed \u2192 1 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T09:31:45.084109",
-        "message": "Creating Qdrant collection with 199 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T09:31:45.263626",
-        "message": "Processing 199 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T09:31:49.911437",
-        "message": "Analyzing content for summary"
-      },
-      {
-        "timestamp": "2026-05-08T09:31:51.137116",
-        "message": "Finalizing knowledge base record"
-      },
-      {
-        "timestamp": "2026-05-08T09:31:51.203675",
-        "message": "\u2705 KB created: 199 chunks from 0 docs, 1 URLs"
-      }
-    ],
-    "created_at": "2026-05-08T09:17:25.418258",
-    "updated_at": "2026-05-08T09:31:51.203664",
-    "started_at": "2026-05-08T09:17:25.535578",
-    "completed_at": "2026-05-08T09:31:51.203643",
-    "error_message": null,
-    "metadata": {
-      "upload_dir": "Uploads/async_20260508091725_174",
-      "files": [],
-      "scrap_urls": [
-        "https://www.makemytrip.com"
-      ],
-      "raw_text": "kjh",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "50",
-      "max_crawl_depth": "10",
-      "dynamic_wait": "5"
-    },
-    "build_summary": {
-      "total_chunks": 199,
-      "documents_processed": 0,
-      "urls_crawled": 1,
-      "failed_items": 0,
-      "collection_name": "tenant_174_kbb",
-      "content_sources": [
-        {
-          "type": "url",
-          "name": "https://www.makemytrip.com",
-          "chunks_created": 198,
-          "char_count": 179501,
-          "pages_crawled": 50,
-          "credits_used": 54,
-          "crawled_urls": [
-            "https://www.makemytrip.com/",
-            "https://www.makemytrip.com/activities/observation-deck-in-united-arab-emirates.html",
-            "https://www.makemytrip.com/activities/observation-deck-in-venice.html",
-            "https://www.makemytrip.com/activities/air-tour-in-frankfurt.html",
-            "https://www.makemytrip.com/activities/zipline-in-mexico.html",
-            "https://www.makemytrip.com/activities/air-tour-in-rio-de-janeiro.html",
-            "https://www.makemytrip.com/activities/jeep-safari-in-cape-winelands.html",
-            "https://www.makemytrip.com/activities/zipline-in-milan.html",
-            "https://www.makemytrip.com/activities/yacht-in-pesaro-e-urbino.html",
-            "https://www.makemytrip.com/activities/theme-park-in-czech-republic.html"
-          ],
-          "sample": "![Make My Trip](https://promos.makemytrip.com/Growth/Images/B2C/GCC/A2A/mmtgblwhite.png)\n\n# Cheap Flights\n\nFrom\nNYC, All airports-NY United States\n\n\u21cc\n\nTo\nLAX, Los Angeles-CA United States\n\nDeparture\n9"
-        },
-        {
-          "type": "raw_text",
-          "name": "Raw Text Input",
-          "chunks_created": 1,
-          "char_count": 3,
-          "sample": "kjh"
-        }
-      ]
-    }
-  },
-  "92f81219-5214-4e68-bd65-f4d33d037720": {
-    "task_id": "92f81219-5214-4e68-bd65-f4d33d037720",
-    "tenant_id": 185,
-    "knowledge_base_name": "pdf 2mb",
-    "knowledge_base_id": 875,
-    "status": "failed",
-    "progress": 50,
-    "current_step": "Failed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-08T09:43:50.059194",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-08T09:43:50.101038",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-08T09:43:50.116527",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-08T09:43:50.144479",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-08T09:43:50.166958",
-        "message": "\ud83d\udcc4 Starting document processing: 1 file(s)"
-      },
-      {
-        "timestamp": "2026-05-08T09:43:50.193549",
-        "message": "\ud83d\udcc4 Document 1/1: WO_11927_Ms Hawakvale _Civil work_For Tumkur_IGC phaseII_SIgned copy.pdf"
-      },
-      {
-        "timestamp": "2026-05-08T09:43:53.823697",
-        "message": "\u2705 Processed: WO_11927_Ms Hawakvale _Civil work_For Tumkur_IGC phaseII_SIgned copy.pdf \u2192 0 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T09:43:53.845691",
-        "message": "Build failed: No content was processed successfully"
-      }
-    ],
-    "created_at": "2026-05-08T09:43:50.059165",
-    "updated_at": "2026-05-08T09:43:53.845686",
-    "started_at": "2026-05-08T09:43:50.101026",
-    "completed_at": "2026-05-08T09:43:53.845671",
-    "error_message": "No content was processed successfully",
-    "metadata": {
-      "upload_dir": "Uploads/async_20260508094350_185",
-      "files": [
-        {
-          "filename": "WO_11927_Ms Hawakvale _Civil work_For Tumkur_IGC phaseII_SIgned copy.pdf",
-          "path": "Uploads/async_20260508094350_185/WO_11927_Ms Hawakvale _Civil work_For Tumkur_IGC phaseII_SIgned copy.pdf"
-        }
-      ],
-      "scrap_urls": [],
-      "raw_text": "",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "0",
-      "max_crawl_depth": "0",
-      "dynamic_wait": "0"
-    }
-  },
-  "4c0ae3e6-3722-41c8-a5b5-1b8f3985bc88": {
-    "task_id": "4c0ae3e6-3722-41c8-a5b5-1b8f3985bc88",
-    "tenant_id": 185,
-    "knowledge_base_name": "sttstst",
-    "knowledge_base_id": 876,
-    "status": "completed",
-    "progress": 100,
-    "current_step": "Completed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-08T09:54:29.272081",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-08T09:54:29.357239",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-08T09:54:29.381181",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-08T09:54:29.407538",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-08T09:54:29.484646",
-        "message": "\ud83d\udcc4 Starting document processing: 1 file(s)"
-      },
-      {
-        "timestamp": "2026-05-08T09:54:29.529895",
-        "message": "\ud83d\udcc4 Document 1/1: Final_TCS_Policy_Document1.pdf"
-      },
-      {
-        "timestamp": "2026-05-08T09:54:29.746927",
-        "message": "\u2705 Processed: Final_TCS_Policy_Document1.pdf \u2192 12 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T09:54:29.766446",
-        "message": "Creating Qdrant collection with 12 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T09:54:30.038363",
-        "message": "Processing 12 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T09:54:31.423235",
-        "message": "Analyzing content for summary"
-      },
-      {
-        "timestamp": "2026-05-08T09:54:32.257948",
-        "message": "Finalizing knowledge base record"
-      },
-      {
-        "timestamp": "2026-05-08T09:54:32.288692",
-        "message": "\u2705 KB created: 12 chunks from 1 docs, 0 URLs"
-      }
-    ],
-    "created_at": "2026-05-08T09:54:29.271648",
-    "updated_at": "2026-05-08T09:54:32.288687",
-    "started_at": "2026-05-08T09:54:29.357218",
-    "completed_at": "2026-05-08T09:54:32.288670",
-    "error_message": null,
-    "metadata": {
-      "upload_dir": "Uploads/async_20260508095429_185",
-      "files": [
-        {
-          "filename": "Final_TCS_Policy_Document1.pdf",
-          "path": "Uploads/async_20260508095429_185/Final_TCS_Policy_Document1.pdf"
-        }
-      ],
-      "scrap_urls": [],
-      "raw_text": "",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "0",
-      "max_crawl_depth": "0",
-      "dynamic_wait": "0"
-    },
-    "build_summary": {
-      "total_chunks": 12,
-      "documents_processed": 1,
-      "urls_crawled": 0,
-      "failed_items": 0,
-      "collection_name": "tenant_185_sttstst",
-      "content_sources": [
-        {
-          "type": "document",
-          "name": "Final_TCS_Policy_Document1.pdf",
-          "file_type": "PDF",
-          "chunks_created": 12,
-          "sample": "entitles TCS to withdraw offer at its \nsole discretion. \n24. Data Privacy Clause \nPersonal data collected during recruitment processed per TCS Data Privacy Policy for recruitment, onboarding, \nbackgro"
-        }
-      ]
-    }
-  },
-  "3b76d968-74ab-471f-8f40-6c2bd0066e61": {
-    "task_id": "3b76d968-74ab-471f-8f40-6c2bd0066e61",
-    "tenant_id": 185,
-    "knowledge_base_name": "thusthus",
-    "knowledge_base_id": 877,
-    "status": "completed",
-    "progress": 100,
-    "current_step": "Completed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-08T10:03:41.358003",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-08T10:03:41.402596",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-08T10:03:41.415564",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-08T10:03:41.433090",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-08T10:03:41.454791",
-        "message": "\ud83d\udcc4 Starting document processing: 1 file(s)"
-      },
-      {
-        "timestamp": "2026-05-08T10:03:41.474164",
-        "message": "\ud83d\udcc4 Document 1/1: Altered articles of association-14042017.pdf"
-      },
-      {
-        "timestamp": "2026-05-08T10:03:41.689497",
-        "message": "\u2705 Processed: Altered articles of association-14042017.pdf \u2192 177 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T10:03:41.701661",
-        "message": "Creating Qdrant collection with 177 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T10:03:41.791365",
-        "message": "Processing 177 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T10:03:47.484319",
-        "message": "Analyzing content for summary"
-      },
-      {
-        "timestamp": "2026-05-08T10:03:48.148985",
-        "message": "Finalizing knowledge base record"
-      },
-      {
-        "timestamp": "2026-05-08T10:03:48.163132",
-        "message": "\u2705 KB created: 177 chunks from 1 docs, 0 URLs"
-      }
-    ],
-    "created_at": "2026-05-08T10:03:41.357981",
-    "updated_at": "2026-05-08T10:03:48.163128",
-    "started_at": "2026-05-08T10:03:41.402584",
-    "completed_at": "2026-05-08T10:03:48.163121",
-    "error_message": null,
-    "metadata": {
-      "upload_dir": "Uploads/async_20260508100341_185",
-      "files": [
-        {
-          "filename": "Altered articles of association-14042017.pdf",
-          "path": "Uploads/async_20260508100341_185/Altered articles of association-14042017.pdf"
-        }
-      ],
-      "scrap_urls": [],
-      "raw_text": "",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "0",
-      "max_crawl_depth": "0",
-      "dynamic_wait": "0"
-    },
-    "build_summary": {
-      "total_chunks": 177,
-      "documents_processed": 1,
-      "urls_crawled": 0,
-      "failed_items": 0,
-      "collection_name": "tenant_185_thusthus",
-      "content_sources": [
-        {
-          "type": "document",
-          "name": "Altered articles of association-14042017.pdf",
-          "file_type": "PDF",
-          "chunks_created": 177,
-          "sample": "an \nApartment,1126/2, \nShivajinagar, \nPune - 411 016 \nConsultant \n \n \nNadathur Srinivasa \nRaghavan \n(Son of N. Sarangapani) \n5, \u201cRavikripa\u201d, Station \nRoad, \nMatunga (C. R.), \nBombay- 400019.  \n \nConsu"
-        }
-      ]
-    }
-  },
-  "698c1b03-8de2-4c1a-9a42-35f9617c2ac8": {
-    "task_id": "698c1b03-8de2-4c1a-9a42-35f9617c2ac8",
-    "tenant_id": 185,
-    "knowledge_base_name": "flipperachi",
-    "knowledge_base_id": 878,
-    "status": "completed",
-    "progress": 100,
-    "current_step": "Completed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-08T10:27:17.099208",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-08T10:27:17.141976",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-08T10:27:17.154754",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-08T10:27:17.186015",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-08T10:27:17.211610",
-        "message": "\ud83d\udcc4 Starting document processing: 1 file(s)"
-      },
-      {
-        "timestamp": "2026-05-08T10:27:17.226276",
-        "message": "\ud83d\udcc4 Document 1/1: Altered articles of association-14042017.pdf"
-      },
-      {
-        "timestamp": "2026-05-08T10:27:17.566064",
-        "message": "\u2705 Processed: Altered articles of association-14042017.pdf \u2192 177 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T10:27:17.579443",
-        "message": "Creating Qdrant collection with 177 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T10:27:17.655883",
-        "message": "Processing 177 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T10:27:19.786037",
-        "message": "Analyzing content for summary"
-      },
-      {
-        "timestamp": "2026-05-08T10:27:20.062223",
-        "message": "Finalizing knowledge base record"
-      },
-      {
-        "timestamp": "2026-05-08T10:27:20.083415",
-        "message": "\u2705 KB created: 177 chunks from 1 docs, 0 URLs"
-      }
-    ],
-    "created_at": "2026-05-08T10:27:17.099189",
-    "updated_at": "2026-05-08T10:27:20.083412",
-    "started_at": "2026-05-08T10:27:17.141963",
-    "completed_at": "2026-05-08T10:27:20.083404",
-    "error_message": null,
-    "metadata": {
-      "upload_dir": "Uploads/async_20260508102717_185",
-      "files": [
-        {
-          "filename": "Altered articles of association-14042017.pdf",
-          "path": "Uploads/async_20260508102717_185/Altered articles of association-14042017.pdf"
-        }
-      ],
-      "scrap_urls": [],
-      "raw_text": "",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "0",
-      "max_crawl_depth": "0",
-      "dynamic_wait": "0"
-    },
-    "build_summary": {
-      "total_chunks": 177,
-      "documents_processed": 1,
-      "urls_crawled": 0,
-      "failed_items": 0,
-      "collection_name": "tenant_185_flipperachi",
-      "content_sources": [
-        {
-          "type": "document",
-          "name": "Altered articles of association-14042017.pdf",
-          "file_type": "PDF",
-          "chunks_created": 177,
-          "sample": " Station \nRoad, \nMatunga (C. R.), \nBombay- 400019.  \n \nConsultant \n \n \n \n \n1 \n \n(One Equity) \n \n \n \n \n \n \n \n1 \n \n(One Equity) \n \n \n03 \nSenapathy Gopalakrishnan \n(Son of P. G. Senapathy) \nKrishna Vihar"
-        }
-      ]
-    }
-  },
-  "3a37b58b-0ea2-4324-af17-d62a0fce9f21": {
-    "task_id": "3a37b58b-0ea2-4324-af17-d62a0fce9f21",
-    "tenant_id": 185,
-    "knowledge_base_name": "testing",
-    "knowledge_base_id": 879,
-    "status": "failed",
-    "progress": 50,
-    "current_step": "Failed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-08T10:57:18.878597",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-08T10:57:18.924413",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-08T10:57:18.940395",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-08T10:57:18.965233",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-08T10:57:18.994969",
-        "message": "\ud83d\udcc4 Starting document processing: 3 file(s)"
-      },
-      {
-        "timestamp": "2026-05-08T10:57:19.015167",
-        "message": "\ud83d\udcc4 Document 1/3: MOA comfort furniture.pdf"
-      },
-      {
-        "timestamp": "2026-05-08T10:57:19.079266",
-        "message": "\u2705 Processed: MOA comfort furniture.pdf \u2192 0 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T10:57:19.095744",
-        "message": "\ud83d\udcc4 Document 2/3: MoA - Memorandum of Association-150615.PDF"
-      },
-      {
-        "timestamp": "2026-05-08T10:57:19.453501",
-        "message": "\u2705 Processed: MoA - Memorandum of Association-150615.PDF \u2192 0 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T10:57:19.472787",
-        "message": "\ud83d\udcc4 Document 3/3: WO_11927_Ms Hawakvale _Civil work_For Tumkur_IGC phaseII_SIgned copy.pdf"
-      },
-      {
-        "timestamp": "2026-05-08T10:57:20.708346",
-        "message": "\u2705 Processed: WO_11927_Ms Hawakvale _Civil work_For Tumkur_IGC phaseII_SIgned copy.pdf \u2192 0 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T10:57:20.724364",
-        "message": "Build failed: No content was processed successfully"
-      }
-    ],
-    "created_at": "2026-05-08T10:57:18.878575",
-    "updated_at": "2026-05-08T10:57:20.724360",
-    "started_at": "2026-05-08T10:57:18.924402",
-    "completed_at": "2026-05-08T10:57:20.724345",
-    "error_message": "No content was processed successfully",
-    "metadata": {
-      "upload_dir": "Uploads/async_20260508105718_185",
-      "files": [
-        {
-          "filename": "MOA comfort furniture.pdf",
-          "path": "Uploads/async_20260508105718_185/MOA comfort furniture.pdf"
-        },
-        {
-          "filename": "MoA - Memorandum of Association-150615.PDF",
-          "path": "Uploads/async_20260508105718_185/MoA - Memorandum of Association-150615.PDF"
-        },
-        {
-          "filename": "WO_11927_Ms Hawakvale _Civil work_For Tumkur_IGC phaseII_SIgned copy.pdf",
-          "path": "Uploads/async_20260508105718_185/WO_11927_Ms Hawakvale _Civil work_For Tumkur_IGC phaseII_SIgned copy.pdf"
-        }
-      ],
-      "scrap_urls": [],
-      "raw_text": "",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "0",
-      "max_crawl_depth": "0",
-      "dynamic_wait": "0"
-    }
-  },
-  "8314b749-c186-44d8-b47f-67d78dcea877": {
-    "task_id": "8314b749-c186-44d8-b47f-67d78dcea877",
-    "tenant_id": 185,
-    "knowledge_base_name": "giuy",
-    "knowledge_base_id": 880,
-    "status": "completed",
-    "progress": 100,
-    "current_step": "Completed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-08T11:30:20.521637",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-08T11:30:20.550859",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-08T11:30:20.565604",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-08T11:30:20.584818",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-08T11:30:20.612799",
-        "message": "\ud83d\udcc4 Starting document processing: 5 file(s)"
-      },
-      {
-        "timestamp": "2026-05-08T11:30:20.631492",
-        "message": "\ud83d\udcc4 Document 1/5: Form SH-7-26092018-signed.pdf"
-      },
-      {
-        "timestamp": "2026-05-08T11:30:20.694407",
-        "message": "\u2705 Processed: Form SH-7-26092018-signed.pdf \u2192 1 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T11:30:20.709663",
-        "message": "\ud83d\udcc4 Document 2/5: MOA comfort furniture.pdf"
-      },
-      {
-        "timestamp": "2026-05-08T11:30:20.769571",
-        "message": "\u2705 Processed: MOA comfort furniture.pdf \u2192 0 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T11:30:20.790047",
-        "message": "\ud83d\udcc4 Document 3/5: MoA - Memorandum of Association-150615.PDF"
-      },
-      {
-        "timestamp": "2026-05-08T11:30:21.140616",
-        "message": "\u2705 Processed: MoA - Memorandum of Association-150615.PDF \u2192 0 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T11:30:21.176592",
-        "message": "\ud83d\udcc4 Document 4/5: Altered articles of association-14042017.pdf"
-      },
-      {
-        "timestamp": "2026-05-08T11:30:21.466670",
-        "message": "\u2705 Processed: Altered articles of association-14042017.pdf \u2192 177 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T11:30:21.486301",
-        "message": "\ud83d\udcc4 Document 5/5: WO_11927_Ms Hawakvale _Civil work_For Tumkur_IGC phaseII_SIgned copy.pdf"
-      },
-      {
-        "timestamp": "2026-05-08T11:30:22.787423",
-        "message": "\u2705 Processed: WO_11927_Ms Hawakvale _Civil work_For Tumkur_IGC phaseII_SIgned copy.pdf \u2192 0 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T11:30:22.800645",
-        "message": "Creating Qdrant collection with 178 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T11:30:22.934795",
-        "message": "Processing 178 chunks"
-      },
-      {
-        "timestamp": "2026-05-08T11:30:27.572221",
-        "message": "Analyzing content for summary"
-      },
-      {
-        "timestamp": "2026-05-08T11:30:27.825952",
-        "message": "Finalizing knowledge base record"
-      },
-      {
-        "timestamp": "2026-05-08T11:30:27.869135",
-        "message": "\u2705 KB created: 178 chunks from 5 docs, 0 URLs"
-      }
-    ],
-    "created_at": "2026-05-08T11:30:20.521615",
-    "updated_at": "2026-05-08T11:30:27.869130",
-    "started_at": "2026-05-08T11:30:20.550848",
-    "completed_at": "2026-05-08T11:30:27.869116",
-    "error_message": null,
-    "metadata": {
-      "upload_dir": "Uploads/async_20260508113020_185",
-      "files": [
-        {
-          "filename": "Form SH-7-26092018-signed.pdf",
-          "path": "Uploads/async_20260508113020_185/Form SH-7-26092018-signed.pdf"
-        },
-        {
-          "filename": "MOA comfort furniture.pdf",
-          "path": "Uploads/async_20260508113020_185/MOA comfort furniture.pdf"
-        },
-        {
-          "filename": "MoA - Memorandum of Association-150615.PDF",
-          "path": "Uploads/async_20260508113020_185/MoA - Memorandum of Association-150615.PDF"
-        },
-        {
-          "filename": "Altered articles of association-14042017.pdf",
-          "path": "Uploads/async_20260508113020_185/Altered articles of association-14042017.pdf"
-        },
-        {
-          "filename": "WO_11927_Ms Hawakvale _Civil work_For Tumkur_IGC phaseII_SIgned copy.pdf",
-          "path": "Uploads/async_20260508113020_185/WO_11927_Ms Hawakvale _Civil work_For Tumkur_IGC phaseII_SIgned copy.pdf"
-        }
-      ],
-      "scrap_urls": [],
-      "raw_text": "",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "0",
-      "max_crawl_depth": "0",
-      "dynamic_wait": "0"
-    },
-    "build_summary": {
-      "total_chunks": 178,
-      "documents_processed": 5,
-      "urls_crawled": 0,
-      "failed_items": 0,
-      "collection_name": "tenant_185_giuy",
-      "content_sources": [
-        {
-          "type": "document",
-          "name": "Form SH-7-26092018-signed.pdf",
-          "file_type": "PDF",
-          "chunks_created": 1,
-          "sample": "Please wait... \n  \nIf this message is not eventually replaced by the proper contents of the document, your PDF \nviewer may not be able to display this type of document. \n  \nYou can upgrade to the late"
-        },
-        {
-          "type": "document",
-          "name": "MOA comfort furniture.pdf",
-          "file_type": "PDF",
-          "chunks_created": 0,
-          "sample": "Please wait... \n  \nIf this message is not eventually replaced by the proper contents of the document, your PDF \nviewer may not be able to display this type of document. \n  \nYou can upgrade to the late"
-        },
-        {
-          "type": "document",
-          "name": "MoA - Memorandum of Association-150615.PDF",
-          "file_type": "PDF",
-          "chunks_created": 0,
-          "sample": "Please wait... \n  \nIf this message is not eventually replaced by the proper contents of the document, your PDF \nviewer may not be able to display this type of document. \n  \nYou can upgrade to the late"
-        },
-        {
-          "type": "document",
-          "name": "Altered articles of association-14042017.pdf",
-          "file_type": "PDF",
-          "chunks_created": 177,
-          "sample": " Station \nRoad, \nMatunga (C. R.), \nBombay- 400019.  \n \nConsultant \n \n \n \n \n1 \n \n(One Equity) \n \n \n \n \n \n \n \n1 \n \n(One Equity) \n \n \n03 \nSenapathy Gopalakrishnan \n(Son of P. G. Senapathy) \nKrishna Vihar"
-        },
-        {
-          "type": "document",
-          "name": "WO_11927_Ms Hawakvale _Civil work_For Tumkur_IGC phaseII_SIgned copy.pdf",
-          "file_type": "PDF",
-          "chunks_created": 0,
-          "sample": " Station \nRoad, \nMatunga (C. R.), \nBombay- 400019.  \n \nConsultant \n \n \n \n \n1 \n \n(One Equity) \n \n \n \n \n \n \n \n1 \n \n(One Equity) \n \n \n03 \nSenapathy Gopalakrishnan \n(Son of P. G. Senapathy) \nKrishna Vihar"
-        }
-      ]
-    }
-  },
-  "2ba8d221-8e2f-4349-80a6-68b0d18c5f7d": {
-    "task_id": "2ba8d221-8e2f-4349-80a6-68b0d18c5f7d",
-    "tenant_id": 185,
-    "knowledge_base_name": "PDF KB",
-    "knowledge_base_id": 881,
-    "status": "completed",
-    "progress": 100,
-    "current_step": "Completed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-09T06:28:54.772174",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-09T06:28:54.809426",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-09T06:28:54.827321",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-09T06:28:54.853022",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-09T06:28:54.880488",
-        "message": "\ud83d\udcc4 Starting document processing: 1 file(s)"
-      },
-      {
-        "timestamp": "2026-05-09T06:28:54.897754",
-        "message": "\ud83d\udcc4 Document 1/1: Altered articles of association-14042017.pdf"
-      },
-      {
-        "timestamp": "2026-05-09T06:28:55.176155",
-        "message": "\u2705 Processed: Altered articles of association-14042017.pdf \u2192 177 chunks"
-      },
-      {
-        "timestamp": "2026-05-09T06:28:55.190729",
-        "message": "\ud83d\udcdd Processing raw text (1,683 chars)"
-      },
-      {
-        "timestamp": "2026-05-09T06:28:55.212287",
-        "message": "\u2705 Raw text processed \u2192 2 chunks"
-      },
-      {
-        "timestamp": "2026-05-09T06:28:55.234288",
-        "message": "Creating Qdrant collection with 179 chunks"
-      },
-      {
-        "timestamp": "2026-05-09T06:28:55.305691",
-        "message": "Processing 179 chunks"
-      },
-      {
-        "timestamp": "2026-05-09T06:28:58.884596",
-        "message": "Analyzing content for summary"
-      },
-      {
-        "timestamp": "2026-05-09T06:28:59.258139",
-        "message": "Finalizing knowledge base record"
-      },
-      {
-        "timestamp": "2026-05-09T06:28:59.294458",
-        "message": "\u2705 KB created: 179 chunks from 1 docs, 0 URLs"
-      }
-    ],
-    "created_at": "2026-05-09T06:28:54.772150",
-    "updated_at": "2026-05-09T06:28:59.294454",
-    "started_at": "2026-05-09T06:28:54.809415",
-    "completed_at": "2026-05-09T06:28:59.294444",
-    "error_message": null,
-    "metadata": {
-      "upload_dir": "Uploads/async_20260509062854_185",
-      "files": [
-        {
-          "filename": "Altered articles of association-14042017.pdf",
-          "path": "Uploads/async_20260509062854_185/Altered articles of association-14042017.pdf"
-        }
-      ],
-      "scrap_urls": [],
-      "raw_text": "{\r\n  \"document_section\": \"last_page\",\r\n  \"page_number\": 49,\r\n  \"content_type\": \"subscribers_declaration\",\r\n  \"date\": \"15 June 1981\",\r\n  \"declaration_text\": \"We the several persons whose names and addresses are subscribed below are desirous of being formed into a Company in pursuance of this Articles of Association and we respectively agree to take the number of shares in the Capital of the Company set opposite to our respective names.\",\r\n  \"subscribers\": [\r\n    {\r\n      \"name\": \"Nagavara Ramarao Narayana Murthy\",\r\n      \"parent_name\": \"Nagavara Ramarao\",\r\n      \"address\": \"Flat 6, Padmanabhan Apartment, 1126/2, Shivajinagar, Pune - 411016\",\r\n      \"occupation\": \"Consultant\",\r\n      \"shares_taken\": 1\r\n    },\r\n    {\r\n      \"name\": \"Nadathur Srinivasa Raghavan\",\r\n      \"parent_name\": \"N. Sarangapani\",\r\n      \"address\": \"5, Ravikripa, Station Road, Matunga (C.R.), Bombay - 400019\",\r\n      \"occupation\": \"Consultant\",\r\n      \"shares_taken\": 1\r\n    },\r\n    {\r\n      \"name\": \"Senapathy Gopalakrishnan\",\r\n      \"parent_name\": \"P. G. Senapathy\",\r\n      \"address\": \"Krishna Vihar, Kalapalayam Lane, Pathenchanthai, Trivandrum - 695001\",\r\n      \"occupation\": \"Consultant\",\r\n      \"shares_taken\": 1\r\n    },\r\n    {\r\n      \"name\": \"Vipul Devendra Kinkhabwala\",\r\n      \"parent_name\": \"Devendra Vithaldas Kinkhabwala\",\r\n      \"address\": \"14, Thakurdwar Road, Zaveri Building, Bombay - 400002\",\r\n      \"occupation\": \"Service\",\r\n      \"shares_taken\": 1\r\n    },\r\n    {\r\n      \"name\": \"Nandan Mohan Nilekani\",\r\n      \"parent_name\": \"M. R. Nilekani\",\r\n      \"address\": \"37, Saraswatput, Dharwar - 580002, Karnataka\",\r\n      \"occupation\": \"Consultant\",\r\n      \"shares_taken\": 4\r\n    }\r\n  ]\r\n}",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "0",
-      "max_crawl_depth": "0",
-      "dynamic_wait": "0"
-    },
-    "build_summary": {
-      "total_chunks": 179,
-      "documents_processed": 1,
-      "urls_crawled": 0,
-      "failed_items": 0,
-      "collection_name": "tenant_185_pdf_kb",
-      "content_sources": [
-        {
-          "type": "document",
-          "name": "Altered articles of association-14042017.pdf",
-          "file_type": "PDF",
-          "chunks_created": 177,
-          "sample": " Station \nRoad, \nMatunga (C. R.), \nBombay- 400019.  \n \nConsultant \n \n \n \n \n1 \n \n(One Equity) \n \n \n \n \n \n \n \n1 \n \n(One Equity) \n \n \n03 \nSenapathy Gopalakrishnan \n(Son of P. G. Senapathy) \nKrishna Vihar"
-        },
-        {
-          "type": "raw_text",
-          "name": "Raw Text Input",
-          "chunks_created": 2,
-          "char_count": 1683,
-          "sample": "{\r\n  \"document_section\": \"last_page\",\r\n  \"page_number\": 49,\r\n  \"content_type\": \"subscribers_declaration\",\r\n  \"date\": \"15 June 1981\",\r\n  \"declaration_text\": \"We the several persons whose names and addr"
-        }
-      ]
-    }
-  },
-  "48c13854-add2-4d5c-80f3-d970874eb5dc": {
-    "task_id": "48c13854-add2-4d5c-80f3-d970874eb5dc",
-    "tenant_id": 200,
-    "knowledge_base_name": "test",
-    "knowledge_base_id": 882,
-    "status": "completed",
-    "progress": 100,
-    "current_step": "Completed",
-    "activity_log": [
-      {
-        "timestamp": "2026-05-09T07:12:41.882009",
-        "message": "Task created"
-      },
-      {
-        "timestamp": "2026-05-09T07:12:41.931845",
-        "message": "Build started"
-      },
-      {
-        "timestamp": "2026-05-09T07:12:41.943572",
-        "message": "Starting KB build process"
-      },
-      {
-        "timestamp": "2026-05-09T07:12:41.960896",
-        "message": "Checking embedding configuration"
-      },
-      {
-        "timestamp": "2026-05-09T07:12:41.986162",
-        "message": "\ud83d\udcdd Processing raw text (6 chars)"
-      },
-      {
-        "timestamp": "2026-05-09T07:12:42.002722",
-        "message": "\u2705 Raw text processed \u2192 1 chunks"
-      },
-      {
-        "timestamp": "2026-05-09T07:12:42.015547",
-        "message": "Creating Qdrant collection with 1 chunks"
-      },
-      {
-        "timestamp": "2026-05-09T07:12:42.139098",
-        "message": "Processing 1 chunks"
-      },
-      {
-        "timestamp": "2026-05-09T07:12:42.385163",
-        "message": "Analyzing content for summary"
-      },
-      {
-        "timestamp": "2026-05-09T07:12:42.625718",
-        "message": "Finalizing knowledge base record"
-      },
-      {
-        "timestamp": "2026-05-09T07:12:42.648151",
-        "message": "\u2705 KB created: 1 chunks from 0 docs, 0 URLs"
-      }
-    ],
-    "created_at": "2026-05-09T07:12:41.881990",
-    "updated_at": "2026-05-09T07:12:42.648147",
-    "started_at": "2026-05-09T07:12:41.931833",
-    "completed_at": "2026-05-09T07:12:42.648137",
-    "error_message": null,
-    "metadata": {
-      "upload_dir": "Uploads/async_20260509071241_200",
-      "files": [],
-      "scrap_urls": [],
-      "raw_text": "sample",
-      "provider": "",
-      "embedding_model": "",
-      "secret_key": "",
-      "chunk_size": 1024,
-      "chunk_overlap": 50,
-      "max_crawl_pages": "0",
-      "max_crawl_depth": "0",
-      "dynamic_wait": "0"
-    },
-    "build_summary": {
-      "total_chunks": 1,
-      "documents_processed": 0,
-      "urls_crawled": 0,
-      "failed_items": 0,
-      "collection_name": "tenant_200_test",
-      "content_sources": [
-        {
-          "type": "raw_text",
-          "name": "Raw Text Input",
-          "chunks_created": 1,
-          "char_count": 6,
-          "sample": "sample"
-        }
-      ]
     }
   },
   "df9106b7-cc6a-4c84-8d76-3c525d12793f": {
@@ -10229,6 +7485,2685 @@
           "file_type": "XLSX",
           "chunks_created": 117,
           "sample": "ProductID: P196\nProductName: 2-231652-0\nManufacturerID: M0496\nManufacturer Name: appolo\nspecification: MODULAR PLUG HAND TOOL WITHOUT DIES"
+        }
+      ]
+    }
+  },
+  "3f208320-ab6f-453e-9a64-0f740d6b896d": {
+    "task_id": "3f208320-ab6f-453e-9a64-0f740d6b896d",
+    "tenant_id": 46,
+    "knowledge_base_name": "bsf manufct",
+    "knowledge_base_id": 934,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-24T07:07:12.527008",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-24T07:07:12.593075",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-24T07:07:12.617781",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-24T07:07:12.653194",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-24T07:07:12.678797",
+        "message": "\ud83d\udcc4 Starting document processing: 1 file(s)"
+      },
+      {
+        "timestamp": "2026-05-24T07:07:12.701406",
+        "message": "\ud83d\udcc4 Document 1/1: manufacturere data 23.xlsx"
+      },
+      {
+        "timestamp": "2026-05-24T07:07:13.017574",
+        "message": "\u2705 Processed: manufacturere data 23.xlsx \u2192 117 chunks"
+      },
+      {
+        "timestamp": "2026-05-24T07:07:13.027906",
+        "message": "Creating Qdrant collection with 117 chunks"
+      },
+      {
+        "timestamp": "2026-05-24T07:07:13.146323",
+        "message": "Processing 117 chunks"
+      },
+      {
+        "timestamp": "2026-05-24T07:07:16.037477",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-24T07:07:16.504189",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-24T07:07:16.522320",
+        "message": "\u2705 KB created: 117 chunks from 1 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-24T07:07:12.526971",
+    "updated_at": "2026-05-24T07:07:16.522316",
+    "started_at": "2026-05-24T07:07:12.593063",
+    "completed_at": "2026-05-24T07:07:16.522308",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/async_20260524070712_46",
+      "files": [
+        {
+          "filename": "manufacturere data 23.xlsx",
+          "path": "Uploads/async_20260524070712_46/manufacturere data 23.xlsx"
+        }
+      ],
+      "scrap_urls": [],
+      "raw_text": "",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 117,
+      "documents_processed": 1,
+      "urls_crawled": 0,
+      "failed_items": 0,
+      "collection_name": "tenant_46_bsf_manufct",
+      "content_sources": [
+        {
+          "type": "document",
+          "name": "manufacturere data 23.xlsx",
+          "file_type": "XLSX",
+          "chunks_created": 117,
+          "sample": "ProductID: P196\nProductName: 2-231652-0\nManufacturerID: M0496\nManufacturer Name : appolo\nspecification: MODULAR PLUG HAND TOOL WITHOUT DIES"
+        }
+      ]
+    }
+  },
+  "58cc485d-93bd-4bac-b17e-d7c7fe9b2084": {
+    "task_id": "58cc485d-93bd-4bac-b17e-d7c7fe9b2084",
+    "tenant_id": 211,
+    "knowledge_base_name": "test sample kb",
+    "knowledge_base_id": 935,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T06:50:16.485770",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T06:50:16.567970",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T06:50:16.617504",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T06:50:16.724896",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T06:50:16.807129",
+        "message": "\ud83d\udcc4 Starting document processing: 1 file(s)"
+      },
+      {
+        "timestamp": "2026-05-27T06:50:16.839617",
+        "message": "\ud83d\udcc4 Document 1/1: India_Flight_Rules_Regulations (1) (1).pdf"
+      },
+      {
+        "timestamp": "2026-05-27T06:50:17.065543",
+        "message": "\u2705 Processed: India_Flight_Rules_Regulations (1) (1).pdf \u2192 32 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T06:50:17.085596",
+        "message": "Creating Qdrant collection with 32 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T06:50:17.308764",
+        "message": "Processing 32 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T06:50:19.208472",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T06:50:20.264552",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T06:50:20.295703",
+        "message": "\u2705 KB created: 32 chunks from 1 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T06:50:16.485747",
+    "updated_at": "2026-05-27T06:50:20.295698",
+    "started_at": "2026-05-27T06:50:16.567958",
+    "completed_at": "2026-05-27T06:50:20.295683",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/async_20260527065016_211",
+      "files": [
+        {
+          "filename": "India_Flight_Rules_Regulations (1) (1).pdf",
+          "path": "Uploads/async_20260527065016_211/India_Flight_Rules_Regulations (1) (1).pdf"
+        }
+      ],
+      "scrap_urls": [],
+      "raw_text": "",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 32,
+      "documents_processed": 1,
+      "urls_crawled": 0,
+      "failed_items": 0,
+      "collection_name": "tenant_211_test_sample_kb",
+      "content_sources": [
+        {
+          "type": "document",
+          "name": "India_Flight_Rules_Regulations (1) (1).pdf",
+          "file_type": "PDF",
+          "chunks_created": 32,
+          "sample": ". Recommended Verification  \nFor accurate information on student, armed forces, senior citizen, or other concessions: \n\uf0b7 \nCheck official airline website.  \n\uf0b7 \nReview fare rules during booking.  \n\uf0b7 \nCo"
+        }
+      ]
+    }
+  },
+  "9bed976d-ef9c-43ea-abea-289ef40a46c0": {
+    "task_id": "9bed976d-ef9c-43ea-abea-289ef40a46c0",
+    "tenant_id": 46,
+    "knowledge_base_name": "ff",
+    "knowledge_base_id": 922,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T06:50:27.228899",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T06:50:27.284953",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T06:50:27.306589",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T06:50:27.349077",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T06:50:27.392330",
+        "message": "\ud83d\udcc4 Starting document processing: 1 file(s)"
+      },
+      {
+        "timestamp": "2026-05-27T06:50:27.427989",
+        "message": "\ud83d\udcc4 Document 1/1: file-sample_150kB.pdf"
+      },
+      {
+        "timestamp": "2026-05-27T06:50:27.485951",
+        "message": "\u2705 Processed: file-sample_150kB.pdf \u2192 7 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T06:50:27.507969",
+        "message": "\ud83d\udcdd Processing raw text (2 chars)"
+      },
+      {
+        "timestamp": "2026-05-27T06:50:27.529784",
+        "message": "\u2705 Raw text processed \u2192 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T06:50:27.549245",
+        "message": "Creating Qdrant collection with 8 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T06:50:27.682852",
+        "message": "Processing 8 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T06:50:28.512050",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T06:50:29.114118",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T06:50:29.148670",
+        "message": "\u2705 KB created: 8 chunks from 1 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T06:50:27.228874",
+    "updated_at": "2026-05-27T06:50:29.148665",
+    "started_at": "2026-05-27T06:50:27.284939",
+    "completed_at": "2026-05-27T06:50:29.148623",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/update_async_20260527065027_46",
+      "files": [
+        {
+          "filename": "file-sample_150kB.pdf",
+          "path": "Uploads/update_async_20260527065027_46/file-sample_150kB.pdf"
+        }
+      ],
+      "scrap_urls": [],
+      "raw_text": "ff",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 8,
+      "documents_processed": 1,
+      "urls_crawled": 0,
+      "failed_items": 0,
+      "collection_name": "tenant_46_ff",
+      "content_sources": [
+        {
+          "type": "document",
+          "name": "file-sample_150kB.pdf",
+          "file_type": "PDF",
+          "chunks_created": 7,
+          "sample": "s. Ut ullamcorper\njusto sapien, in cursus libero viverra eget. Vivamus auctor imperdiet urna, at pulvinar leo\nposuere laoreet. Suspendisse neque nisl, fringilla at iaculis scelerisque, ornare vel dolo"
+        },
+        {
+          "type": "raw_text",
+          "name": "Raw Text Input",
+          "chunks_created": 1,
+          "char_count": 2,
+          "sample": "ff"
+        }
+      ]
+    }
+  },
+  "7e917337-727c-4255-8960-5a0ee7a5116a": {
+    "task_id": "7e917337-727c-4255-8960-5a0ee7a5116a",
+    "tenant_id": 46,
+    "knowledge_base_name": "ff",
+    "knowledge_base_id": 922,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T06:51:58.133471",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T06:51:58.159712",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T06:51:58.179283",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T06:51:58.222920",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T06:51:58.261137",
+        "message": "\ud83c\udf10 Starting web crawl: 1 URL(s)"
+      },
+      {
+        "timestamp": "2026-05-27T06:52:01.874321",
+        "message": "\u274c Failed: https://chatgpt.com/... - No meaningful content extracted"
+      },
+      {
+        "timestamp": "2026-05-27T06:52:01.904037",
+        "message": "\ud83d\udcdd Processing raw text (2 chars)"
+      },
+      {
+        "timestamp": "2026-05-27T06:52:01.957873",
+        "message": "\u2705 Raw text processed \u2192 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T06:52:01.992117",
+        "message": "Creating Qdrant collection with 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T06:52:02.029009",
+        "message": "Processing 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T06:52:02.369102",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T06:52:02.733537",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T06:52:02.828606",
+        "message": "\u2705 KB created: 1 chunks from 0 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T06:51:58.133454",
+    "updated_at": "2026-05-27T06:52:02.828602",
+    "started_at": "2026-05-27T06:51:58.159698",
+    "completed_at": "2026-05-27T06:52:02.828588",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/update_async_20260527065158_46",
+      "files": [],
+      "scrap_urls": [
+        "https://chatgpt.com/"
+      ],
+      "raw_text": "ff",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 1,
+      "documents_processed": 0,
+      "urls_crawled": 0,
+      "failed_items": 1,
+      "collection_name": "tenant_46_ff",
+      "content_sources": [
+        {
+          "type": "raw_text",
+          "name": "Raw Text Input",
+          "chunks_created": 1,
+          "char_count": 2,
+          "sample": "ff"
+        }
+      ]
+    }
+  },
+  "657ff879-c82a-4cad-a4cd-30f00e8b32c8": {
+    "task_id": "657ff879-c82a-4cad-a4cd-30f00e8b32c8",
+    "tenant_id": 46,
+    "knowledge_base_name": "ff",
+    "knowledge_base_id": 922,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T06:52:35.624837",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T06:52:35.647220",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T06:52:35.668060",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T06:52:35.692957",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T06:52:35.715025",
+        "message": "\ud83c\udf10 Starting web crawl: 1 URL(s)"
+      },
+      {
+        "timestamp": "2026-05-27T06:52:39.467018",
+        "message": "\u274c Failed: https://chatgpt.com/... - No meaningful content extracted"
+      },
+      {
+        "timestamp": "2026-05-27T06:52:39.485804",
+        "message": "\ud83d\udcdd Processing raw text (2 chars)"
+      },
+      {
+        "timestamp": "2026-05-27T06:52:39.517560",
+        "message": "\u2705 Raw text processed \u2192 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T06:52:39.556892",
+        "message": "Creating Qdrant collection with 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T06:52:39.589449",
+        "message": "Processing 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T06:52:40.297981",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T06:52:40.897104",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T06:52:40.931859",
+        "message": "\u2705 KB created: 1 chunks from 0 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T06:52:35.624820",
+    "updated_at": "2026-05-27T06:52:40.931855",
+    "started_at": "2026-05-27T06:52:35.647208",
+    "completed_at": "2026-05-27T06:52:40.931845",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/update_async_20260527065235_46",
+      "files": [],
+      "scrap_urls": [
+        "https://chatgpt.com/"
+      ],
+      "raw_text": "ff",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 1,
+      "documents_processed": 0,
+      "urls_crawled": 0,
+      "failed_items": 1,
+      "collection_name": "tenant_46_ff",
+      "content_sources": [
+        {
+          "type": "raw_text",
+          "name": "Raw Text Input",
+          "chunks_created": 1,
+          "char_count": 2,
+          "sample": "ff"
+        }
+      ]
+    }
+  },
+  "dbc38cba-01d1-4cc1-8014-dc11193ac1c9": {
+    "task_id": "dbc38cba-01d1-4cc1-8014-dc11193ac1c9",
+    "tenant_id": 46,
+    "knowledge_base_name": "fff",
+    "knowledge_base_id": 923,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T06:59:17.516972",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T06:59:17.548200",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T06:59:17.575291",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T06:59:17.659117",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T06:59:17.711922",
+        "message": "\ud83d\udcdd Processing raw text (3 chars)"
+      },
+      {
+        "timestamp": "2026-05-27T06:59:17.760650",
+        "message": "\u2705 Raw text processed \u2192 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T06:59:17.808230",
+        "message": "Creating Qdrant collection with 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T06:59:17.884435",
+        "message": "Processing 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T06:59:18.280170",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T06:59:18.857457",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T06:59:18.908027",
+        "message": "\u2705 KB created: 1 chunks from 0 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T06:59:17.516952",
+    "updated_at": "2026-05-27T06:59:18.908022",
+    "started_at": "2026-05-27T06:59:17.548186",
+    "completed_at": "2026-05-27T06:59:18.908011",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/update_async_20260527065917_46",
+      "files": [],
+      "scrap_urls": [],
+      "raw_text": "fff",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 1,
+      "documents_processed": 0,
+      "urls_crawled": 0,
+      "failed_items": 0,
+      "collection_name": "tenant_46_fff",
+      "content_sources": [
+        {
+          "type": "raw_text",
+          "name": "Raw Text Input",
+          "chunks_created": 1,
+          "char_count": 3,
+          "sample": "fff"
+        }
+      ]
+    }
+  },
+  "6da70ef6-2319-4f9a-9ba8-5453733ad7ab": {
+    "task_id": "6da70ef6-2319-4f9a-9ba8-5453733ad7ab",
+    "tenant_id": 46,
+    "knowledge_base_name": "fff",
+    "knowledge_base_id": 923,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T07:00:09.670360",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T07:00:09.701877",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T07:00:09.720657",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T07:00:09.746274",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T07:00:09.769667",
+        "message": "\ud83d\udcdd Processing raw text (3 chars)"
+      },
+      {
+        "timestamp": "2026-05-27T07:00:09.789316",
+        "message": "\u2705 Raw text processed \u2192 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T07:00:09.813996",
+        "message": "Creating Qdrant collection with 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T07:00:09.857854",
+        "message": "Processing 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T07:00:10.507317",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T07:00:10.863903",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T07:00:10.893637",
+        "message": "\u2705 KB created: 1 chunks from 0 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T07:00:09.670346",
+    "updated_at": "2026-05-27T07:00:10.893633",
+    "started_at": "2026-05-27T07:00:09.701862",
+    "completed_at": "2026-05-27T07:00:10.893624",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/update_async_20260527070009_46",
+      "files": [],
+      "scrap_urls": [],
+      "raw_text": "fff",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 1,
+      "documents_processed": 0,
+      "urls_crawled": 0,
+      "failed_items": 0,
+      "collection_name": "tenant_46_fff",
+      "content_sources": [
+        {
+          "type": "raw_text",
+          "name": "Raw Text Input",
+          "chunks_created": 1,
+          "char_count": 3,
+          "sample": "fff"
+        }
+      ]
+    }
+  },
+  "2ed6bc34-72b8-4cae-a9b0-114ea74167ce": {
+    "task_id": "2ed6bc34-72b8-4cae-a9b0-114ea74167ce",
+    "tenant_id": 200,
+    "knowledge_base_name": "test",
+    "knowledge_base_id": 882,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T07:01:23.758995",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T07:01:24.585611",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T07:01:24.600718",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T07:01:24.634121",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T07:01:24.682465",
+        "message": "\ud83d\udcdd Processing raw text (6 chars)"
+      },
+      {
+        "timestamp": "2026-05-27T07:01:24.709677",
+        "message": "\u2705 Raw text processed \u2192 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T07:01:24.745889",
+        "message": "Creating Qdrant collection with 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T07:01:24.774774",
+        "message": "Processing 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T07:01:25.539003",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T07:01:26.189919",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T07:01:26.289987",
+        "message": "\u2705 KB created: 1 chunks from 0 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T07:01:23.758977",
+    "updated_at": "2026-05-27T07:01:26.289983",
+    "started_at": "2026-05-27T07:01:24.585596",
+    "completed_at": "2026-05-27T07:01:26.289969",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/update_async_20260527070123_200",
+      "files": [],
+      "scrap_urls": [],
+      "raw_text": "sample",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 1,
+      "documents_processed": 0,
+      "urls_crawled": 0,
+      "failed_items": 0,
+      "collection_name": "tenant_200_test",
+      "content_sources": [
+        {
+          "type": "raw_text",
+          "name": "Raw Text Input",
+          "chunks_created": 1,
+          "char_count": 6,
+          "sample": "sample"
+        }
+      ]
+    }
+  },
+  "cc315b21-e00a-4df1-bd5f-d452111c4ba2": {
+    "task_id": "cc315b21-e00a-4df1-bd5f-d452111c4ba2",
+    "tenant_id": 46,
+    "knowledge_base_name": "bsf manufct",
+    "knowledge_base_id": 934,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T07:17:27.109483",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T07:17:27.138506",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T07:17:27.156497",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T07:17:27.178773",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T07:17:27.202389",
+        "message": "\ud83d\udcdd Processing raw text (4 chars)"
+      },
+      {
+        "timestamp": "2026-05-27T07:17:27.223963",
+        "message": "\u2705 Raw text processed \u2192 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T07:17:27.249574",
+        "message": "Creating Qdrant collection with 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T07:17:27.393897",
+        "message": "Processing 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T07:17:28.283152",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T07:17:29.104049",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T07:17:29.136991",
+        "message": "\u2705 KB created: 1 chunks from 0 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T07:17:27.109019",
+    "updated_at": "2026-05-27T07:17:29.136986",
+    "started_at": "2026-05-27T07:17:27.138495",
+    "completed_at": "2026-05-27T07:17:29.136971",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/update_async_20260527071727_46",
+      "files": [],
+      "scrap_urls": [],
+      "raw_text": "opio",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 1,
+      "documents_processed": 0,
+      "urls_crawled": 0,
+      "failed_items": 0,
+      "collection_name": "tenant_46_bsf_manufct",
+      "content_sources": [
+        {
+          "type": "raw_text",
+          "name": "Raw Text Input",
+          "chunks_created": 1,
+          "char_count": 4,
+          "sample": "opio"
+        }
+      ]
+    }
+  },
+  "41470c68-18fe-4815-83ca-28eaffd13fce": {
+    "task_id": "41470c68-18fe-4815-83ca-28eaffd13fce",
+    "tenant_id": 211,
+    "knowledge_base_name": "supplies",
+    "knowledge_base_id": 936,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T07:27:03.115821",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T07:27:03.193537",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T07:27:03.230621",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T07:27:03.305194",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T07:27:03.361044",
+        "message": "\ud83d\udcc4 Starting document processing: 1 file(s)"
+      },
+      {
+        "timestamp": "2026-05-27T07:27:03.380566",
+        "message": "\ud83d\udcc4 Document 1/1: manufacturere data 23.xlsx"
+      },
+      {
+        "timestamp": "2026-05-27T07:27:04.080241",
+        "message": "\u2705 Processed: manufacturere data 23.xlsx \u2192 117 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T07:27:04.105741",
+        "message": "Creating Qdrant collection with 117 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T07:27:04.323973",
+        "message": "Processing 117 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T07:27:07.142063",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T07:27:23.652663",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T07:27:23.705220",
+        "message": "\u2705 KB created: 117 chunks from 1 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T07:27:03.115521",
+    "updated_at": "2026-05-27T07:27:23.705216",
+    "started_at": "2026-05-27T07:27:03.193517",
+    "completed_at": "2026-05-27T07:27:23.705205",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/async_20260527072703_211",
+      "files": [
+        {
+          "filename": "manufacturere data 23.xlsx",
+          "path": "Uploads/async_20260527072703_211/manufacturere data 23.xlsx"
+        }
+      ],
+      "scrap_urls": [],
+      "raw_text": "",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 117,
+      "documents_processed": 1,
+      "urls_crawled": 0,
+      "failed_items": 0,
+      "collection_name": "tenant_211_supplies",
+      "content_sources": [
+        {
+          "type": "document",
+          "name": "manufacturere data 23.xlsx",
+          "file_type": "XLSX",
+          "chunks_created": 117,
+          "sample": "ProductID: P196\nProductName: 2-231652-0\nManufacturerID: M0496\nManufacturer Name : appolo\nspecification: MODULAR PLUG HAND TOOL WITHOUT DIES"
+        }
+      ]
+    }
+  },
+  "f63d4147-30cd-44d0-8e77-4dddb055fe00": {
+    "task_id": "f63d4147-30cd-44d0-8e77-4dddb055fe00",
+    "tenant_id": 46,
+    "knowledge_base_name": "bsf manufct",
+    "knowledge_base_id": 934,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T07:44:28.848100",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T07:44:28.881446",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T07:44:28.894507",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T07:44:28.919506",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T07:44:28.948088",
+        "message": "\ud83d\udcc4 Starting document processing: 1 file(s)"
+      },
+      {
+        "timestamp": "2026-05-27T07:44:28.975261",
+        "message": "\ud83d\udcc4 Document 1/1: India_Flight_Rules_Regulations (1) (1).pdf"
+      },
+      {
+        "timestamp": "2026-05-27T07:44:29.155277",
+        "message": "\u2705 Processed: India_Flight_Rules_Regulations (1) (1).pdf \u2192 32 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T07:44:29.175778",
+        "message": "\ud83d\udcdd Processing raw text (4 chars)"
+      },
+      {
+        "timestamp": "2026-05-27T07:44:29.193633",
+        "message": "\u2705 Raw text processed \u2192 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T07:44:29.207237",
+        "message": "Creating Qdrant collection with 33 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T07:44:29.249184",
+        "message": "Processing 33 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T07:44:31.218126",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T07:44:31.752859",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T07:44:31.791058",
+        "message": "\u2705 KB created: 33 chunks from 1 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T07:44:28.848080",
+    "updated_at": "2026-05-27T07:44:31.791054",
+    "started_at": "2026-05-27T07:44:28.881431",
+    "completed_at": "2026-05-27T07:44:31.791041",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/update_async_20260527074428_46",
+      "files": [
+        {
+          "filename": "India_Flight_Rules_Regulations (1) (1).pdf",
+          "path": "Uploads/update_async_20260527074428_46/India_Flight_Rules_Regulations (1) (1).pdf"
+        }
+      ],
+      "scrap_urls": [],
+      "final_scrap_urls": [],
+      "removed_scrap_urls": [],
+      "added_scrap_urls": [],
+      "final_upload_files": [
+        "manufacturere data 23.xlsx",
+        "India_Flight_Rules_Regulations (1) (1).pdf"
+      ],
+      "removed_upload_files": [],
+      "added_upload_files": [
+        "India_Flight_Rules_Regulations (1) (1).pdf"
+      ],
+      "raw_text": "opio",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 33,
+      "documents_processed": 1,
+      "urls_crawled": 0,
+      "failed_items": 0,
+      "collection_name": "tenant_46_bsf_manufct",
+      "content_sources": [
+        {
+          "type": "document",
+          "name": "India_Flight_Rules_Regulations (1) (1).pdf",
+          "file_type": "PDF",
+          "chunks_created": 32,
+          "sample": ". Recommended Verification  \nFor accurate information on student, armed forces, senior citizen, or other concessions: \n\uf0b7 \nCheck official airline website.  \n\uf0b7 \nReview fare rules during booking.  \n\uf0b7 \nCo"
+        },
+        {
+          "type": "raw_text",
+          "name": "Raw Text Input",
+          "chunks_created": 1,
+          "char_count": 4,
+          "sample": "opio"
+        }
+      ]
+    }
+  },
+  "bc476c8f-307c-45ac-9558-c5ccfa5ec85d": {
+    "task_id": "bc476c8f-307c-45ac-9558-c5ccfa5ec85d",
+    "tenant_id": 46,
+    "knowledge_base_name": "bsf manufct",
+    "knowledge_base_id": 934,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T07:44:49.812239",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T07:44:49.886460",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T07:44:49.900703",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T07:44:49.930682",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T07:44:49.971947",
+        "message": "\ud83d\udcdd Processing raw text (4 chars)"
+      },
+      {
+        "timestamp": "2026-05-27T07:44:49.999862",
+        "message": "\u2705 Raw text processed \u2192 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T07:44:50.042046",
+        "message": "Creating Qdrant collection with 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T07:44:50.078494",
+        "message": "Processing 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T07:44:50.653558",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T07:44:50.953156",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T07:44:50.982284",
+        "message": "\u2705 KB created: 1 chunks from 0 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T07:44:49.812222",
+    "updated_at": "2026-05-27T07:44:50.982279",
+    "started_at": "2026-05-27T07:44:49.886443",
+    "completed_at": "2026-05-27T07:44:50.982267",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/update_async_20260527074449_46",
+      "files": [],
+      "scrap_urls": [],
+      "final_scrap_urls": [],
+      "removed_scrap_urls": [],
+      "added_scrap_urls": [],
+      "final_upload_files": [
+        "manufacturere data 23.xlsx"
+      ],
+      "removed_upload_files": [
+        "India_Flight_Rules_Regulations (1) (1).pdf"
+      ],
+      "added_upload_files": [],
+      "raw_text": "opio",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 1,
+      "documents_processed": 0,
+      "urls_crawled": 0,
+      "failed_items": 0,
+      "collection_name": "tenant_46_bsf_manufct",
+      "content_sources": [
+        {
+          "type": "raw_text",
+          "name": "Raw Text Input",
+          "chunks_created": 1,
+          "char_count": 4,
+          "sample": "opio"
+        }
+      ]
+    }
+  },
+  "db9e178e-216d-4247-b84f-3530f529da6b": {
+    "task_id": "db9e178e-216d-4247-b84f-3530f529da6b",
+    "tenant_id": 136,
+    "knowledge_base_name": "kb",
+    "knowledge_base_id": 937,
+    "status": "failed",
+    "progress": 50,
+    "current_step": "Failed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T09:42:13.939565",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T09:42:14.005247",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T09:42:14.035467",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T09:42:14.073587",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T09:42:14.115071",
+        "message": "\ud83d\udcc4 Starting document processing: 1 file(s)"
+      },
+      {
+        "timestamp": "2026-05-27T09:42:14.135632",
+        "message": "\ud83d\udcc4 Document 1/1: testing.txt"
+      },
+      {
+        "timestamp": "2026-05-27T09:42:14.156602",
+        "message": "\u2705 Processed: testing.txt \u2192 0 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T09:42:14.179716",
+        "message": "Build failed: No content was processed successfully"
+      }
+    ],
+    "created_at": "2026-05-27T09:42:13.939545",
+    "updated_at": "2026-05-27T09:42:14.179711",
+    "started_at": "2026-05-27T09:42:14.005235",
+    "completed_at": "2026-05-27T09:42:14.179698",
+    "error_message": "No content was processed successfully",
+    "metadata": {
+      "upload_dir": "Uploads/async_20260527094213_136",
+      "files": [
+        {
+          "filename": "testing.txt",
+          "path": "Uploads/async_20260527094213_136/testing.txt"
+        }
+      ],
+      "scrap_urls": [],
+      "raw_text": "",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    }
+  },
+  "0661cff3-7555-4636-9ba5-01c54222ddce": {
+    "task_id": "0661cff3-7555-4636-9ba5-01c54222ddce",
+    "tenant_id": 136,
+    "knowledge_base_name": "jhhu",
+    "knowledge_base_id": 938,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T09:44:53.315949",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T09:44:53.376239",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T09:44:53.392651",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T09:44:53.414080",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T09:44:53.435466",
+        "message": "\ud83d\udcdd Processing raw text (3 chars)"
+      },
+      {
+        "timestamp": "2026-05-27T09:44:53.451354",
+        "message": "\u2705 Raw text processed \u2192 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T09:44:53.485104",
+        "message": "Creating Qdrant collection with 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T09:44:53.617983",
+        "message": "Processing 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T09:44:54.700873",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T09:44:55.310894",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T09:44:55.342554",
+        "message": "\u2705 KB created: 1 chunks from 0 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T09:44:53.315925",
+    "updated_at": "2026-05-27T09:44:55.342550",
+    "started_at": "2026-05-27T09:44:53.376226",
+    "completed_at": "2026-05-27T09:44:55.342537",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/async_20260527094453_136",
+      "files": [],
+      "scrap_urls": [],
+      "raw_text": "hjh",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 1,
+      "documents_processed": 0,
+      "urls_crawled": 0,
+      "failed_items": 0,
+      "collection_name": "tenant_136_jhhu",
+      "content_sources": [
+        {
+          "type": "raw_text",
+          "name": "Raw Text Input",
+          "chunks_created": 1,
+          "char_count": 3,
+          "sample": "hjh"
+        }
+      ]
+    }
+  },
+  "a9daf386-e6ea-4406-a6e6-f2aff4e38996": {
+    "task_id": "a9daf386-e6ea-4406-a6e6-f2aff4e38996",
+    "tenant_id": 136,
+    "knowledge_base_name": "ffg",
+    "knowledge_base_id": 939,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T09:47:07.648080",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T09:47:07.730562",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T09:47:07.755456",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T09:47:07.786539",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T09:47:07.830933",
+        "message": "\ud83d\udcdd Processing raw text (6 chars)"
+      },
+      {
+        "timestamp": "2026-05-27T09:47:07.862648",
+        "message": "\u2705 Raw text processed \u2192 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T09:47:07.887817",
+        "message": "Creating Qdrant collection with 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T09:47:08.079720",
+        "message": "Processing 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T09:47:08.734818",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T09:47:09.355476",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T09:47:09.376436",
+        "message": "\u2705 KB created: 1 chunks from 0 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T09:47:07.648057",
+    "updated_at": "2026-05-27T09:47:09.376432",
+    "started_at": "2026-05-27T09:47:07.730550",
+    "completed_at": "2026-05-27T09:47:09.376419",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/async_20260527094707_136",
+      "files": [],
+      "scrap_urls": [],
+      "raw_text": "fgrtrf",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 1,
+      "documents_processed": 0,
+      "urls_crawled": 0,
+      "failed_items": 0,
+      "collection_name": "tenant_136_ffg",
+      "content_sources": [
+        {
+          "type": "raw_text",
+          "name": "Raw Text Input",
+          "chunks_created": 1,
+          "char_count": 6,
+          "sample": "fgrtrf"
+        }
+      ]
+    }
+  },
+  "eacfab53-bb1a-4841-92c9-f013d48a5851": {
+    "task_id": "eacfab53-bb1a-4841-92c9-f013d48a5851",
+    "tenant_id": 200,
+    "knowledge_base_name": "ddad",
+    "knowledge_base_id": 940,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T10:02:15.129440",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T10:02:15.207741",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T10:02:15.250072",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T10:02:15.293523",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T10:02:15.360997",
+        "message": "\ud83d\udcdd Processing raw text (6 chars)"
+      },
+      {
+        "timestamp": "2026-05-27T10:02:15.401490",
+        "message": "\u2705 Raw text processed \u2192 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:02:15.420914",
+        "message": "Creating Qdrant collection with 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:02:15.638823",
+        "message": "Processing 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:02:17.264330",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T10:02:17.958878",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T10:02:17.995694",
+        "message": "\u2705 KB created: 1 chunks from 0 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T10:02:15.129410",
+    "updated_at": "2026-05-27T10:02:17.995690",
+    "started_at": "2026-05-27T10:02:15.207730",
+    "completed_at": "2026-05-27T10:02:17.995680",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/async_20260527100215_200",
+      "files": [],
+      "scrap_urls": [],
+      "raw_text": "asdasd",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 1,
+      "documents_processed": 0,
+      "urls_crawled": 0,
+      "failed_items": 0,
+      "collection_name": "tenant_200_ddad",
+      "content_sources": [
+        {
+          "type": "raw_text",
+          "name": "Raw Text Input",
+          "chunks_created": 1,
+          "char_count": 6,
+          "sample": "asdasd"
+        }
+      ]
+    }
+  },
+  "ab65e2f8-a321-43c7-ae47-28c13516a2c5": {
+    "task_id": "ab65e2f8-a321-43c7-ae47-28c13516a2c5",
+    "tenant_id": 200,
+    "knowledge_base_name": "adadadaas",
+    "knowledge_base_id": 942,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T10:08:34.679227",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T10:08:34.731150",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T10:08:34.745627",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T10:08:34.766730",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T10:08:34.795326",
+        "message": "\ud83d\udcdd Processing raw text (6 chars)"
+      },
+      {
+        "timestamp": "2026-05-27T10:08:34.811204",
+        "message": "\u2705 Raw text processed \u2192 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:08:34.830622",
+        "message": "Creating Qdrant collection with 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:08:34.919665",
+        "message": "Processing 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:08:35.514756",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T10:08:36.110054",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T10:08:36.134845",
+        "message": "\u2705 KB created: 1 chunks from 0 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T10:08:34.679213",
+    "updated_at": "2026-05-27T10:08:36.134841",
+    "started_at": "2026-05-27T10:08:34.731139",
+    "completed_at": "2026-05-27T10:08:36.134834",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/async_20260527100834_200",
+      "files": [],
+      "scrap_urls": [],
+      "raw_text": "asdada",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 1,
+      "documents_processed": 0,
+      "urls_crawled": 0,
+      "failed_items": 0,
+      "collection_name": "tenant_200_adadadaas",
+      "content_sources": [
+        {
+          "type": "raw_text",
+          "name": "Raw Text Input",
+          "chunks_created": 1,
+          "char_count": 6,
+          "sample": "asdada"
+        }
+      ]
+    }
+  },
+  "720c8517-a181-4f7d-8009-cfa6d22684d5": {
+    "task_id": "720c8517-a181-4f7d-8009-cfa6d22684d5",
+    "tenant_id": 46,
+    "knowledge_base_name": "adasda",
+    "knowledge_base_id": 943,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T10:21:26.521603",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T10:21:26.628238",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T10:21:26.660996",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T10:21:26.693853",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T10:21:26.717058",
+        "message": "\ud83d\udcdd Processing raw text (6 chars)"
+      },
+      {
+        "timestamp": "2026-05-27T10:21:26.755120",
+        "message": "\u2705 Raw text processed \u2192 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:21:26.785948",
+        "message": "Creating Qdrant collection with 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:21:26.949820",
+        "message": "Processing 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:21:27.926543",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T10:21:29.124664",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T10:21:29.170484",
+        "message": "\u2705 KB created: 1 chunks from 0 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T10:21:26.521580",
+    "updated_at": "2026-05-27T10:21:29.170480",
+    "started_at": "2026-05-27T10:21:26.628222",
+    "completed_at": "2026-05-27T10:21:29.170470",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/async_20260527102126_46",
+      "files": [],
+      "scrap_urls": [],
+      "raw_text": "adadad",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 1,
+      "documents_processed": 0,
+      "urls_crawled": 0,
+      "failed_items": 0,
+      "collection_name": "tenant_46_adasda",
+      "content_sources": [
+        {
+          "type": "raw_text",
+          "name": "Raw Text Input",
+          "chunks_created": 1,
+          "char_count": 6,
+          "sample": "adadad"
+        }
+      ]
+    }
+  },
+  "d2042937-af33-447e-88d6-9d0fa7b27520": {
+    "task_id": "d2042937-af33-447e-88d6-9d0fa7b27520",
+    "tenant_id": 46,
+    "knowledge_base_name": "dasdad",
+    "knowledge_base_id": 945,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T10:31:52.063927",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T10:31:52.125532",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T10:31:52.142659",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T10:31:52.178696",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T10:31:52.212737",
+        "message": "\ud83d\udcdd Processing raw text (6 chars)"
+      },
+      {
+        "timestamp": "2026-05-27T10:31:52.228297",
+        "message": "\u2705 Raw text processed \u2192 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:31:52.243826",
+        "message": "Creating Qdrant collection with 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:31:52.340575",
+        "message": "Processing 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:31:52.661664",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T10:31:52.969490",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T10:31:52.987856",
+        "message": "\u2705 KB created: 1 chunks from 0 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T10:31:52.063910",
+    "updated_at": "2026-05-27T10:31:52.987852",
+    "started_at": "2026-05-27T10:31:52.125516",
+    "completed_at": "2026-05-27T10:31:52.987844",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/async_20260527103152_46",
+      "files": [],
+      "scrap_urls": [],
+      "raw_text": "adaDSA",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 1,
+      "documents_processed": 0,
+      "urls_crawled": 0,
+      "failed_items": 0,
+      "collection_name": "tenant_46_dasdad",
+      "content_sources": [
+        {
+          "type": "raw_text",
+          "name": "Raw Text Input",
+          "chunks_created": 1,
+          "char_count": 6,
+          "sample": "adaDSA"
+        }
+      ]
+    }
+  },
+  "08e7e4da-630e-4d3d-9084-7bc9e17ae27b": {
+    "task_id": "08e7e4da-630e-4d3d-9084-7bc9e17ae27b",
+    "tenant_id": 46,
+    "knowledge_base_name": "ASDAD",
+    "knowledge_base_id": 946,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T10:32:19.883218",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T10:32:19.944790",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T10:32:19.972879",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T10:32:20.007681",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T10:32:20.058540",
+        "message": "\ud83d\udcdd Processing raw text (5 chars)"
+      },
+      {
+        "timestamp": "2026-05-27T10:32:20.079059",
+        "message": "\u2705 Raw text processed \u2192 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:32:20.092813",
+        "message": "Creating Qdrant collection with 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:32:20.189585",
+        "message": "Processing 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:32:20.486495",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T10:32:21.082220",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T10:32:21.116847",
+        "message": "\u2705 KB created: 1 chunks from 0 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T10:32:19.883198",
+    "updated_at": "2026-05-27T10:32:21.116844",
+    "started_at": "2026-05-27T10:32:19.944774",
+    "completed_at": "2026-05-27T10:32:21.116835",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/async_20260527103219_46",
+      "files": [],
+      "scrap_urls": [],
+      "raw_text": "ADADA",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 1,
+      "documents_processed": 0,
+      "urls_crawled": 0,
+      "failed_items": 0,
+      "collection_name": "tenant_46_asdad",
+      "content_sources": [
+        {
+          "type": "raw_text",
+          "name": "Raw Text Input",
+          "chunks_created": 1,
+          "char_count": 5,
+          "sample": "ADADA"
+        }
+      ]
+    }
+  },
+  "b3b33b88-09b2-4778-89ae-afc06bfd2966": {
+    "task_id": "b3b33b88-09b2-4778-89ae-afc06bfd2966",
+    "tenant_id": 46,
+    "knowledge_base_name": "DSSASDA",
+    "knowledge_base_id": 947,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T10:32:58.541596",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T10:32:58.609769",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T10:32:58.638088",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T10:32:58.679851",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T10:32:58.719216",
+        "message": "\ud83d\udcdd Processing raw text (8 chars)"
+      },
+      {
+        "timestamp": "2026-05-27T10:32:58.754208",
+        "message": "\u2705 Raw text processed \u2192 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:32:58.768214",
+        "message": "Creating Qdrant collection with 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:32:58.872740",
+        "message": "Processing 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:32:59.487503",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T10:33:00.166734",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T10:33:00.195149",
+        "message": "\u2705 KB created: 1 chunks from 0 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T10:32:58.541577",
+    "updated_at": "2026-05-27T10:33:00.195145",
+    "started_at": "2026-05-27T10:32:58.609757",
+    "completed_at": "2026-05-27T10:33:00.195134",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/async_20260527103258_46",
+      "files": [],
+      "scrap_urls": [],
+      "raw_text": "ASDASDAD",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 1,
+      "documents_processed": 0,
+      "urls_crawled": 0,
+      "failed_items": 0,
+      "collection_name": "tenant_46_dssasda",
+      "content_sources": [
+        {
+          "type": "raw_text",
+          "name": "Raw Text Input",
+          "chunks_created": 1,
+          "char_count": 8,
+          "sample": "ASDASDAD"
+        }
+      ]
+    }
+  },
+  "463278d0-b41e-419f-a5d5-fdac78aa3f1c": {
+    "task_id": "463278d0-b41e-419f-a5d5-fdac78aa3f1c",
+    "tenant_id": 46,
+    "knowledge_base_name": "ff",
+    "knowledge_base_id": 922,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T10:43:50.316466",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T10:43:50.357786",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T10:43:50.388755",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T10:43:50.418210",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T10:43:50.450772",
+        "message": "\ud83c\udf10 Starting web crawl: 1 URL(s)"
+      },
+      {
+        "timestamp": "2026-05-27T10:43:53.631223",
+        "message": "\u2705 Crawled: https://chatgpt.com/... \u2192 1 chunks (269 chars) [\ud83d\udcc4 single page; mode=STANDARD flags=]"
+      },
+      {
+        "timestamp": "2026-05-27T10:43:53.652201",
+        "message": "\ud83d\udcca Total crawl: 1 pages from 1 URLs (1 credits used)"
+      },
+      {
+        "timestamp": "2026-05-27T10:43:53.676016",
+        "message": "\ud83d\udcdd Processing raw text (2 chars)"
+      },
+      {
+        "timestamp": "2026-05-27T10:43:53.689543",
+        "message": "\u2705 Raw text processed \u2192 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:43:53.712341",
+        "message": "Creating Qdrant collection with 2 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:43:53.748199",
+        "message": "Processing 2 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:43:54.744471",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T10:44:01.648927",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T10:44:01.706598",
+        "message": "\u2705 KB created: 2 chunks from 0 docs, 1 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T10:43:50.316439",
+    "updated_at": "2026-05-27T10:44:01.706593",
+    "started_at": "2026-05-27T10:43:50.357770",
+    "completed_at": "2026-05-27T10:44:01.706581",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/update_async_20260527104350_46",
+      "files": [],
+      "scrap_urls": [
+        "https://chatgpt.com/"
+      ],
+      "raw_text": "ff",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 2,
+      "documents_processed": 0,
+      "urls_crawled": 1,
+      "failed_items": 0,
+      "collection_name": "tenant_46_ff",
+      "content_sources": [
+        {
+          "type": "url",
+          "name": "https://chatgpt.com/",
+          "chunks_created": 1,
+          "char_count": 269,
+          "pages_crawled": 1,
+          "credits_used": 1,
+          "crawled_urls": [],
+          "sample": "## Chat history\n\n# What\u2019s on the agenda today?\n\n# What\u2019s on the agenda today?\n\nVoice\n\nBy messaging ChatGPT, an AI chatbot, you agree to our [Terms](https://openai.com/terms) and have read our [Privacy"
+        },
+        {
+          "type": "raw_text",
+          "name": "Raw Text Input",
+          "chunks_created": 1,
+          "char_count": 2,
+          "sample": "ff"
+        }
+      ]
+    }
+  },
+  "56ef9cb2-f1cd-49c5-9a05-83653b870751": {
+    "task_id": "56ef9cb2-f1cd-49c5-9a05-83653b870751",
+    "tenant_id": 46,
+    "knowledge_base_name": "ff",
+    "knowledge_base_id": 922,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T10:47:15.712007",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T10:47:15.774361",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T10:47:15.791603",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T10:47:15.827908",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T10:47:15.851342",
+        "message": "\ud83c\udf10 Starting web crawl: 1 URL(s)"
+      },
+      {
+        "timestamp": "2026-05-27T10:47:19.005142",
+        "message": "\u2705 Crawled: https://chatgpt.com/... \u2192 1 chunks (269 chars) [\ud83d\udcc4 single page; mode=STANDARD flags=]"
+      },
+      {
+        "timestamp": "2026-05-27T10:47:19.046343",
+        "message": "\ud83d\udcca Total crawl: 1 pages from 1 URLs (1 credits used)"
+      },
+      {
+        "timestamp": "2026-05-27T10:47:19.081278",
+        "message": "\ud83d\udcdd Processing raw text (2 chars)"
+      },
+      {
+        "timestamp": "2026-05-27T10:47:19.097711",
+        "message": "\u2705 Raw text processed \u2192 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:47:19.134639",
+        "message": "Creating Qdrant collection with 2 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:47:19.168178",
+        "message": "Processing 2 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:47:19.934923",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T10:47:24.285182",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T10:47:24.333437",
+        "message": "\u2705 KB created: 2 chunks from 0 docs, 1 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T10:47:15.711985",
+    "updated_at": "2026-05-27T10:47:24.333432",
+    "started_at": "2026-05-27T10:47:15.774342",
+    "completed_at": "2026-05-27T10:47:24.333418",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/update_async_20260527104715_46",
+      "files": [],
+      "scrap_urls": [
+        "https://chatgpt.com/"
+      ],
+      "raw_text": "ff",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 2,
+      "documents_processed": 0,
+      "urls_crawled": 1,
+      "failed_items": 0,
+      "collection_name": "tenant_46_ff",
+      "content_sources": [
+        {
+          "type": "url",
+          "name": "https://chatgpt.com/",
+          "chunks_created": 1,
+          "char_count": 269,
+          "pages_crawled": 1,
+          "credits_used": 1,
+          "crawled_urls": [],
+          "sample": "## Chat history\n\n# What\u2019s on the agenda today?\n\n# What\u2019s on the agenda today?\n\nVoice\n\nBy messaging ChatGPT, an AI chatbot, you agree to our [Terms](https://openai.com/terms) and have read our [Privacy"
+        },
+        {
+          "type": "raw_text",
+          "name": "Raw Text Input",
+          "chunks_created": 1,
+          "char_count": 2,
+          "sample": "ff"
+        }
+      ]
+    }
+  },
+  "7dd6e6e6-e5e7-4ef8-a95d-9feff50cb97e": {
+    "task_id": "7dd6e6e6-e5e7-4ef8-a95d-9feff50cb97e",
+    "tenant_id": 46,
+    "knowledge_base_name": "ff",
+    "knowledge_base_id": 922,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T10:53:46.757719",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T10:53:46.812673",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T10:53:46.857450",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T10:53:46.883501",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T10:53:46.917513",
+        "message": "\ud83d\udcdd Processing raw text (2 chars)"
+      },
+      {
+        "timestamp": "2026-05-27T10:53:46.950041",
+        "message": "\u2705 Raw text processed \u2192 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:53:46.986438",
+        "message": "Creating Qdrant collection with 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:53:47.036456",
+        "message": "Processing 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:53:47.677079",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T10:53:54.698878",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T10:53:54.759334",
+        "message": "\u2705 KB created: 1 chunks from 0 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T10:53:46.757700",
+    "updated_at": "2026-05-27T10:53:54.759329",
+    "started_at": "2026-05-27T10:53:46.812652",
+    "completed_at": "2026-05-27T10:53:54.759314",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/update_async_20260527105346_46",
+      "files": [],
+      "scrap_urls": [],
+      "raw_text": "ff",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 1,
+      "documents_processed": 0,
+      "urls_crawled": 0,
+      "failed_items": 0,
+      "collection_name": "tenant_46_ff",
+      "content_sources": [
+        {
+          "type": "raw_text",
+          "name": "Raw Text Input",
+          "chunks_created": 1,
+          "char_count": 2,
+          "sample": "ff"
+        }
+      ]
+    }
+  },
+  "e8b16ca7-b764-46f8-84cb-542e7d669ee2": {
+    "task_id": "e8b16ca7-b764-46f8-84cb-542e7d669ee2",
+    "tenant_id": 140,
+    "knowledge_base_name": "testing abc",
+    "knowledge_base_id": 637,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T10:57:48.060522",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T10:57:48.096542",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T10:57:48.121698",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T10:57:48.147112",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T10:57:48.185275",
+        "message": "\ud83d\udcdd Processing raw text (1 chars)"
+      },
+      {
+        "timestamp": "2026-05-27T10:57:48.212831",
+        "message": "\u2705 Raw text processed \u2192 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:57:48.230605",
+        "message": "Creating Qdrant collection with 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:57:48.425805",
+        "message": "Processing 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:57:49.161701",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T10:57:51.987504",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T10:57:52.038633",
+        "message": "\u2705 KB created: 1 chunks from 0 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T10:57:48.060499",
+    "updated_at": "2026-05-27T10:57:52.038629",
+    "started_at": "2026-05-27T10:57:48.096526",
+    "completed_at": "2026-05-27T10:57:52.038618",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/update_async_20260527105748_140",
+      "files": [],
+      "scrap_urls": [],
+      "raw_text": "n",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 1,
+      "documents_processed": 0,
+      "urls_crawled": 0,
+      "failed_items": 0,
+      "collection_name": "tenant_140_testing_abc",
+      "content_sources": [
+        {
+          "type": "raw_text",
+          "name": "Raw Text Input",
+          "chunks_created": 1,
+          "char_count": 1,
+          "sample": "n"
+        }
+      ]
+    }
+  },
+  "4b444966-ae82-4fe2-84f9-7f43cdb0dcff": {
+    "task_id": "4b444966-ae82-4fe2-84f9-7f43cdb0dcff",
+    "tenant_id": 140,
+    "knowledge_base_name": "testing abc",
+    "knowledge_base_id": 637,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T10:57:53.879575",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T10:57:53.911751",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T10:57:53.939946",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T10:57:53.994821",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T10:57:54.050724",
+        "message": "\ud83d\udcdd Processing raw text (1 chars)"
+      },
+      {
+        "timestamp": "2026-05-27T10:57:54.076281",
+        "message": "\u2705 Raw text processed \u2192 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:57:54.091910",
+        "message": "Creating Qdrant collection with 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:57:54.137854",
+        "message": "Processing 1 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T10:57:54.758888",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T10:57:57.787079",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T10:57:57.825201",
+        "message": "\u2705 KB created: 1 chunks from 0 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T10:57:53.879559",
+    "updated_at": "2026-05-27T10:57:57.825197",
+    "started_at": "2026-05-27T10:57:53.911734",
+    "completed_at": "2026-05-27T10:57:57.825188",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/update_async_20260527105753_140",
+      "files": [],
+      "scrap_urls": [],
+      "raw_text": "n",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 1,
+      "documents_processed": 0,
+      "urls_crawled": 0,
+      "failed_items": 0,
+      "collection_name": "tenant_140_testing_abc",
+      "content_sources": [
+        {
+          "type": "raw_text",
+          "name": "Raw Text Input",
+          "chunks_created": 1,
+          "char_count": 1,
+          "sample": "n"
+        }
+      ]
+    }
+  },
+  "160cd71e-1e51-4cd2-a9b5-c15cbd831cac": {
+    "task_id": "160cd71e-1e51-4cd2-a9b5-c15cbd831cac",
+    "tenant_id": 185,
+    "knowledge_base_name": "tcs",
+    "knowledge_base_id": 948,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T12:02:26.392396",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T12:02:26.435387",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T12:02:26.453657",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T12:02:26.483712",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T12:02:26.527927",
+        "message": "\ud83d\udcc4 Starting document processing: 1 file(s)"
+      },
+      {
+        "timestamp": "2026-05-27T12:02:26.548005",
+        "message": "\ud83d\udcc4 Document 1/1: Final_TCS_Policy_Document1.pdf"
+      },
+      {
+        "timestamp": "2026-05-27T12:02:26.659192",
+        "message": "\u2705 Processed: Final_TCS_Policy_Document1.pdf \u2192 12 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T12:02:26.678422",
+        "message": "Creating Qdrant collection with 12 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T12:02:26.767737",
+        "message": "Processing 12 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T12:02:27.476677",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T12:02:31.767581",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T12:02:31.802245",
+        "message": "\u2705 KB created: 12 chunks from 1 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T12:02:26.392356",
+    "updated_at": "2026-05-27T12:02:31.802240",
+    "started_at": "2026-05-27T12:02:26.435355",
+    "completed_at": "2026-05-27T12:02:31.802229",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/async_20260527120226_185",
+      "files": [
+        {
+          "filename": "Final_TCS_Policy_Document1.pdf",
+          "path": "Uploads/async_20260527120226_185/Final_TCS_Policy_Document1.pdf"
+        }
+      ],
+      "scrap_urls": [],
+      "raw_text": "",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 12,
+      "documents_processed": 1,
+      "urls_crawled": 0,
+      "failed_items": 0,
+      "collection_name": "tenant_185_tcs",
+      "content_sources": [
+        {
+          "type": "document",
+          "name": "Final_TCS_Policy_Document1.pdf",
+          "file_type": "PDF",
+          "chunks_created": 12,
+          "sample": "entitles TCS to withdraw offer at its \nsole discretion. \n24. Data Privacy Clause \nPersonal data collected during recruitment processed per TCS Data Privacy Policy for recruitment, onboarding, \nbackgro"
+        }
+      ]
+    }
+  },
+  "f4d0dfdc-8ba1-4ddd-96dd-a8814a62aab4": {
+    "task_id": "f4d0dfdc-8ba1-4ddd-96dd-a8814a62aab4",
+    "tenant_id": 185,
+    "knowledge_base_name": "tcss",
+    "knowledge_base_id": 949,
+    "status": "completed",
+    "progress": 100,
+    "current_step": "Completed",
+    "activity_log": [
+      {
+        "timestamp": "2026-05-27T12:06:03.496911",
+        "message": "Task created"
+      },
+      {
+        "timestamp": "2026-05-27T12:06:03.581811",
+        "message": "Build started"
+      },
+      {
+        "timestamp": "2026-05-27T12:06:03.618499",
+        "message": "Starting KB build process"
+      },
+      {
+        "timestamp": "2026-05-27T12:06:03.654119",
+        "message": "Checking embedding configuration"
+      },
+      {
+        "timestamp": "2026-05-27T12:06:03.687428",
+        "message": "\ud83d\udcc4 Starting document processing: 1 file(s)"
+      },
+      {
+        "timestamp": "2026-05-27T12:06:03.709625",
+        "message": "\ud83d\udcc4 Document 1/1: Final_TCS_Policy_Document1.pdf"
+      },
+      {
+        "timestamp": "2026-05-27T12:06:03.773586",
+        "message": "\u2705 Processed: Final_TCS_Policy_Document1.pdf \u2192 12 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T12:06:03.796184",
+        "message": "Creating Qdrant collection with 12 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T12:06:03.877977",
+        "message": "Processing 12 chunks"
+      },
+      {
+        "timestamp": "2026-05-27T12:06:04.968856",
+        "message": "Analyzing content for summary"
+      },
+      {
+        "timestamp": "2026-05-27T12:06:08.320999",
+        "message": "Finalizing knowledge base record"
+      },
+      {
+        "timestamp": "2026-05-27T12:06:08.344332",
+        "message": "\u2705 KB created: 12 chunks from 1 docs, 0 URLs"
+      }
+    ],
+    "created_at": "2026-05-27T12:06:03.496889",
+    "updated_at": "2026-05-27T12:06:08.344327",
+    "started_at": "2026-05-27T12:06:03.581798",
+    "completed_at": "2026-05-27T12:06:08.344318",
+    "error_message": null,
+    "metadata": {
+      "upload_dir": "Uploads/async_20260527120603_185",
+      "files": [
+        {
+          "filename": "Final_TCS_Policy_Document1.pdf",
+          "path": "Uploads/async_20260527120603_185/Final_TCS_Policy_Document1.pdf"
+        }
+      ],
+      "scrap_urls": [],
+      "raw_text": "",
+      "provider": "",
+      "embedding_model": "",
+      "secret_key": "",
+      "chunk_size": 1024,
+      "chunk_overlap": 50,
+      "max_crawl_pages": "0",
+      "max_crawl_depth": "0",
+      "dynamic_wait": "0"
+    },
+    "build_summary": {
+      "total_chunks": 12,
+      "documents_processed": 1,
+      "urls_crawled": 0,
+      "failed_items": 0,
+      "collection_name": "tenant_185_tcss",
+      "content_sources": [
+        {
+          "type": "document",
+          "name": "Final_TCS_Policy_Document1.pdf",
+          "file_type": "PDF",
+          "chunks_created": 12,
+          "sample": "entitles TCS to withdraw offer at its \nsole discretion. \n24. Data Privacy Clause \nPersonal data collected during recruitment processed per TCS Data Privacy Policy for recruitment, onboarding, \nbackgro"
         }
       ]
     }

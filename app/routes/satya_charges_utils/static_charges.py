@@ -253,7 +253,7 @@ STATIC_LOCAL_FREIGHT = {
         "freight_min": 150,           # minimum freight INR
         "freight_percentage": 0.15,   # 15 % of declared value (whichever higher)
         "fuel_surcharge_percentage": 0.36,  # 36 %
-        "currency_adjustment_factor_percentage": 0.20,   # CAF 20 %
+        "currency_adjustment_factor_percentage": 0.15,   # CAF 15% of (base+fuel)
         "non_document_charge": 50,
         "risk_charge": 100,
         "gst_percentage": 0.18,

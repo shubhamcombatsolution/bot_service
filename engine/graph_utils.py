@@ -81,61 +81,7 @@ def topological_sort(graph):
    
     logger.info(f"Execution order: {order}")
     return order
-# def build_graph(nodes, edges):
-#     """Build adjacency lists from nodes and edges"""
-#     outgoing = defaultdict(list)
-#     incoming = defaultdict(list)
-    
-#     for edge in edges:
-#         s = edge["source"]
-#         t = edge["target"]
-#         outgoing[s].append(t)
-#         incoming[t].append(s)
-    
-#     return {"outgoing": outgoing, "incoming": incoming}
 
-# def compute_dependencies(graph):
-#     """
-#     Compute dependency count (in-degree) for each node.
-#     Returns:
-#         dependencies: dict[node_id -> count]
-#         ready_nodes: list[node_id with 0 dependencies]
-#     """
-#     all_nodes = set(graph["incoming"]) | set(graph["outgoing"])
-#     dependencies = {n: len(graph["incoming"].get(n, [])) for n in all_nodes}
-#     ready_nodes = [n for n, d in dependencies.items() if d == 0]
-#     return dependencies, ready_nodes
-
-
-# def topological_sort(graph):
-#     """
-#     Perform topological sort to get execution order.
-#     Returns list of node IDs in execution order.
-#     """
-#     # Calculate in-degree for all nodes
-#     all_nodes = set(graph["incoming"]) | set(graph["outgoing"])
-#     indegree = {n: len(graph["incoming"].get(n, [])) for n in all_nodes}
-    
-#     # Start with nodes that have no incoming edges (trigger nodes)
-#     queue = deque([n for n, d in indegree.items() if d == 0])
-#     order = []
-    
-#     while queue:
-#         node = queue.popleft()
-#         order.append(node)
-        
-#         # Reduce in-degree for neighbors
-#         for neighbor in graph["outgoing"].get(node, []):
-#             indegree[neighbor] -= 1
-#             if indegree[neighbor] == 0:
-#                 queue.append(neighbor)
-    
-#     # Check for cycles
-#     if len(order) != len(all_nodes):
-#         raise Exception("Workflow contains cycles - cannot execute")
-    
-#     logger.info(f"Execution order: {order}")
-#     return order
 
 import jwt
 

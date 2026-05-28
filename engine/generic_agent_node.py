@@ -12,145 +12,6 @@ from engine.utils import prepare_agent_input  # 🆕 ADD THIS IMPORT
 logger = setup_logging("GenericAgentNode", level="DEBUG")
 
 
-# @register_node("GenericAgentNode")
-# class GenericAgentNode(BaseAgentNode):
-#     """
-#     Generic agent node with support for:
-#     1. Task templating
-#     2. Dynamic data mapping (from previous nodes)
-#     3. Static parameters (from workflow configuration)
-#     """
-
-#     def __init__(self, node_id: str, node_data: Dict[str, Any], debug: bool = True):
-#         super().__init__(node_id, node_data)
-#         self.debug = debug
-
-#     def prepare_task(self, context: Dict[str, Any]) -> str:
-#         task_template = self.form_data.get("task")
-#         if not task_template:
-#             raise ValueError(f"No task template found for node {self.node_id}")
-
-#         if self.debug:
-#             logger.info(f"[{self.node_id}] 🧩 Preparing task with template: {task_template}")
-#             logger.info(f"[{self.node_id}] Context keys: {list(context.keys())}")
-
-#         placeholders = re.findall(r'\{([^}]+)\}', task_template)
-#         replacements = {}
-
-#         for placeholder in placeholders:
-#             value = resolve_field(context, placeholder)
-#             if self.debug:
-#                 logger.info(f"[{self.node_id}] 🔍 Placeholder: {placeholder} → {value}")
-#             replacements[placeholder] = str(value) if value is not None else ""
-
-#         task = task_template
-#         for placeholder, value in replacements.items():
-#             task = task.replace(f"{{{placeholder}}}", value)
-
-#         if self.debug:
-#             logger.info(f"[{self.node_id}] ✅ Final task after substitution: {task}")
-
-#         return task
-
-#     def prepare_data(self, context: Dict[str, Any]) -> Dict[str, Any]:
-#         """
-#         Prepare dynamic data from previous node outputs.
-#         """
-#         data_mapping = self.form_data.get("data_mapping", {})
-#         pass_all = self.form_data.get("pass_all_context", False)
-
-#         if self.debug:
-#             logger.info(f"[{self.node_id}] ⚙️ Preparing dynamic data")
-#             logger.info(f"[{self.node_id}] data_mapping: {data_mapping}")
-#             logger.info(f"[{self.node_id}] pass_all_context: {pass_all}")
-
-#         # Option 1: Explicit mapping
-#         if data_mapping:
-#             data = {}
-#             for key, path in data_mapping.items():
-#                 try:
-#                     value = resolve_field(context, path)
-#                     if self.debug:
-#                         logger.info(f"[{self.node_id}] 🔗 Mapping {key} <- {path} = {value}")
-#                     if value is not None:
-#                         data[key] = value
-#                 except Exception as e:
-#                     logger.error(f"[{self.node_id}] ❌ Error resolving path '{path}': {e}", exc_info=True)
-#             if self.debug:
-#                 logger.info(f"[{self.node_id}] ✅ Final mapped data: {json.dumps(data, default=str)}")
-#             return data
-
-#         # Option 2: Pass entire context
-#         if pass_all:
-#             flattened = self._flatten_context(context)
-#             if self.debug:
-#                 logger.info(f"[{self.node_id}] 🔄 Passing entire flattened context ({len(flattened)} keys)")
-#             return flattened
-
-#         if self.debug:
-#             logger.info(f"[{self.node_id}] ⚠️ No data mapping or pass_all_context found. Returning empty dict.")
-#         return {}
-
-#     def prepare_static_parameters(self) -> Dict[str, Any]:
-#         """
-#         Prepare static parameters from workflow configuration.
-#         These are values that don't come from previous nodes (e.g., Google Sheet IDs).
-        
-#         Returns:
-#             Dictionary of static parameters
-            
-#         Example form_data:
-#             {
-#                 "static_parameters": {
-#                     "spreadsheet_id": "1BxiMVs0XRA5nFMdKvBdBZjgmUaCOmMYx",
-#                     "sheet_name": "Sheet1",
-#                     "api_key": "your-api-key"
-#                 }
-#             }
-#         """
-#         static_params = self.form_data.get("static_parameters", {})
-        
-#         if self.debug:
-#             logger.info(f"[{self.node_id}] 📌 Static parameters: {json.dumps(static_params, default=str)}")
-        
-#         return static_params
-
-#     def prepare_parameters(self, context: Dict[str, Any]) -> Dict[str, Any]:
-#         """
-#         Prepare final parameters by merging:
-#         1. Static parameters (from workflow config) - OPTIONAL, defaults to {}
-#         2. Dynamic data (from previous nodes)
-        
-#         ✅ BACKWARD COMPATIBLE: If static_parameters is not provided,
-#            behavior is exactly the same as before (only dynamic data).
-        
-#         Static parameters are added first, then dynamic data.
-#         If there are conflicts, dynamic data takes precedence.
-#         """
-#         if self.debug:
-#             logger.info(f"[{self.node_id}] 🧠 Preparing parameters...")
-        
-#         # Start with static parameters (empty dict if not provided)
-#         params = self.prepare_static_parameters()
-        
-#         # Add dynamic data (overwrites static if keys conflict)
-#         dynamic_data = self.prepare_data(context)
-#         params.update(dynamic_data)
-        
-#         if self.debug:
-#             logger.info(f"[{self.node_id}] ✅ Final parameters: {json.dumps(params, default=str)}")
-#             if params:  # Only log sources if we have parameters
-#                 logger.info(f"[{self.node_id}] 📊 Parameter sources:")
-#                 static = self.form_data.get("static_parameters", {})
-#                 for key in params.keys():
-#                     source = "static" if key in static else "dynamic"
-#                     logger.info(f"[{self.node_id}]   - {key}: {source}")
-        
-#         return params
-
-   
-
-
 
 @register_node("GenericAgentNode")
 @register_node("ResponseAgentNode")
@@ -358,6 +219,13 @@ class GenericAgentNode(BaseAgentNode):
         if isinstance(node_outputs, dict):
             for output in node_outputs.values():
                 if not isinstance(output, dict):
+                    if isinstance(output, list):
+                        for item in output:
+                            if isinstance(item, dict):
+                                for key in ("user_query", "query", "message", "text"):
+                                    value = item.get(key)
+                                    if isinstance(value, str) and value.strip():
+                                        return value
                     continue
                 for key in ("user_query", "query", "message"):
                     value = output.get(key)
@@ -371,6 +239,29 @@ class GenericAgentNode(BaseAgentNode):
                             return value
 
         return None
+
+    def _ensure_query_parameter(self, params: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Ensure at least one canonical query field exists for downstream planning/retrieval.
+        This protects against bad mappings like {"trigger-id": "trigger-id"} where no
+        user message is actually passed to the agent.
+        """
+        if not isinstance(params, dict):
+            return params
+
+        for key in ("user_query", "query", "message"):
+            value = params.get(key)
+            if isinstance(value, str) and value.strip():
+                return params
+
+        fallback_query = self._extract_fallback_query(context)
+        if isinstance(fallback_query, str) and fallback_query.strip():
+            params["user_query"] = fallback_query.strip()
+            if self.debug:
+                logger.info(
+                    f"[{self.node_id}] 🔁 Injected fallback user_query into parameters for KB/tool planning"
+                )
+        return params
 
 
     # def prepare_static_parameters(self) -> Dict[str, Any]:
@@ -507,6 +398,7 @@ class GenericAgentNode(BaseAgentNode):
 
         # ✅ RESOLVE ALL PLACEHOLDERS AFTER MERGING ALL DATA SOURCES
         params = self._resolve_placeholders(params, context)
+        params = self._ensure_query_parameter(params, context)
 
         unresolved_params = self._find_template_placeholders(params)
         if unresolved_params:

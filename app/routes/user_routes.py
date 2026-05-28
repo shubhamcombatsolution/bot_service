@@ -493,8 +493,8 @@ def get_account_name():
 def tenant_login():
     session = next(db_session())
     try:
-        data = request.json
-        email = data.get("email")
+        data = request.json or {}
+        email = (data.get("email") or "").strip().lower()
         password = data.get("password")
 
         if not email or not password:
@@ -1124,37 +1124,69 @@ def request_reset():
     # Use ONE session for the whole request
     session = next(db_session())
     try:
-        email = request.json.get("email", "").lower().strip()
+        data = request.json or {}
+        email = data.get("email", "").lower().strip()
+
+        if not email:
+            return jsonify({
+                "status": "error",
+                "message": "Email is required."
+            }), 400
+
+        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+            return jsonify({
+                "status": "error",
+                "message": "Invalid email format."
+            }), 400
+
+        tenant = (
+            session.query(Tenant)
+                   .filter_by(tenant_emailid=email, del_flg=False, tenant_status="Active")
+                   .first()
+        )
+
+        if not tenant:
+            return jsonify({
+                "status": "error",
+                "message": "This email is not registered with any active tenant."
+            }), 404
 
         # Always query through *this* session
         user = (
             session.query(LoginUser)
-                   .filter_by(email=email, del_flg=False)
+                   .filter_by(email=email, tenant_id=tenant.tenant_id, del_flg=False)
                    .first()
         )
 
+        if not user:
+            return jsonify({
+                "status": "error",
+                "message": "No active user account found for this tenant email."
+            }), 404
+
         delay_start = _utcnow()
 
-        if user:
-            raw_token = secrets.token_urlsafe(32)
-            user.reset_token_hash  = _hash_token(raw_token)
-            user.reset_expires_at  = _utcnow() + timedelta(hours=TOKEN_TTL_HOURS).replace(tzinfo=None)
+        raw_token = secrets.token_urlsafe(32)
+        user.reset_token_hash  = _hash_token(raw_token)
+        user.reset_expires_at = (
+            _utcnow() + timedelta(hours=TOKEN_TTL_HOURS)
+        ).replace(tzinfo=None)
 
-            session.flush()   # push pending changes to the DB
-            session.commit()  # COMMIT the transaction
+        session.flush()   # push pending changes to the DB
+        session.commit()  # COMMIT the transaction
 
-            session.refresh(user)      # pull fresh values from DB
-            if not user.reset_token_hash or not user.reset_expires_at:
-                raise RuntimeError(
-                    "Password‑reset fields were not persisted (session mismatch?)"
-                )
-            # -----------------------------------------------------------------
-
-            reset_url = (
-                f"{os.environ.get('APP_Url')}/auth/reset-password/change"
-                f"?email={quote_plus(email)}&token={raw_token}"
+        session.refresh(user)      # pull fresh values from DB
+        if not user.reset_token_hash or not user.reset_expires_at:
+            raise RuntimeError(
+                "Password‑reset fields were not persisted (session mismatch?)"
             )
-            send_reset_email(user.email, reset_url)
+        # -----------------------------------------------------------------
+
+        reset_url = (
+            f"{os.environ.get('APP_Url')}/auth/reset-password/change"
+            f"?email={quote_plus(email)}&token={raw_token}"
+        )
+        send_reset_email(user.email, reset_url)
 
         # mimic constant processing time
         while (_utcnow() - delay_start).total_seconds() < 0.75:
@@ -1179,15 +1211,26 @@ def request_reset():
 def reset_password():
     session = next(db_session())
     try:
-        token = request.json.get("token", "")
-        password = request.json.get("password", "")
+        data = request.json or {}
+        token = (data.get("token") or "").strip()
+        # Keep backward compatibility with clients sending either key
+        password = ((data.get("new_password") or data.get("password")) or "").strip()
+        email = (data.get("email") or "").strip().lower()
+
+        if not token or not password:
+            return jsonify({"message": "Token and new password are required"}), 400
+
         token_hash = _hash_token(token)
-        print(f"fffff>.{token_hash}")
-        user = LoginUser.query.filter_by(reset_token_hash=token_hash).first()
+
+        query = session.query(LoginUser).filter_by(
+            reset_token_hash=token_hash,
+            del_flg=False
+        )
+        if email:
+            query = query.filter_by(email=email)
+        user = query.first()
 
         # Validate token and expiry
-        print(f"dddd>{user}")
-        print(f"AAAA>{user.reset_expires_at}")
         if (
             user is None
             or user.reset_expires_at is None
@@ -1205,6 +1248,7 @@ def reset_password():
         return jsonify({"status": "updated"}), 200
 
     except Exception as e:
+        session.rollback()
         logger.exception(f"Error resetting password: {str(e)}")
         return jsonify({
             "status": "error",
@@ -1445,4 +1489,3 @@ def update_collaborator_status(collaborator_id):
         return jsonify({"error": str(e)}), 500
     finally:
         session.close()
-

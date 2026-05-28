@@ -1158,16 +1158,19 @@ def get_freight_charges():
         )
         print(f"ttttttttttttttttttttt--------------------{country_db}")
 
-        # 🔄 FALLBACK: If country not recognized, use first available country
-        # This prevents workflow failures on invalid input, logs warning for visibility
+        # Fix #3: Return a clear error instead of silently using the wrong country.
         if not country_db:
             logger.warning(
-                "Country '%s' not recognized for carrier '%s'. Using default country: '%s'",
-                raw_country, carrier, valid_countries[0] if valid_countries else "UNKNOWN"
+                "Country '%s' not recognized for carrier '%s'.",
+                raw_country, carrier
             )
             if not valid_countries:
                 return jsonify({"error": "No countries configured for carrier"}), 400
-            country_db = valid_countries[0]  # Use first valid country as fallback
+            return jsonify({
+                "error": f"Country '{raw_country}' is not recognized for carrier '{carrier}'. "
+                         "Please provide a valid origin country name.",
+                "sample_valid_countries": valid_countries[:10],
+            }), 400
 
         # ---------------------------
         # FEDEX
@@ -1247,7 +1250,8 @@ def get_freight_charges():
                 "country": country_db,
                 "zone": zone.zone_code,
                 "chargeable_weight": chargeable_weight,
-                "freight_charge": float(charge)
+                "freight_charge": float(charge),
+                "amount": float(charge),   # Fix #1: alias for extract_amount=True
             }), 200
 
         # ---------------------------
@@ -1330,7 +1334,8 @@ def get_freight_charges():
                 "country": country_db,
                 "zone": zone.zone_code,
                 "chargeable_weight": chargeable_weight,
-                "freight_charge": float(charge)
+                "freight_charge": float(charge),
+                "amount": float(charge),   # Fix #1: alias for extract_amount=True
             }), 200
 
         return jsonify({"error": "Unsupported carrier"}), 400
@@ -1350,12 +1355,17 @@ def get_local_charges_api():
     category = payload.get("delivery_category")
     carrier = payload.get("carrier")
 
+    # Optional computation params — if provided we return a calculated amount
+    invoice_value  = float(payload.get("invoice_value") or 0.0)
+    weight_kg      = float(payload.get("weight_kg") or 0.0)
+    zone_multiplier = float(payload.get("zone_multiplier") or 1.0)
+
     if not category:
         return jsonify({"error": "delivery_category is required"}), 400
 
     # Use static charges instead of database
     charges_data = get_charges()
-    local_freight = charges_data.get("local_freight", {})
+    local_freight = charges_data.get("local", {})
     charges = build_local_freight_charges_from_static(local_freight, category)
 
     if carrier:
@@ -1366,13 +1376,45 @@ def get_local_charges_api():
         filtered = [
             c for c in charges
             if carrier_norm and (
-                carrier_norm in norm(c.get("local_delivery_partner"))
-                or norm(c.get("local_delivery_partner")) in carrier_norm
+                carrier_norm in norm(c.get("local_delivery_partner", ""))
+                or norm(c.get("local_delivery_partner", "")) in carrier_norm
             )
         ]
         charges = filtered or charges
 
-    return jsonify({"delivery_category": category, "charges": charges if charges else 0}), 200
+    # ------------------------------------------------------------------
+    # If caller provided invoice_value + weight_kg, compute amounts now
+    # so the MCP extract_amount=True path can pick up a numeric "amount".
+    # ------------------------------------------------------------------
+    if invoice_value > 0 and weight_kg > 0 and charges:
+        computed_rows = []
+        for tariff in charges:
+            try:
+                amt = calculate_local_freight_amount(
+                    tariff, weight_kg, invoice_value, zone_multiplier
+                )
+            except Exception as exc:
+                logger.warning("calculate_local_freight_amount failed: %s", exc)
+                amt = 0.0
+            computed_rows.append({
+                "local_delivery_partner": tariff.get("local_delivery_partner"),
+                "shipment_type": tariff.get("shipment_type"),
+                "delivery_category": tariff.get("delivery_category"),
+                "amount": amt,
+            })
+
+        # If exactly one carrier returned, expose top-level "amount" so
+        # _post_charge(extract_amount=True) can find it without parsing the list.
+        top_amount = computed_rows[0]["amount"] if len(computed_rows) == 1 else None
+        response = {
+            "delivery_category": category,
+            "charges": computed_rows,
+        }
+        if top_amount is not None:
+            response["amount"] = top_amount
+        return jsonify(response), 200
+
+    return jsonify({"delivery_category": category, "charges": charges if charges else []}), 200
 
 
 @calculation_engine_routes.route("/clearance_charges", methods=["POST"])
@@ -1428,11 +1470,22 @@ def quote_totalizer_api():
     margin_percent = payload.get("margin_percent")
     margin_amount = payload.get("margin_amount")
 
+    def _safe_float(v):
+        """Coerce a value to float; skip dicts/lists/non-numerics."""
+        if isinstance(v, (int, float)):
+            return float(v)
+        if isinstance(v, str):
+            try:
+                return float(v)
+            except (ValueError, TypeError):
+                pass
+        return 0.0  # dicts, lists, None, unparseable strings → 0
+
     total_charges = 0.0
     if isinstance(charges_input, dict):
-        total_charges = sum(float(v or 0) for v in charges_input.values())
+        total_charges = sum(_safe_float(v) for v in charges_input.values())
     elif isinstance(charges_input, list):
-        total_charges = sum(float(v or 0) for v in charges_input)
+        total_charges = sum(_safe_float(v) for v in charges_input)
 
     subtotal = base + total_charges
 
@@ -1450,6 +1503,7 @@ def quote_totalizer_api():
         "charges_total": fmt(total_charges),
         "margin": fmt(margin),
         "grand_total": fmt(grand_total),
+        "amount": grand_total,  # Fix #1: numeric alias for extract_amount=True
     }), 200
 
 

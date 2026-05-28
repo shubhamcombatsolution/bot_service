@@ -149,46 +149,106 @@ def build_local_freight_charges_from_static(
         return []
     
     result = []
-    
-    # Map user-provided category to internal format
-    # (handle both "within_city" and "Within City" formats)
-    sanitized_category = delivery_category.replace("_", " ").title()
-    
-    # Sometimes it's already title case
-    if sanitized_category not in ["Within City", "Within State", "Within Zone", 
-                                   "Metros", "Rest Of India", "Special Destination"]:
-        sanitized_category = delivery_category
-    
+
+    # Normalize the requested category so matching is case- and
+    # separator-insensitive (e.g. "Rest of India", "rest_of_india" and
+    # "Rest of india" all map to the same static key).
+    def _norm(s: str) -> str:
+        return str(s).replace("_", " ").strip().lower()
+
+    requested_norm = _norm(delivery_category)
+
     for carrier, carrier_data in static_local_data.items():
         if carrier == "volumetric_divisor":
             continue  # Skip metadata
-        
-        # Extract service types (priority, safe_express, etc.)
+
+        if not isinstance(carrier_data, dict):
+            continue
+
+        # ----------------------------------------------------------------
+        # BlueDart / flat-scalar carrier detection
+        # BlueDart stores scalars (freight_min, freight_percentage, etc.)
+        # at the carrier level rather than inside category sub-dicts.
+        # Detect this by checking for the required scalar fields.
+        # ----------------------------------------------------------------
+        if isinstance(carrier_data.get("freight_min"), (int, float)) and \
+                isinstance(carrier_data.get("freight_percentage"), (int, float)):
+            # Flat-scalar carrier (BlueDart): emit one tariff row per request.
+            # zone_multiplier is a nested origin_zone→dest_zone matrix;
+            # callers can pass zone_multiplier explicitly. Default to 1.0.
+            tariff = {
+                "local_delivery_partner": carrier.lower(),
+                "shipment_type": "express",
+                "delivery_category": delivery_category,
+            }
+            # Copy all direct scalar fields (skip nested dicts like
+            # zone_multiplier / state_zone_map / volumetric_divisor).
+            _SKIP = {"zone_multiplier", "state_zone_map", "volumetric_divisor"}
+            for k, v in carrier_data.items():
+                if k in _SKIP:
+                    continue
+                if isinstance(v, (int, float)):
+                    tariff[k] = float(v)
+            result.append(tariff)
+            continue  # Don't descend into nested service/category loop
+
+        # ----------------------------------------------------------------
+        # Normal nested structure (DTDC-style):
+        #   carrier_data = { service_type: { category: { slabs } } }
+        # ----------------------------------------------------------------
         for service_type, categories_data in carrier_data.items():
             if service_type == "volumetric_divisor":
                 continue
-            
-            # Check if this service has data for the requested category
-            if sanitized_category in categories_data:
-                category_charges = categories_data[sanitized_category]
-                
+
+            if not isinstance(categories_data, dict):
+                continue
+
+            # Match the requested category against the actual static keys
+            # using normalized comparison.
+            matched_key = next(
+                (k for k in categories_data if _norm(k) == requested_norm),
+                None
+            )
+
+            if matched_key is not None:
+                sanitized_category = matched_key
+                category_charges = categories_data[matched_key]
+
+                # category_charges must be a dict (skip multiplier/zone rows)
+                if not isinstance(category_charges, dict):
+                    continue
+
                 # Build tariff object
                 tariff = {
                     "local_delivery_partner": carrier.lower(),
                     "shipment_type": service_type.lower(),
                     "delivery_category": sanitized_category.lower(),
                 }
-                
-                # Add all charges
+
+                # Add the category-specific rates
                 for charge_name, amount in category_charges.items():
                     if charge_name not in ["local_delivery_partner", "shipment_type", "delivery_category"]:
                         if isinstance(amount, (int, float)):
                             tariff[charge_name] = float(amount)
                         else:
                             tariff[charge_name] = amount
-                
+
+                # Also include service-level surcharge siblings (fuel %, risk %,
+                # risk min, etc.) which live next to the category dicts, not
+                # inside them. Without these the DTDC fuel/risk surcharges would
+                # be lost from the returned tariff.
+                for sib_name, sib_val in categories_data.items():
+                    if isinstance(sib_val, dict):
+                        continue  # other category dicts
+                    if sib_name in tariff:
+                        continue
+                    if isinstance(sib_val, (int, float)):
+                        tariff[sib_name] = float(sib_val)
+                    else:
+                        tariff[sib_name] = sib_val
+
                 result.append(tariff)
-    
+
     return result
 
 
@@ -468,7 +528,8 @@ def calculate_clearance_charges_amount(
 def calculate_local_freight_amount(
     tariff: Dict[str, Any],
     weight_kg: float,
-    invoice_value: float = 0.0
+    invoice_value: float = 0.0,
+    zone_multiplier: float = 1.0
 ) -> float:
     """
     Calculate local freight charge based on weight slabs and rates.
@@ -499,12 +560,10 @@ def calculate_local_freight_amount(
             additional_blocks = (additional_kg + 0.49999) // 0.5  # round up
             base_charge += additional_blocks * tariff.get("additional_per_half_kg", 0)
         else:
-            # > 10kg
+            # > 10kg: cap the 0.5kg-block portion at 10kg (= base + 19 blocks),
+            # then charge per-kg for the weight above 10kg (doc 5.2).
             base_charge = tariff.get("upto_half_kg", 0)
-            additional_kg = weight_kg - 0.5
-            additional_blocks = (additional_kg + 0.49999) // 0.5
-            base_charge += additional_blocks * tariff.get("additional_per_half_kg", 0)
-            # After 10kg, use per-kg rate
+            base_charge += 19 * tariff.get("additional_per_half_kg", 0)
             excess_kg = weight_kg - 10
             base_charge += excess_kg * tariff.get("per_kg_after_10_kg", 0)
         
@@ -537,14 +596,33 @@ def calculate_local_freight_amount(
     
     # ============ BLUEDART ============
     elif carrier == "bluedart":
-        freight_min = tariff.get("bluedart_freight_min", 150)
-        freight_pct = tariff.get("bluedart_freight_percentage", 0.15)
-        
-        # Freight is max(min, percentage of value)
-        freight_from_pct = invoice_value * freight_pct if invoice_value else 0
-        base_charge = max(freight_min, freight_from_pct)
-    
-    # ============ APPLY SURCHARGES ============
+        # Doc 5.1: full pipeline with zone multiplier, CAF on (base+fuel),
+        # fixed non-doc + risk charges, then GST.
+        freight_min = (
+            tariff.get("bluedart_freight_min")
+            or tariff.get("freight_min")
+            or 150
+        )
+        freight_pct = (
+            tariff.get("bluedart_freight_percentage")
+            or tariff.get("freight_percentage")
+            or 0.15
+        )
+
+        def _f(key, default):
+            v = tariff.get(key, default)
+            return float(v) if isinstance(v, str) else v
+
+        base = max(freight_min, zone_multiplier * freight_pct * invoice_value)
+        fuel = base * _f("fuel_surcharge_percentage", 0.36)
+        sub1 = base + fuel
+        caf = sub1 * _f("currency_adjustment_factor_percentage", 0.15)
+        sub2 = sub1 + caf
+        sub3 = sub2 + _f("non_document_charge", 50) + _f("risk_charge", 100)
+        gst = sub3 * _f("gst_percentage", 0.18)
+        return round(sub3 + gst, 2)
+
+    # ============ APPLY SURCHARGES (DTDC) ============
     # Fuel surcharge (percentage on base freight)
     fuel_pct = tariff.get("fuel_surcharge_percentage") or tariff.get("dtdc_fuel_surcharge_percentage")
     if fuel_pct:
