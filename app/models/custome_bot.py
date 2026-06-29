@@ -42,7 +42,7 @@ class IndustryEnum(enum.Enum):
     EDUCATION = "Education"
     BANKING_AND_FINANCIAL = "Banking and Financial"
     HOSPITALITY_AND_TOURISM = "Hospitality and Tourism"
-    TRANSPORTATION_AND_LOGISTICS = "Transportaion and Logistics"
+    TRANSPORTATION_AND_LOGISTICS = "Transportation and Logistics"
     INFORMATION_TECHNOLOGY = "Information Technology"
     MEDIA_AND_ENTERTAINMNET = "Media and Entertainment"
     GOVERNMENT = "Government"

@@ -99,13 +99,16 @@ class CustomBotNew(db.Model):
     industry = db.Column(Enum(IndustryEnum), nullable=True)
     purpose = db.Column(db.String(1000), nullable=True)
     avatar = db.Column(db.String(255), nullable=True)
+    avatar_type = db.Column(db.String(20), nullable=True, default="file")  # "preset" or "file"
+    avatar_index = db.Column(db.Integer, nullable=True)  # preset index (0-15), null if avatar_type="file"
 
     # STEP 3+
     core_features = db.Column(db.JSON, default=dict)
     instructions = db.Column(db.JSON, default=list)
     kb_ids = db.Column(db.JSON, nullable=True, default=list)
     kb_functionalities = db.Column(db.JSON, nullable=True, default=list)
-
+    # ✅ NEW: Agent configuration (temperature, tone, guardrails, etc.)
+    agent_config = db.Column(db.JSON, nullable=True, default=dict)
 
     # Lifecycle
     bot_status = db.Column(
@@ -152,6 +155,9 @@ class CustomBotNew(db.Model):
     
     
     access_restriction_type = db.Column(db.SmallInteger, nullable=True, default=None)
+
+    # Tracks the highest wizard step saved (0=channel, 1=personalize, 2=kb, 3=functionality, 4=ai-config, 5=configure, 6=published)
+    completed_step = db.Column(db.Integer, nullable=False, default=0, server_default='0')
 
 
     created_at = db.Column(

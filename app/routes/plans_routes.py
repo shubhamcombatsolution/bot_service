@@ -19,12 +19,22 @@ plans_subscription = Blueprint("plans", __name__)
 # Razorpay Client verification
 razorpay_client = Client(auth=(os.getenv("RAZORPAY_KEY_ID"), os.getenv("RAZORPAY_KEY_SECRET")))
 
+
+def _get_tenant_id_from_jwt():
+    claims = get_jwt()
+    tenant_id = claims.get("tenant_id", get_jwt_identity())
+
+    try:
+        return int(tenant_id)
+    except (TypeError, ValueError):
+        return None
+
 @plans_subscription.route("/create-order", methods=["POST"])
 @jwt_required()
 def create_order():
     try:
         data = request.get_json()
-        tenant_id = get_jwt_identity()
+        tenant_id = _get_tenant_id_from_jwt()
         amount = data.get("amount")  # Amount in paise
         plan_name = data.get("plan_name")
         payment_mode = data.get("payment_mode")  # Monthly/Yearly
@@ -138,7 +148,7 @@ processed_payments = set()
 def verify_payment():
     try:
         data = request.get_json()
-        tenant_id = get_jwt_identity()
+        tenant_id = _get_tenant_id_from_jwt()
         razorpay_order_id = data.get("razorpay_order_id")
         razorpay_payment_id = data.get("razorpay_payment_id")
         razorpay_signature = data.get("razorpay_signature")
@@ -211,7 +221,7 @@ def verify_payment():
 @jwt_required()
 def check_payment_status():
     try:
-        tenant_id = get_jwt_identity()
+        tenant_id = _get_tenant_id_from_jwt()
         order_id = request.args.get('order_id')
         plan_name = request.args.get('plan_name')
         payment_mode = request.args.get('payment_mode')
@@ -319,7 +329,7 @@ def check_payment_status():
 @jwt_required()
 def get_tenant_plan():
     try:
-        tenant_id = get_jwt_identity()
+        tenant_id = _get_tenant_id_from_jwt()
 
         all_plans = (
             db.session.query(tenant_payment_info)

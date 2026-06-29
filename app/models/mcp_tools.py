@@ -13,6 +13,10 @@ class McpTools(db.Model):
     mcp_tools = db.Column(JSONB, nullable=True)
     mcp_action_tools = db.Column(JSONB, nullable=True)
 
+    # 'jnanic_mcp' → mcp.jnanic.com / stdio (Jnanic hosted MCP server)
+    # 'external'   → remote HTTP/SSE MCP (e.g. Zapier, SerpAPI, custom)
+    tool_type = db.Column(db.String(20), nullable=False, default="jnanic_mcp")
+
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
     del_flag = db.Column(db.Boolean, default=False, nullable=False)

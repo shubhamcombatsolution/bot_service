@@ -249,10 +249,6 @@ async function validateClient() {
     <img src="${resolvedAvatar}" class="bot-logo" alt="Bot Avatar"/>
     <span class="bot-name">${bot.chatbot_name || "Assistant"}</span>
 
-    <button type="button" class="chat-minimize-btn" id="chat-minimize-btn" aria-label="Minimize chat">
-      <span></span>
-    </button>
-
     <div class="menu-wrapper">
       <div class="menu-dots" id="menu-dots">
         <span></span><span></span><span></span>
@@ -332,7 +328,6 @@ async function validateClient() {
   const menuLoad     = document.getElementById("menu-load");
   const menuClear    = document.getElementById("menu-clear");
   const launcher     = document.getElementById("chat-launcher");
-  const minimizeBtn  = document.getElementById("chat-minimize-btn");
 
   /* ─────────────────────────────────────────────────────────────
    * STATE
@@ -389,11 +384,6 @@ async function validateClient() {
 
   launcher.addEventListener("click", () => {
     setChatOpen(!launcher.classList.contains("is-open"));
-  });
-
-  minimizeBtn.addEventListener("click", () => {
-    dropdownMenu.classList.remove("open");
-    setChatOpen(false);
   });
 
   document.addEventListener("click", () => {

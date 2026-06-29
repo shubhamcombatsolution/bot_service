@@ -81,12 +81,13 @@ class GSheetsTool(BaseTool):
     def _load_token(self) -> Optional[Credentials]:
         db_sess: Session = next(db_session())
         try:
+            # Case-insensitive — DB may store "GSheets", "gsheets", or "Gsheets"
             auth = (
                 db_sess.query(ToolAuthorization)
-                .filter_by(
-                    tenant_id=self.tenant_id,
-                    tool_name="gsheets",
-                    del_flag=False,
+                .filter(
+                    ToolAuthorization.tenant_id == self.tenant_id,
+                    ToolAuthorization.tool_name.ilike("gsheets"),
+                    ToolAuthorization.del_flag == False,
                 )
                 .first()
             )

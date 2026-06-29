@@ -297,11 +297,11 @@ def build_agent_snapshot(agent: Agent) -> dict:
 def resolve_agent_config(agent: Agent):
 
     if agent.agent_status == AgentStatusEnum.LIVE:
-        version = AgentVersion.query.get(agent.published_version_id)
-        if not version:
-            raise ValueError("Live agent missing snapshot")
-
-        return {"is_test_mode": False, **version.snapshot}
+        version = AgentVersion.query.get(agent.published_version_id) if agent.published_version_id else None
+        if version and version.snapshot:
+            return {"is_test_mode": False, **version.snapshot}
+        # Fallback: agent is Live but no snapshot yet — build from current agent data
+        return {"is_test_mode": False, **build_agent_snapshot(agent)}
 
     elif agent.agent_status == AgentStatusEnum.CREATED:
         return {"is_test_mode": True, **build_agent_snapshot(agent)}

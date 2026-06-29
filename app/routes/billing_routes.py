@@ -18,6 +18,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt, create_a
 from io import BytesIO
 from app.models import  TenantSubscription, BotPlan
 from app.database.DatabaseOperationPostgreSQL import db_session
+from app.utils import add_free_subscription
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -288,10 +289,14 @@ def get_credits():
         ).first()
 
         if not subscription:
-            return jsonify({
-                "status": False,
-                "message": "No active subscription found"
-            }), 404
+            # Auto-assign free plan for tenants that slipped through registration
+            subscription = add_free_subscription(db.session, tenant_id)
+            if not subscription:
+                return jsonify({
+                    "status": False,
+                    "message": "No active subscription found"
+                }), 404
+            db.session.commit()
 
         total_credits = subscription.total_plan_msg or 0
         remaining_credits = subscription.remaining_msg or 0
@@ -307,7 +312,54 @@ def get_credits():
     except Exception as e:
         logger.error(f"Error fetching credits: {str(e)}")
         return jsonify({"error": str(e)}), 500
-        
+
+
+@billing_info.route('/plan-limits', methods=['GET'])
+@jwt_required()
+def get_plan_limits():
+    try:
+        tenant_id = get_jwt_identity()
+
+        subscription = db.session.query(TenantSubscription).filter_by(
+            tenant_id=tenant_id,
+            subscription_status='active',
+            del_flg=False
+        ).first()
+
+        if not subscription:
+            subscription = add_free_subscription(db.session, tenant_id)
+            if not subscription:
+                return jsonify({"status": False, "message": "No active subscription"}), 404
+            db.session.commit()
+
+        plan = db.session.query(BotPlan).filter_by(plan_id=subscription.plan_id, del_flg=False).first()
+
+        from app.models import CustomBotNew, Agent
+        bot_count = db.session.query(CustomBotNew).filter_by(tenant_id=tenant_id, del_flg=False).count()
+        agent_count = db.session.query(Agent).filter_by(tenant_id=tenant_id, del_flg=False).count()
+
+        remaining_bots = int(subscription.remaining_bots or (plan.no_bot if plan else 1) or 1)
+        remaining_agents = int(subscription.remaining_agent or (plan.no_agent if plan else 1) or 1)
+        total_bots = int(plan.no_bot if plan else 1) or 1
+        total_agents = int(plan.no_agent if plan else 1) or 1
+
+        return jsonify({
+            "status": True,
+            "plan_name": plan.plan_name if plan else "Basic",
+            "bots": {"used": bot_count, "allowed": total_bots, "remaining": max(0, total_bots - bot_count)},
+            "agents": {"used": agent_count, "allowed": total_agents, "remaining": max(0, total_agents - agent_count)},
+            "messages": {
+                "used": (subscription.total_plan_msg or 0) - (subscription.remaining_msg or 0),
+                "allowed": subscription.total_plan_msg or 0,
+                "remaining": subscription.remaining_msg or 0,
+            },
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error fetching plan limits: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
 @billing_info.route('/all-invoices', methods=['GET'])
 def get_all_invoices():
     claims, auth_error = _get_billing_claims()

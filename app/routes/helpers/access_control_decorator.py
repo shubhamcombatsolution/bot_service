@@ -93,7 +93,10 @@ def authorize(
             # Role Exact Match Validation
             # ----------------------------------
             if roles_allowed and role not in roles_allowed:
-                return jsonify({"error": "Insufficient permissions"}), 403
+                return jsonify({
+                    "error": "Insufficient permissions",
+                    "message": f"This action requires one of these roles: {roles_allowed}. Your role: '{role}'."
+                }), 403
 
             # ----------------------------------
             # Role Hierarchy Validation

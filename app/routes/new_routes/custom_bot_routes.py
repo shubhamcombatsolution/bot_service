@@ -45,8 +45,11 @@ from app.routes.helpers.custom_bot_utils import (
 )
 from app.routes.helpers.custom_bot_utils import ALLOWED_EXTENSIONS,UPLOAD_FOLDER,allowed_file
 from app.routes.helpers.response_utils import success_response, error_response
+from app.utils import check_create_bot
 from app.models.new_models.bot_versions import BotVersion
 from app.routes.helpers.common_utils import compute_snapshot_hash,make_json_safe
+from app.routes.bot_diagrams_routes import _initialize_workflow_for_bot
+from qdrant_client import QdrantClient
 
 CustomBotNewAccessRestriction = CustomBotAccessRestriction
 
@@ -55,6 +58,96 @@ CustomBotNewAccessRestriction = CustomBotAccessRestriction
 custom_bot_blueprint_new = Blueprint('custom-bot-new', __name__)
 
 logger = setup_logging("custom-bot-new", level="DEBUG")
+qdrant = QdrantClient(url=os.getenv("QDRANT_URL", "http://localhost:6333"), timeout=120)
+
+
+def _validate_kb_publish_readiness(bot, tenant_id):
+    kb_ids = bot.kb_ids or []
+    if isinstance(kb_ids, str):
+        try:
+            kb_ids = json.loads(kb_ids)
+        except Exception:
+            kb_ids = []
+
+    if not isinstance(kb_ids, list) or not kb_ids:
+        return []
+
+    normalized_kb_ids = []
+    for raw_kb_id in kb_ids:
+        try:
+            normalized_kb_ids.append(int(raw_kb_id))
+        except (TypeError, ValueError):
+            continue
+
+    normalized_kb_ids = list(dict.fromkeys(normalized_kb_ids))
+    if not normalized_kb_ids:
+        return []
+
+    kb_records = KnowledgeBase.query.filter(
+        KnowledgeBase.knowledge_base_id.in_(normalized_kb_ids),
+        KnowledgeBase.tenant_id == tenant_id,
+        KnowledgeBase.del_flg == False
+    ).all()
+    kb_by_id = {kb.knowledge_base_id: kb for kb in kb_records}
+
+    field_errors = []
+    missing_kb_ids = [
+        kb_id for kb_id in normalized_kb_ids
+        if kb_id not in kb_by_id
+    ]
+    if missing_kb_ids:
+        field_errors.append({
+            "field": "kb_ids",
+            "message": f"Invalid or unauthorized KB IDs: {missing_kb_ids}"
+        })
+
+    for kb_id in normalized_kb_ids:
+        kb = kb_by_id.get(kb_id)
+        if not kb:
+            continue
+
+        kb_status = (kb.status or "").strip().upper()
+        if kb_status != "COMPLETED":
+            field_errors.append({
+                "field": "kb_ids",
+                "message": (
+                    f"Knowledge base {kb.knowledge_base_id} is still processing embeddings "
+                    f"(status={kb.status or 'UNKNOWN'})."
+                )
+            })
+            continue
+
+        if not kb.collection_name:
+            field_errors.append({
+                "field": "kb_ids",
+                "message": f"Knowledge base {kb.knowledge_base_id} has no vector collection yet."
+            })
+            continue
+
+        try:
+            collection_info = qdrant.get_collection(kb.collection_name)
+            points_count = getattr(collection_info, "points_count", 0) or 0
+            if points_count <= 0:
+                field_errors.append({
+                    "field": "kb_ids",
+                    "message": (
+                        f"Knowledge base {kb.knowledge_base_id} has no vectors in Qdrant yet. "
+                        "Wait for the background build to finish."
+                    )
+                })
+        except Exception as exc:
+            field_errors.append({
+                "field": "kb_ids",
+                "message": (
+                    f"Knowledge base {kb.knowledge_base_id} vector collection is not ready "
+                    f"({kb.collection_name})."
+                )
+            })
+            logger.warning(
+                f"KB publish readiness check failed | kb_id={kb.knowledge_base_id} | collection={kb.collection_name} | error={exc}"
+            )
+
+    return field_errors
 
 
 
@@ -222,6 +315,11 @@ def create_custombot():
             logger.warning(f"Invalid tenant access | tenant_id={tenant_id}")
             return error_response(message = "Invalid tenant", data = None, code = 401)
 
+        # Check bot creation limit
+        can_create, limit_info = check_create_bot(db.session, tenant_id)
+        if not can_create:
+            return error_response(message=limit_info.get("message", "Bot limit reached. Please upgrade your plan."), data=limit_info, code=403)
+
         data = request.get_json() or {}
         channel_value = data.get("channel")
 
@@ -254,7 +352,8 @@ def create_custombot():
             "message": "Bot initialized successfully",
             "bot_id": new_bot.bot_id,
             "instance_id": new_bot.instance_id,
-            "status": new_bot.bot_status.value
+            "status": new_bot.bot_status.value,
+            "completed_step": new_bot.completed_step or 0
         }, code = 201)
 
     except Exception as e:
@@ -446,13 +545,15 @@ def personalization(bot_id):
                 f"Avatar uploaded | bot_id={bot.bot_id} | filename={filename}"
             )
 
+        bot.completed_step = max(bot.completed_step or 0, 1)
         db.session.commit()
 
         logger.info(f"Personalization saved | bot_id={bot.bot_id}")
 
         return success_response(message = "Success", data = {
             "message": "Personalization saved successfully",
-            "status": bot.bot_status.value
+            "status": bot.bot_status.value,
+            "completed_step": bot.completed_step
         }, code = 200)
 
     except Exception:
@@ -547,6 +648,7 @@ def upsert_knowledge_base_step(bot_id):
 
             bot.kb_functionalities = functionalities
 
+        bot.completed_step = max(bot.completed_step or 0, 2)
         db.session.commit()
 
         logger.info(f"KB step saved successfully | bot_id={bot.bot_id}")
@@ -557,7 +659,8 @@ def upsert_knowledge_base_step(bot_id):
                 "message": "Knowledge base saved successfully",
                 "bot_id": bot.bot_id,
                 "kb_ids": bot.kb_ids or [],
-                "kb_functionalities": bot.kb_functionalities or []
+                "kb_functionalities": bot.kb_functionalities or [],
+                "completed_step": bot.completed_step
             },
             code=200
         )
@@ -608,6 +711,19 @@ def update_functionality(bot_id):
                 return error_response(message = error, data = None, code = 400)
             bot.instructions = cleaned
             updated_fields.append("instructions")
+
+        # ✅ NEW: Handle agent_config (temperature, tone, guardrails, etc.)
+        if "agent_config" in data:
+            agent_config = data.get("agent_config")
+            if isinstance(agent_config, str):
+                try:
+                    agent_config = json.loads(agent_config)
+                except Exception:
+                    agent_config = {}
+            if isinstance(agent_config, dict):
+                bot.agent_config = agent_config
+                updated_fields.append("agent_config")
+                logger.info(f"Agent config saved | bot_id={bot.bot_id} | fields={list(agent_config.keys())}")
 
         core_features_payload = None
         if "core_features" in data:
@@ -685,7 +801,7 @@ def update_functionality(bot_id):
                 f"Bot status updated to CREATED | bot_id={bot.bot_id}"
             )
 
-
+        bot.completed_step = max(bot.completed_step or 0, 3)
         db.session.commit()
 
         logger.info(f"Functionality update successful | bot_id={bot.bot_id}")
@@ -696,7 +812,8 @@ def update_functionality(bot_id):
             "kb_functionalities": bot.kb_functionalities,
             "instructions": bot.instructions,
             "kb_ids": bot.kb_ids,
-            "core_features": bot.core_features
+            "core_features": bot.core_features,
+            "completed_step": bot.completed_step
         }, code = 200)
 
     except Exception:
@@ -706,7 +823,136 @@ def update_functionality(bot_id):
         )
         return error_response(message = "Unexpected error occurred", data = None, code = 500)
 
-    
+
+@custom_bot_blueprint_new.route(
+    "/<int:bot_id>/ai-config",
+    methods=["PATCH"]
+)
+@jwt_required()
+@validate_bot_access(
+    allowed_status=[BotStatusEnum.DRAFT, BotStatusEnum.CREATED, BotStatusEnum.LIVE]
+)
+def save_ai_config(bot_id):
+    bot = g.bot
+    tenant = g.tenant
+
+    logger.info(f"Saving AI config | bot_id={bot.bot_id} | tenant_id={tenant.tenant_id}")
+
+    try:
+        data = request.get_json(silent=True) or {}
+
+        llm_model_id = data.get("llm_model_id")
+        temperature = data.get("temperature")
+        max_tokens = data.get("max_tokens")
+        memory_mode = data.get("memory_mode")
+        restrictions = data.get("restrictions")
+        response_behavior = data.get("response_behavior")
+        response_length = data.get("response_length")
+
+        # Validate llm_model_id belongs to this tenant
+        if llm_model_id is not None:
+            llm = db.session.query(LLM).filter_by(
+                llm_id=int(llm_model_id),
+                tenant_id=tenant.tenant_id
+            ).first()
+            if not llm:
+                return error_response(
+                    message="Invalid LLM model for this tenant",
+                    data=None,
+                    code=400
+                )
+
+        # Merge into bot.agent_config JSON field
+        current_config = bot.agent_config or {}
+        if not isinstance(current_config, dict):
+            current_config = {}
+
+        if llm_model_id is not None:
+            current_config["llm_model_id"] = int(llm_model_id)
+        if temperature is not None:
+            try:
+                current_config["temperature"] = float(temperature)
+            except (ValueError, TypeError):
+                return error_response(message="Invalid temperature value", data=None, code=400)
+        if max_tokens is not None:
+            try:
+                current_config["max_tokens"] = int(max_tokens)
+            except (ValueError, TypeError):
+                return error_response(message="Invalid max_tokens value", data=None, code=400)
+        if memory_mode is not None:
+            current_config["memory_mode"] = memory_mode
+        if restrictions is not None:
+            current_config["restrictions"] = restrictions
+        if response_behavior is not None:
+            current_config["response_behavior"] = response_behavior
+        if response_length is not None:
+            current_config["response_length"] = response_length
+
+        bot.agent_config = current_config
+
+        # Also save memory_mode to its dedicated column
+        if memory_mode is not None:
+            bot.memory_mode = memory_mode
+
+        # Advance completed_step to 4 (AI Config step)
+        bot.completed_step = max(bot.completed_step or 0, 4)
+
+        db.session.commit()
+
+        logger.info(f"AI config saved | bot_id={bot.bot_id} | completed_step={bot.completed_step}")
+
+        return success_response(
+            message="AI configuration saved successfully",
+            data={
+                "bot_id": bot.bot_id,
+                "completed_step": bot.completed_step,
+                "agent_config": bot.agent_config,
+                "memory_mode": bot.memory_mode,
+            },
+            code=200
+        )
+
+    except Exception:
+        db.session.rollback()
+        logger.exception(f"Unexpected error saving AI config | bot_id={bot.bot_id}")
+        return error_response(message="Unexpected error occurred", data=None, code=500)
+
+
+@custom_bot_blueprint_new.route(
+    "/<int:bot_id>/ai-config",
+    methods=["GET"]
+)
+@jwt_required()
+@validate_bot_access(
+    allowed_status=[BotStatusEnum.DRAFT, BotStatusEnum.CREATED, BotStatusEnum.LIVE]
+)
+def get_ai_config(bot_id):
+    bot = g.bot
+
+    try:
+        config = bot.agent_config or {}
+
+        return success_response(
+            message="AI configuration retrieved successfully",
+            data={
+                "bot_id": bot.bot_id,
+                "llm_model_id": config.get("llm_model_id"),
+                "temperature": config.get("temperature"),
+                "max_tokens": config.get("max_tokens"),
+                "memory_mode": bot.memory_mode,
+                "restrictions": config.get("restrictions"),
+                "response_behavior": config.get("response_behavior"),
+                "response_length": config.get("response_length"),
+                "completed_step": bot.completed_step,
+            },
+            code=200
+        )
+
+    except Exception:
+        logger.exception(f"Unexpected error fetching AI config | bot_id={bot.bot_id}")
+        return error_response(message="Unexpected error occurred", data=None, code=500)
+
+
 @custom_bot_blueprint_new.route(
     "/bots/<int:bot_id>/configure-and-publish",
     methods=["POST"]
@@ -1121,8 +1367,25 @@ def configure_bot(bot_id):
             bg_color = data.get("background_color")
             bot.background_color = bg_color if bg_color else None
 
-            if avatar_filename:
+            # Handle avatar type and index
+            avatar_type = data.get("avatar_type", "file")
+            avatar_index = data.get("avatar_index")
+
+            if avatar_type == "preset" and avatar_index is not None:
+                try:
+                    idx = int(avatar_index)
+                    if 0 <= idx < 16:  # Assuming 16 presets (0-15)
+                        bot.avatar_type = "preset"
+                        bot.avatar_index = idx
+                        # Store the file hash in avatar for compatibility
+                        if avatar_filename:
+                            bot.avatar = avatar_filename
+                except (ValueError, TypeError):
+                    pass
+            elif avatar_filename:
                 bot.avatar = avatar_filename
+                bot.avatar_type = "file"
+                bot.avatar_index = None
 
             if bg_filename:
                 bot.background_image = bg_filename
@@ -1145,6 +1408,18 @@ def configure_bot(bot_id):
         # ---------------------------------------
         # PUBLISH LOGIC
         # ---------------------------------------
+        kb_validation_errors = _validate_kb_publish_readiness(bot, tenant.tenant_id)
+
+        if kb_validation_errors:
+            return error_response(
+                message=(
+                    "Selected knowledge base(s) are still processing embeddings. "
+                    "Please wait until the background build completes before publishing."
+                ),
+                data={"field_errors": kb_validation_errors},
+                code=400
+            )
+
         publish_result = publish_bot_version(
             bot=bot,
             tenant_id=tenant.tenant_id
@@ -1157,7 +1432,17 @@ def configure_bot(bot_id):
                 bot.published_version_id = version.version_id
 
             bot.bot_status = BotStatusEnum.LIVE
+            bot.completed_step = max(bot.completed_step or 0, 6)
             db.session.commit()
+
+            workflow_result = None
+            try:
+                workflow_result = _initialize_workflow_for_bot(bot, tenant.tenant_id)
+            except Exception:
+                logger.warning(
+                    f"Workflow init failed after publish (no-change path) | bot_id={bot.bot_id}",
+                    exc_info=True
+                )
 
             return success_response(
                 message="No changes detected. Bot already up to date.",
@@ -1173,18 +1458,31 @@ def configure_bot(bot_id):
                     },
                     "version_number": version.version_number,
                     "version_id": version.version_id,
-                    "status": bot.bot_status.value
+                    "status": bot.bot_status.value,
+                    "completed_step": bot.completed_step,
+                    "workflow_id": workflow_result.get("diagram_id") if workflow_result else None,
+                    "workflow_status": workflow_result.get("status") if workflow_result else None,
                 },
                 code=200
             )
 
         # ✅ Changes exist
         bot.bot_status = BotStatusEnum.LIVE
+        bot.completed_step = max(bot.completed_step or 0, 6)
 
         if not bot.published_version_id:
             bot.published_version_id = version.version_id
 
         db.session.commit()
+
+        workflow_result = None
+        try:
+            workflow_result = _initialize_workflow_for_bot(bot, tenant.tenant_id)
+        except Exception:
+            logger.warning(
+                f"Workflow init failed after publish | bot_id={bot.bot_id}",
+                exc_info=True
+            )
 
         return success_response(
             message="Bot configured and published successfully",
@@ -1200,7 +1498,10 @@ def configure_bot(bot_id):
                 },
                 "version_number": version.version_number,
                 "version_id": version.version_id,
-                "status": bot.bot_status.value
+                "status": bot.bot_status.value,
+                "completed_step": bot.completed_step,
+                "workflow_id": workflow_result.get("diagram_id") if workflow_result else None,
+                "workflow_status": workflow_result.get("status") if workflow_result else None,
             },
             code=200
         )
@@ -1420,6 +1721,18 @@ def publish_bot(bot_id):
                 code=400
             )
 
+        kb_validation_errors = _validate_kb_publish_readiness(bot, tenant.tenant_id)
+
+        if kb_validation_errors:
+            return error_response(
+                message=(
+                    "Selected knowledge base(s) are still processing embeddings. "
+                    "Please wait until the background build completes before publishing."
+                ),
+                data={"field_errors": kb_validation_errors},
+                code=400
+            )
+
         # ───────── Build snapshot + hash (NEW ADDITION) ─────────
         new_snapshot = build_snapshot(bot)
         new_snapshot = make_json_safe(new_snapshot)
@@ -1608,7 +1921,8 @@ def get_personalization(bot_id):
         "industry": bot.industry.value if bot.industry else None,
         "purpose": bot.purpose,
         "avatar": bot.avatar,
-        "status": bot.bot_status.value
+        "status": bot.bot_status.value,
+        "completed_step": bot.completed_step or 0
     }, code = 200)
 
 @custom_bot_blueprint_new.route(
@@ -1628,7 +1942,8 @@ def get_functionality(bot_id):
         "instructions": bot.instructions or [],
         "kb_ids": bot.kb_ids or [],
         "kb_functionalities": bot.kb_functionalities or [],
-        "status": bot.bot_status.value
+        "status": bot.bot_status.value,
+        "completed_step": bot.completed_step or 0
     }, code = 200)
 
 @custom_bot_blueprint_new.route(
@@ -1676,10 +1991,13 @@ def get_configuration(bot_id):
         "greeting_type": bot.greeting_type,
         "greeting_message": bot.greeting_message,
         "avatar": bot.avatar,
+        "avatar_type": bot.avatar_type or "file",
+        "avatar_index": bot.avatar_index,
         "background_image": bot.background_image,
         "background_color": bot.background_color,
         "restrictions": restriction_data,
-        "status": bot.bot_status.value
+        "status": bot.bot_status.value,
+        "completed_step": bot.completed_step or 0
     }, code = 200)
 
 
@@ -1696,7 +2014,8 @@ def get_knowledge_base_step(bot_id):
     return success_response(message = "Success", data = {
         "bot_id": bot.bot_id,
         "kb_ids": bot.kb_ids or [],
-        "kb_functionalities": bot.kb_functionalities or []
+        "kb_functionalities": bot.kb_functionalities or [],
+        "completed_step": bot.completed_step or 0
     }, code = 200)
 
 
@@ -2177,8 +2496,7 @@ def get_all_bots():
 
         bots = pagination.items
 
-        base_url = current_app.config.get('BASE_URL', 'https://api.jnanic.com')
-        avatar_base_path = "uploads/avatars"
+        avatar_base_path = "custom_bot_new/uploads/avatars"
 
         bot_list = [
             {
@@ -2190,7 +2508,7 @@ def get_all_bots():
                 "tone_of_voice": bot.tone_of_voice.value if bot.tone_of_voice else None,
                 "industry": bot.industry.value if bot.industry else None,
                 "avatar": (
-                    f"{base_url}/{avatar_base_path}/{os.path.basename(bot.avatar)}"
+                    f"/{avatar_base_path}/{os.path.basename(bot.avatar)}"
                     if bot.avatar and not bot.avatar.startswith(('http://', 'https://'))
                     else bot.avatar or ""
                 ),
@@ -2395,8 +2713,7 @@ def get_recent_running_bots():
             CustomBotNew.updated_at.desc()
         ).limit(3).all()
 
-        base_url = current_app.config.get('BASE_URL', 'https://api.jnanic.com')
-        avatar_base_path = "uploads/avatars"
+        avatar_base_path = "custom_bot_new/uploads/avatars"
 
         bot_list = [
             {
@@ -2406,7 +2723,7 @@ def get_recent_running_bots():
                 "tone_of_voice": bot.tone_of_voice.value,
                 "industry": bot.industry.value,
                 "avatar": (
-                    f"{base_url}/{avatar_base_path}/{os.path.basename(bot.avatar)}"
+                    f"/{avatar_base_path}/{os.path.basename(bot.avatar)}"
                     if bot.avatar and not bot.avatar.startswith(('http://', 'https://'))
                     else bot.avatar or ""
                 ),
@@ -2548,10 +2865,9 @@ def get_customize_by_bot(bot_id):
             logger.error(f"No instance_id configured for bot_id: {bot_id}")
             abort(400, description=f"No instance_id configured for bot_id: {bot_id}")
 
-        base_url = current_app.config.get('BASE_URL', 'https://api.jnanic.com')
-        avatar_base_path = "uploads/avatars"
+        avatar_base_path = "custom_bot_new/uploads/avatars"
         avatar_url = (
-            f"{base_url}/{avatar_base_path}/{basename(bot.avatar)}"
+            f"/{avatar_base_path}/{basename(bot.avatar)}"
             if bot.avatar and not bot.avatar.startswith(('http://', 'https://'))
             else bot.avatar or ""
         )
@@ -2603,6 +2919,11 @@ def serve_chatbot_by_instance(instance_id):
         )
 
         # Ã¢â€ Â CHANGED: all template vars come from config, not raw bot object
+        # Resolve avatar URL: if it's a bare filename, prepend the uploads path
+        avatar = config.get("avatar")
+        if avatar and not avatar.startswith(("http://", "https://", "/")):
+            avatar = f"/custom_bot_new/uploads/avatars/{avatar}"
+
         return render_template(
             "chatbot.html",
             bot_id=config["bot_id"],
@@ -2613,6 +2934,7 @@ def serve_chatbot_by_instance(instance_id):
             greeting_message=config["greeting_message"],
             disclaimer_text=config["disclaimer_text"],
             background_image=config["background_image"],
+            avatar=avatar,
         )
 
     except Exception:
@@ -2640,18 +2962,17 @@ def get_bot_by_id(bot_id):
             logger.error(f"Bot not found for bot_id: {bot_id}, tenant_id: {tenant_id}")
             return error_response(message = "Bot not found or unauthorized!", data = {}, code = 404)
 
-        base_url = current_app.config.get("BASE_URL", "https://api.jnanic.com")
-        avatar_base_path = "uploads/avatars"
-        bg_base_path = "custom-bot/uploads/backgrounds"  # change if your folder differs
+        avatar_base_path = "custom_bot_new/uploads/avatars"
+        bg_base_path = "custom-bot/uploads/backgrounds"
 
         avatar_url = (
-            f"{base_url}/{avatar_base_path}/{os.path.basename(bot.avatar)}"
+            f"/{avatar_base_path}/{os.path.basename(bot.avatar)}"
             if bot.avatar and not bot.avatar.startswith(("http://", "https://"))
             else bot.avatar or ""
         )
 
         background_url = (
-            f"{base_url}/{bg_base_path}/{os.path.basename(bot.background_image)}"
+            f"/{bg_base_path}/{os.path.basename(bot.background_image)}"
             if bot.background_image and not bot.background_image.startswith(("http://", "https://"))
             else bot.background_image or ""
         )
@@ -3015,20 +3336,32 @@ def get_customization(instance_id):
                     del_flg=False
                 ).first()
 
-            if not user:
-                return error_response("Invalid subdomain", None, 401)
+            if user:
+                pass  # User found via subdomain
+            else:
+                # Try to find bot without tenant restriction (public access)
+                user = None
 
         else:
-            return error_response("Subdomain or API key required", None, 400)
+            # No API key or subdomain - allow public access
+            user = None
 
         # -------------------------
         # FETCH BOT
         # -------------------------
-        bot = session.query(CustomBotNew).filter_by(
-            instance_id=instance_id,
-            tenant_id=user.tenant_id,
-            del_flg=False
-        ).first()
+        if user:
+            # Authenticated - fetch bot from user's tenant
+            bot = session.query(CustomBotNew).filter_by(
+                instance_id=instance_id,
+                tenant_id=user.tenant_id,
+                del_flg=False
+            ).first()
+        else:
+            # Public access - fetch any public bot
+            bot = session.query(CustomBotNew).filter_by(
+                instance_id=instance_id,
+                del_flg=False
+            ).first()
 
         if not bot:
             return error_response("Bot not found", None, 404)
@@ -3044,20 +3377,19 @@ def get_customization(instance_id):
             return error_response("Bot config unavailable", None, 503)
 
         # -------------------------
-        # BUILD URL BASE
+        # BUILD URL BASE (use relative paths, not full URLs)
         # -------------------------
-        base_url = current_app.config.get("BASE_URL", "https://api.jnanic.com")
-        avatar_base_path = "uploads/avatars"
+        avatar_base_path = "custom_bot_new/uploads/avatars"
         bg_base_path = "custom-bot/uploads/backgrounds"
 
         avatar_url = (
-            f"{base_url}/{avatar_base_path}/{basename(config.get('avatar'))}"
+            f"/{avatar_base_path}/{basename(config.get('avatar'))}"
             if config.get("avatar") and not config.get("avatar").startswith(("http://", "https://"))
             else config.get("avatar") or ""
         )
 
         background_url = (
-            f"{base_url}/{bg_base_path}/{basename(config.get('background_image'))}"
+            f"/{bg_base_path}/{basename(config.get('background_image'))}"
             if config.get("background_image") and not config.get("background_image").startswith(("http://", "https://"))
             else config.get("background_image") or ""
         )

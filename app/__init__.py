@@ -47,6 +47,11 @@ def create_app():
     CORS(
         app,
         resources={
+            r"/static/js/LaunchBot.js": {
+                "origins": "*",  # Allow all origins for the chatbot widget
+                "allow_headers": ["Content-Type", "X-API-Key", "x-api-key"],
+                "supports_credentials": False,
+            },
             r"/*": {
                 "origins": allowed_origins,
                 "allow_headers": [

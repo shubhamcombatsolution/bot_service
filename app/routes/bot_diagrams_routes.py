@@ -2943,6 +2943,8 @@ from flask import Blueprint, request, jsonify
 from app.models.bot_diagram import BotDiagram
 from app.models.new_models.custom_bot import CustomBotNew as CustomBot
 from app.models import Agent,McpTools,McpAgentTools,LLM,KnowledgeBase,ToolAuthorization
+from app.models.tool import Tools
+from app.models.agent import AgentStatusEnum
 from app.database.DatabaseOperationPostgreSQL import db_session
 import json
 from flask_jwt_extended import jwt_required, get_jwt, get_jwt_identity
@@ -3402,6 +3404,63 @@ def _normalize_whatsapp_trigger_node_id(diagram_data: dict) -> tuple[dict, bool]
     return diagram_data, True
 
 
+def _normalize_slack_trigger_node_id(diagram_data: dict) -> tuple[dict, bool]:
+    """
+    Ensure Slack trigger node uses a stable id: slacktrigger-1.
+    This keeps the Slack Event Subscriptions webhook URL stable across re-saves
+    in the builder, so users don't have to re-configure Slack every time they
+    edit the workflow and replace the trigger node.
+    """
+    if not isinstance(diagram_data, dict):
+        return diagram_data, False
+
+    nodes = diagram_data.get("nodes", [])
+    edges = diagram_data.get("edges", [])
+    if not isinstance(nodes, list):
+        return diagram_data, False
+
+    slack_nodes = [
+        node for node in nodes
+        if isinstance(node, dict)
+        and node.get("type") in {"SlackTriggerNode", "slackTriggerNode"}
+    ]
+    if len(slack_nodes) != 1:
+        return diagram_data, False
+
+    node = slack_nodes[0]
+    old_id = node.get("id")
+    target_id = "slacktrigger-1"
+    if not old_id or old_id == target_id:
+        return diagram_data, False
+
+    node["id"] = target_id
+    node_data = node.get("data")
+    if isinstance(node_data, dict):
+        node_data["id"] = target_id
+
+    if isinstance(edges, list):
+        for edge in edges:
+            if not isinstance(edge, dict):
+                continue
+            if edge.get("source") == old_id:
+                edge["source"] = target_id
+            if edge.get("target") == old_id:
+                edge["target"] = target_id
+
+    for key in ("trigger_data",):
+        trigger_data = diagram_data.get(key)
+        if isinstance(trigger_data, dict) and old_id in trigger_data:
+            trigger_data[target_id] = trigger_data.pop(old_id)
+
+    flow_data = diagram_data.get("flowData")
+    if isinstance(flow_data, dict):
+        flow_trigger_data = flow_data.get("trigger_data")
+        if isinstance(flow_trigger_data, dict) and old_id in flow_trigger_data:
+            flow_trigger_data[target_id] = flow_trigger_data.pop(old_id)
+
+    return diagram_data, True
+
+
 def extract_and_store_whatsapp_triggers(diagram_data, bot_id, tenant_id, session, flow_id):
     """Extract and store WhatsApp trigger nodes from the diagram."""
     logger.info(f"[TRIGGER_SYNC] Processing WhatsApp triggers for bot_id={bot_id}, tenant_id={tenant_id}")
@@ -3551,6 +3610,11 @@ def extract_and_store_slack_triggers(diagram_data, bot_id, tenant_id, session, f
 
             session.merge(trigger_entry)
             trigger_count += 1
+            logger.info(
+                "[TRIGGER_SYNC] Slack trigger registered: trigger_node_id=%s flow_id=%s bot_id=%s "
+                "| Slack webhook URL path: /webhook/slack/%s",
+                trigger_node_id, flow_id, bot_id, trigger_node_id,
+            )
 
         logger.info(f"[TRIGGER_SYNC] {trigger_count} Slack trigger(s) stored.")
 
@@ -3662,6 +3726,11 @@ def deactivate_removed_triggers(session, current_node_ids, tenant_id, flow_id):
         ).all()
         
         deactivated_count = 0
+        logger.info(
+            "[TRIGGER_CLEANUP] Active triggers for flow_id=%s: %s",
+            flow_id,
+            [(t.trigger_node_id, t.trigger_type) for t in existing_triggers],
+        )
         for trigger in existing_triggers:
             if trigger.trigger_node_id not in current_node_ids:
                 logger.info(
@@ -3670,7 +3739,7 @@ def deactivate_removed_triggers(session, current_node_ids, tenant_id, flow_id):
                 )
                 trigger.status = "inactive"
                 deactivated_count += 1
-        
+
         if deactivated_count > 0:
             logger.info(f"[TRIGGER_CLEANUP] Deactivated {deactivated_count} removed trigger(s)")
         else:
@@ -3739,11 +3808,76 @@ def save_diagram():
         if whatsapp_id_normalized:
             logger.info("[TRIGGER_SYNC] Normalized WhatsApp trigger node id to whatsapptrigger-4")
 
+        diagram_data, slack_id_normalized = _normalize_slack_trigger_node_id(diagram_data)
+        if slack_id_normalized:
+            logger.info("[TRIGGER_SYNC] Normalized Slack trigger node id to slacktrigger-1")
+
         if bot_id is None:
             resolved_bot_id = _resolve_flow_bot_id(diagram_data)
             if resolved_bot_id is not None:
                 bot_id = resolved_bot_id
                 logger.info("Resolved bot_id=%s from diagram flowData", bot_id)
+
+        # 🆕 Fallback: if no bot_id was sent in the request and none was found
+        # in the diagram payload, look up a bot in this tenant by name matching
+        # workflow_name (case-insensitive, whitespace-trimmed) or by the legacy
+        # workflow_name pattern `custom_bot_new_{bot_id}`. Prevents the diagram
+        # from ever being saved detached (which previously produced synthetic
+        # bot_id=-N triggers and broke MAS overlay of formData edits).
+        if bot_id is None:
+            candidate_name = (data.get("workflow_name") or data.get("workflowId") or "").strip()
+            if candidate_name:
+                _bot_lookup_session = next(db_session())
+                try:
+                    # Legacy pattern: workflow_name == "custom_bot_new_{bot_id}"
+                    import re as _re
+                    legacy_match = _re.match(r"^custom_bot_new_(\d+)$", candidate_name)
+                    if legacy_match:
+                        try:
+                            candidate_id = int(legacy_match.group(1))
+                        except (TypeError, ValueError):
+                            candidate_id = None
+                        if candidate_id is not None:
+                            matched_bot = (
+                                _bot_lookup_session.query(CustomBot)
+                                .filter(
+                                    CustomBot.bot_id == candidate_id,
+                                    CustomBot.tenant_id == jwt_tenant_id,
+                                    CustomBot.del_flg == False,
+                                )
+                                .first()
+                            )
+                            if matched_bot:
+                                bot_id = matched_bot.bot_id
+                                logger.info(
+                                    "Resolved bot_id=%s by legacy workflow_name='%s'",
+                                    bot_id, candidate_name,
+                                )
+
+                    # Case-insensitive / whitespace-tolerant bot_name match,
+                    # performed in Python to stay portable across DB backends.
+                    if bot_id is None:
+                        cand_norm = candidate_name.strip().lower()
+                        all_bots = (
+                            _bot_lookup_session.query(CustomBot)
+                            .filter(
+                                CustomBot.tenant_id == jwt_tenant_id,
+                                CustomBot.del_flg == False,
+                            )
+                            .order_by(CustomBot.bot_id.desc())
+                            .all()
+                        )
+                        for b in all_bots:
+                            name_norm = (getattr(b, "bot_name", "") or "").strip().lower()
+                            if name_norm == cand_norm:
+                                bot_id = b.bot_id
+                                logger.info(
+                                    "Resolved bot_id=%s by case-insensitive workflow_name='%s' fallback",
+                                    bot_id, candidate_name,
+                                )
+                                break
+                finally:
+                    _bot_lookup_session.close()
 
         nodes = diagram_data.get("nodes", [])
         edges = diagram_data.get("edges", [])
@@ -4071,13 +4205,38 @@ def get_diagram(bot_id):
                 logger.warning(f"No diagram found for bot_id: {bot_id}")
                 return jsonify({"data": {}, "status": "error", "message": "No diagram found for this bot"}), 404
 
+            # Enrich diagram: inject memory_mode into GenericAgentNode formData if missing
+            diagram_json_str = diagram.diagram_json
+            try:
+                _bot_memory_mode = getattr(bot, "memory_mode", None)
+                if not _bot_memory_mode:
+                    _agent_cfg = getattr(bot, "agent_config", {}) or {}
+                    if isinstance(_agent_cfg, str):
+                        try: _agent_cfg = json.loads(_agent_cfg)
+                        except Exception: _agent_cfg = {}
+                    _bot_memory_mode = _agent_cfg.get("memory_mode")
+                if _bot_memory_mode:
+                    _diagram_data = json.loads(diagram_json_str)
+                    _changed = False
+                    for _node in _diagram_data.get("nodes", []):
+                        if _node.get("type") == "GenericAgentNode":
+                            _fd = _node.get("data", {}).get("formData", {})
+                            if not _fd.get("memory_mode"):
+                                _fd["memory_mode"] = _bot_memory_mode
+                                _node.setdefault("data", {})["formData"] = _fd
+                                _changed = True
+                    if _changed:
+                        diagram_json_str = json.dumps(_diagram_data)
+            except Exception:
+                pass  # Return original JSON on any error
+
             logger.info(f"Diagram retrieved successfully: diagram_id={diagram.diagram_id}")
             return jsonify({
                 "data": {
                     "diagram_id": diagram.diagram_id,
                     "workflow_name": diagram.workflow_name or workflow_name,
                     "channel": diagram.channel,
-                    "diagram_json": diagram.diagram_json
+                    "diagram_json": diagram_json_str
                 },
                 "status": "success",
                 "message": "Diagram retrieved successfully"
@@ -4123,6 +4282,35 @@ def get_diagram_by_id(diagram_id):
                 logger.warning(f"No diagram found for diagram_id: {diagram_id}")
                 return jsonify({"data": {}, "status": "error", "message": "No diagram found"}), 404
 
+            # Enrich diagram: inject memory_mode into GenericAgentNode formData if missing
+            diagram_json_str = diagram.diagram_json
+            try:
+                _bot_memory_mode = None
+                if diagram.bot_id:
+                    _bot = session.get(CustomBot, diagram.bot_id)
+                    if _bot:
+                        _bot_memory_mode = getattr(_bot, "memory_mode", None)
+                        if not _bot_memory_mode:
+                            _agent_cfg = getattr(_bot, "agent_config", {}) or {}
+                            if isinstance(_agent_cfg, str):
+                                try: _agent_cfg = json.loads(_agent_cfg)
+                                except Exception: _agent_cfg = {}
+                            _bot_memory_mode = _agent_cfg.get("memory_mode")
+                if _bot_memory_mode:
+                    _diagram_data = json.loads(diagram_json_str)
+                    _changed = False
+                    for _node in _diagram_data.get("nodes", []):
+                        if _node.get("type") == "GenericAgentNode":
+                            _fd = _node.get("data", {}).get("formData", {})
+                            if not _fd.get("memory_mode"):
+                                _fd["memory_mode"] = _bot_memory_mode
+                                _node.setdefault("data", {})["formData"] = _fd
+                                _changed = True
+                    if _changed:
+                        diagram_json_str = json.dumps(_diagram_data)
+            except Exception:
+                pass  # Return original JSON on any error
+
             logger.info(f"Diagram retrieved successfully by diagram_id={diagram.diagram_id}")
             return jsonify({
                 "data": {
@@ -4130,7 +4318,7 @@ def get_diagram_by_id(diagram_id):
                     "bot_id": diagram.bot_id,
                     "workflow_name": diagram.workflow_name,
                     "channel": diagram.channel,
-                    "diagram_json": diagram.diagram_json
+                    "diagram_json": diagram_json_str
                 },
                 "status": "success",
                 "message": "Diagram retrieved successfully"
@@ -4575,9 +4763,6 @@ def extract_selected_core_tools(core_features) -> set:
         return extract_selected_core_tools(core_features.get("tools"))
 
     for tool_name, entries in core_features.items():
-        if str(tool_name).lower() == "tavily":
-            continue
-
         if not isinstance(entries, list):
             continue
 
@@ -4596,170 +4781,137 @@ def extract_selected_core_tools(core_features) -> set:
     return selected
 DEFAULT_MCP_URL = "https://mcp.jnanic.com/connect_mcp"
 
+# Actions supported by each local tool category (mirrors local_tool_routes.py dispatchers)
+_LOCAL_TOOL_ACTIONS = {
+    "gmail": [
+        "send_gmail", "list_gmail_messages", "read_gmail_message",
+        "read_unread_gmail_messages", "search_gmail_messages",
+        "draft_gmail", "get_email_from_token", "mark_as_read",
+        "mark_as_unread", "delete_gmail_message",
+    ],
+    "gcalendar": [
+        "create_event", "list_events", "update_event",
+        "delete_event", "get_free_busy",
+    ],
+    "hubspot": [
+        "create_contact", "update_contact", "get_contact",
+    ],
+    "gsheets": [
+        "read_spreadsheet", "write_spreadsheet", "append_spreadsheet",
+        "list_spreadsheets", "create_sheet",
+    ],
+}
+
+def _get_local_tool_actions(tool_name: str) -> list:
+    """Return the known action list for a local tool, matched by normalized name."""
+    key = "".join(c for c in str(tool_name).lower() if c.isalnum())
+    for canonical, actions in _LOCAL_TOOL_ACTIONS.items():
+        if key == canonical or key in canonical or canonical in key:
+            return list(actions)
+    return []
+
+def _get_local_tool_url() -> str:
+    import os
+    base = os.getenv("BB_SERVICE_URL", "http://bot-builder-service:5000").rstrip("/")
+    return f"{base}/local_tool/call"
+
 
 def attach_mcp_tools_to_agent(session, tenant_id: int, agent_id: int, bot: CustomBot, core_features=None):
-    logger.info("🔧 [MCP_ATTACH] Starting tool attachment")
-    logger.info("🔧 [MCP_ATTACH] tenant_id=%s agent_id=%s", tenant_id, agent_id)
+    """
+    Attach only the locally-configured tools (ToolAuthorization) to the agent.
+    MCP tools are not used in the bot flow — only tools the tenant has explicitly
+    configured (Gmail, Calendar, HubSpot, Sheets, etc.) are attached.
+    """
+    logger.info("🔧 [TOOL_ATTACH] Starting local-tool attachment | agent_id=%s", agent_id)
 
     def _norm(value) -> str:
         return "".join(ch for ch in str(value).lower() if ch.isalnum())
 
-    def _action_names_from_payload(payload):
-        if isinstance(payload, list):
-            names = []
-            for item in payload:
-                if isinstance(item, dict) and item.get("action"):
-                    names.append(item["action"])
-                elif isinstance(item, str) and item.strip():
-                    names.append(item.strip())
-            return names
-        return []
+    # Canonical backend name → all name variants the frontend may store in ToolAuthorization
+    _ALIASES = {
+        "gcalendar": ["gcalendar", "calendar", "googlecalendar", "google calendar"],
+        "gmail":     ["gmail", "googlemail", "google mail"],
+        "gmaps":     ["gmaps", "googlemaps", "google maps", "maps"],
+        "hubspot":   ["hubspot", "hub spot"],
+        "gsheets":   ["gsheets", "googlesheets", "google sheets", "sheets"],
+    }
 
-    # ─────────────────────────────────────────────
-    # 1️⃣ RAW core_features from DB
-    # ─────────────────────────────────────────────
+    def _find_tool_auth(tool_auth_by_norm, canonical_norm):
+        """Alias-aware lookup: "gcalendar" finds "calendar" stored by the frontend."""
+        if canonical_norm in tool_auth_by_norm:
+            return tool_auth_by_norm[canonical_norm]
+        for aliases in _ALIASES.values():
+            norms = [_norm(a) for a in aliases]
+            if canonical_norm in norms:
+                for alias_norm in norms:
+                    if alias_norm in tool_auth_by_norm:
+                        return tool_auth_by_norm[alias_norm]
+        # Fuzzy substring fallback
+        for stored_norm, auth in tool_auth_by_norm.items():
+            if stored_norm in canonical_norm or canonical_norm in stored_norm:
+                return auth
+        return None
+
+    # ── 1. Resolve selected tools from core_features ──────────────────────────
     effective_core_features = bot.core_features if core_features is None else core_features
-    logger.info(
-        "🧩 [CORE_FEATURES_RAW] type=%s value=%s",
-        type(effective_core_features),
-        effective_core_features
-    )
-
     allowed_tools = extract_selected_core_tools(effective_core_features)
 
-    # ─────────────────────────────────────────────
-    # 2️⃣ Extracted allowed tools
-    # ─────────────────────────────────────────────
     logger.info(
-        "✅ [ALLOWED_TOOLS] extracted=%s count=%d",
+        "✅ [TOOL_ATTACH] selected tools from core_features=%s",
         sorted(list(allowed_tools)),
-        len(allowed_tools)
     )
-    allowed_tool_norms = {_norm(name) for name in allowed_tools}
 
+    # ── 2. Soft-delete existing tool rows for this agent ──────────────────────
+    session.query(McpAgentTools).filter_by(
+        tenant_id=tenant_id,
+        agent_id=agent_id,
+        del_flag=False,
+    ).update({"del_flag": True})
+    session.flush()
+
+    if not allowed_tools:
+        logger.warning("⚠️ [TOOL_ATTACH] No tools selected — nothing to attach")
+        return 0
+
+    # ── 3. Load all ToolAuthorization rows for this tenant ────────────────────
     tool_auth_rows = session.query(ToolAuthorization).filter_by(
         tenant_id=tenant_id,
-        del_flag=False
+        del_flag=False,
     ).all()
     tool_auth_by_norm = {
         _norm(auth.tool_name): auth
         for auth in tool_auth_rows
         if auth.tool_name
     }
-
-    session.query(McpAgentTools).filter_by(
-        tenant_id=tenant_id,
-        agent_id=agent_id,
-        del_flag=False
-    ).update({"del_flag": True})
-    session.flush()
-
-    if not allowed_tools:
-        logger.warning(
-            "⚠️ [MCP_ATTACH_ABORT] No allowed tools found from core_features"
-        )
-        return
-
-    # ─────────────────────────────────────────────
-    # 3️⃣ Load MCP tools
-    # ─────────────────────────────────────────────
-    mcp_tools = session.query(McpTools).filter(
-        McpTools.tenant_id == tenant_id,
-        McpTools.del_flag == False
-    ).all()
-    mcp_tools_by_norm = {
-        _norm(tool.mcp_name): tool
-        for tool in mcp_tools
-        if tool.mcp_name
-    }
-
     logger.info(
-        "📦 [MCP_TOOLS] tenant_id=%s found=%d",
-        tenant_id,
-        len(mcp_tools)
+        "📦 [TOOL_ATTACH] configured local tools=%s",
+        [auth.tool_name for auth in tool_auth_rows],
     )
-    logger.info(
-        "📦 [TOOL_AUTH] tenant_id=%s found=%d names=%s",
-        tenant_id,
-        len(tool_auth_rows),
-        [auth.tool_name for auth in tool_auth_rows]
-    )
+
     attached_count = 0
 
-    # ─────────────────────────────────────────────
-    # 4️⃣ Iterate selected tools
-    # ─────────────────────────────────────────────
-    for selected_tool in sorted(list(allowed_tools)):
+    # ── 4. Attach only tools that are configured in ToolAuthorization ─────────
+    for selected_tool in sorted(allowed_tools):
         selected_norm = _norm(selected_tool)
-        tool = mcp_tools_by_norm.get(selected_norm)
-        tool_auth = tool_auth_by_norm.get(selected_norm)
+        tool_auth = _find_tool_auth(tool_auth_by_norm, selected_norm)
 
-        logger.info(
-            "🔌 [SELECTED_TOOL] name=%s norm=%s has_mcp=%s has_auth=%s",
-            selected_tool,
-            selected_norm,
-            bool(tool),
-            bool(tool_auth)
-        )
-
-        actions_map = tool.mcp_action_tools if tool else None
-        action_names = []
-        if tool and actions_map:
-            logger.info(
-                "🗂️ [MCP_ACTION_MAP] tool_id=%s type=%s",
-                tool.id,
-                type(actions_map)
+        if not tool_auth:
+            logger.warning(
+                "⚠️ [TOOL_ATTACH] '%s' not configured in ToolAuthorization — skipping",
+                selected_tool,
             )
+            continue
 
-            if isinstance(actions_map, list):
-                action_entries = []
-                for entry in actions_map:
-                    if not isinstance(entry, dict):
-                        continue
-                    category = (
-                        entry.get("tool_name")
-                        or entry.get("category")
-                        or entry.get("name")
-                        or tool.mcp_name
-                    )
-                    actions = (
-                        entry.get("action_tools")
-                        or entry.get("actions")
-                        or entry.get("tools")
-                        or []
-                    )
-                    action_entries.append((category, actions))
-            elif isinstance(actions_map, dict):
-                action_entries = list(actions_map.items())
-            else:
-                action_entries = []
-
-            logger.info(
-                "🧠 [MCP_ACTION_KEYS] tool_id=%s keys=%s",
-                tool.id,
-                [item[0] for item in action_entries]
-            )
-
-            for category, actions in action_entries:
-                canonical_category = normalize_tool_name_for_db(category)
-                category_norm = _norm(category)
-                tool_name_norm = _norm(tool.mcp_name)
-
-                if category_norm not in allowed_tool_norms and tool_name_norm not in allowed_tool_norms:
-                    continue
-
-                action_names = _action_names_from_payload(actions)
-                if action_names:
-                    break
-
-        canonical_tool_name = normalize_tool_name_for_db(
-            tool.mcp_name if tool else (tool_auth.tool_name if tool_auth else selected_tool)
-        )
-        mcp_url = tool.mcp_url if tool else (tool_auth.mcp_url if tool_auth else None)
-        tool_type = (tool_auth.tool_type if tool_auth else ("mcp" if tool else "local")).lower()
+        # Always "local" — bot flow tools (Gmail, Calendar, HubSpot, Sheets)
+        # are always dispatched through the bb_service local tool endpoint.
+        # ToolAuthorization.tool_type may contain stale values like "jnanic_mcp".
+        tool_type    = "local"
+        action_names = _get_local_tool_actions(selected_tool)
+        mcp_url      = _get_local_tool_url()
+        canonical_tool_name = normalize_tool_name_for_db(tool_auth.tool_name)
         tool_config = {
-            "source": "mcp" if tool else "tool_authorization",
-            "tool_type": tool_type,
+            "source": "tool_authorization",
+            "tool_type": "local",
             "selected_tool": selected_tool,
         }
 
@@ -4767,58 +4919,47 @@ def attach_mcp_tools_to_agent(session, tenant_id: int, agent_id: int, bot: Custo
             tenant_id=tenant_id,
             agent_id=agent_id,
             tool_name=canonical_tool_name,
-            del_flag=False
+            del_flag=False,
         ).first()
 
         if existing:
-            logger.info(
-                "♻️ [UPDATE_TOOL] agent_id=%s tool='%s' type=%s actions=%d",
-                agent_id,
-                canonical_tool_name,
-                tool_type,
-                len(action_names)
-            )
-            existing.mcp_id = tool.id if tool else None
-            existing.mcp_url = mcp_url
+            existing.tool_type   = tool_type
+            existing.mcp_id      = None
+            existing.mcp_url     = mcp_url
             existing.action_tools = action_names
             existing.tool_config = tool_config
-        else:
             logger.info(
-                "➕ [INSERT_TOOL] agent_id=%s tool='%s' type=%s actions=%d",
-                agent_id,
-                canonical_tool_name,
-                tool_type,
-                len(action_names)
+                "♻️ [TOOL_ATTACH] updated agent_id=%s tool='%s' type=%s actions=%d",
+                agent_id, canonical_tool_name, tool_type, len(action_names),
             )
+        else:
             session.add(McpAgentTools(
                 tenant_id=tenant_id,
                 agent_id=agent_id,
-                mcp_id=tool.id if tool else None,
+                mcp_id=None,
                 tool_name=canonical_tool_name,
                 mcp_url=mcp_url,
+                tool_type=tool_type,
                 tool_config=tool_config,
                 action_tools=action_names,
                 action_tools_description=[],
-                del_flag=False
+                del_flag=False,
             ))
+            logger.info(
+                "➕ [TOOL_ATTACH] inserted agent_id=%s tool='%s' type=%s actions=%d",
+                agent_id, canonical_tool_name, tool_type, len(action_names),
+            )
+
         attached_count += 1
 
-    # ─────────────────────────────────────────────
-    # 6️⃣ Flush + verification log
-    # ─────────────────────────────────────────────
     session.flush()
 
     final_tools = session.query(McpAgentTools).filter_by(
-        tenant_id=tenant_id,
-        agent_id=agent_id,
-        del_flag=False
+        tenant_id=tenant_id, agent_id=agent_id, del_flag=False,
     ).all()
-
     logger.info(
-        "✅ [MCP_ATTACH_DONE] agent_id=%s attached_count=%d tools=%s",
-        agent_id,
-        len(final_tools),
-        [t.tool_name for t in final_tools]
+        "✅ [TOOL_ATTACH] done agent_id=%s attached=%d tools=%s",
+        agent_id, len(final_tools), [t.tool_name for t in final_tools],
     )
     return attached_count
 
@@ -5193,12 +5334,99 @@ def build_multi_agent_chat_workflow(
     }
 
 
+def _resolve_agent_tool_id_and_type(session, tenant_id: int, selected_tools: set) -> tuple:
+    """
+    Resolve Agent.tool_id (NOT NULL FK) and Agent.tool_type.
+    Only ToolAuthorization (local tools) is considered — no MCP lookup.
+
+    Returns (tool_id: int, tool_type: str).
+    """
+    def _norm(v):
+        return "".join(c for c in str(v).lower() if c.isalnum())
+
+    _ALIASES = {
+        "gcalendar": ["gcalendar", "calendar", "googlecalendar", "google calendar"],
+        "gmail":     ["gmail", "googlemail", "google mail"],
+        "gmaps":     ["gmaps", "googlemaps", "google maps", "maps"],
+        "hubspot":   ["hubspot", "hub spot"],
+        "gsheets":   ["gsheets", "googlesheets", "google sheets", "sheets"],
+    }
+
+    def _find_auth_for(canonical):
+        candidate_norms = [_norm(canonical)]
+        for aliases in _ALIASES.values():
+            if _norm(canonical) in [_norm(a) for a in aliases]:
+                candidate_norms = [_norm(a) for a in aliases]
+                break
+        for cn in candidate_norms:
+            auth = session.query(ToolAuthorization).filter(
+                ToolAuthorization.tenant_id == tenant_id,
+                ToolAuthorization.del_flag == False,
+                ToolAuthorization.tool_name.ilike(cn),
+            ).first()
+            if auth:
+                return auth
+        # Fuzzy fallback
+        for auth in session.query(ToolAuthorization).filter_by(
+            tenant_id=tenant_id, del_flag=False
+        ).all():
+            stored = _norm(auth.tool_name or "")
+            if stored in _norm(canonical) or _norm(canonical) in stored:
+                return auth
+        return None
+
+    # tool_type: always "local" for bot flow agents —
+    # ToolAuthorization.tool_type can be "jnanic_mcp" or stale; ignore it.
+    resolved_type = "local"
+
+    # tool_id: satisfy the NOT NULL FK on tbl_agents.tool_id
+    resolved_id = None
+    for tool_name in (selected_tools or []):
+        row = session.query(Tools).filter(
+            Tools.tool_name.ilike(tool_name),
+            Tools.del_flg == False,
+        ).first()
+        if row:
+            resolved_id = row.tool_id
+            break
+    if resolved_id is None:
+        fallback = session.query(Tools).filter(Tools.del_flg == False).first()
+        resolved_id = fallback.tool_id if fallback else 1
+
+    return resolved_id, resolved_type
+
+
 def create_unified_bot_agent(session, tenant_id: int, bot_id: int, bot, core_features=None) -> dict:
     """
     Create/update a single Bot Agent that can use both KBs and tools.
     Used for channel flows where hidden specialized agents are not desired.
     """
-    llm = get_default_llm(session, tenant_id)
+    # Prefer the LLM the user selected in the AI Config wizard step.
+    # Fall back to the tenant's default only if nothing was saved.
+    _agent_cfg = getattr(bot, "agent_config", {}) or {}
+    if isinstance(_agent_cfg, str):
+        try:
+            _agent_cfg = json.loads(_agent_cfg)
+        except Exception:
+            _agent_cfg = {}
+
+    _saved_llm_id = _agent_cfg.get("llm_model_id")
+    llm = None
+    if _saved_llm_id:
+        _saved_llm = session.query(LLM).filter_by(
+            llm_id=int(_saved_llm_id),
+            tenant_id=tenant_id,
+            del_flg=False
+        ).first()
+        if _saved_llm:
+            llm = {
+                "llm_id": _saved_llm.llm_id,
+                "provider": _saved_llm.provider,
+                "model_name": _saved_llm.model_name,
+            }
+
+    if not llm:
+        llm = get_default_llm(session, tenant_id)
     kb_ids = bot.kb_ids or []
     if isinstance(kb_ids, str):
         try:
@@ -5213,34 +5441,130 @@ def create_unified_bot_agent(session, tenant_id: int, bot_id: int, bot, core_fea
     selected_tools = extract_selected_core_tools(effective_core_features)
     has_tools = len(selected_tools) > 0
 
+    resolved_tool_id, resolved_tool_type = _resolve_agent_tool_id_and_type(
+        session, tenant_id, selected_tools
+    )
+
     bot_agent_key = f"bot-{bot_id}-agent"
+    bot_name = (getattr(bot, "bot_name", None) or "").strip() or f"Bot {bot_id}"
+    bot_agent_description = f"Primary bot agent for '{bot_name}'"
+
     bot_agent = session.query(Agent).filter_by(
         tenant_id=tenant_id,
         agent_key=bot_agent_key,
         del_flg=False
     ).first()
 
+    # Extract instructions from bot
+    bot_instructions = None
+    raw_instructions = getattr(bot, "instructions", None)
+    if isinstance(raw_instructions, list) and raw_instructions:
+        bot_instructions = "\n".join(
+            i.get("text", "") if isinstance(i, dict) else str(i)
+            for i in raw_instructions
+            if i
+        ) or None
+    elif isinstance(raw_instructions, str) and raw_instructions.strip():
+        bot_instructions = raw_instructions.strip()
+
+    # Extract agent config from bot (if available)
+    agent_config = getattr(bot, "agent_config", {}) or {}
+    if isinstance(agent_config, str):
+        try:
+            agent_config = json.loads(agent_config)
+        except Exception:
+            agent_config = {}
+
+    # ✅ Set default values for all agent fields
+    agent_defaults = {
+        "temperature": agent_config.get("temperature", 0.7),
+        "max_tokens": agent_config.get("max_tokens", 5000),
+        "greeting_message": agent_config.get("greeting_message", f"Hello! I'm {bot_name}. How can I help you today?"),
+        "language": agent_config.get("language", "English"),
+        "timezone": agent_config.get("timezone", "UTC"),
+        "tone": agent_config.get("tone", "friendly"),
+        "emoji_mode": agent_config.get("emoji_mode", "enabled"),
+        "availability_mode": agent_config.get("availability_mode", "always"),
+        "instruction_mode": agent_config.get("instruction_mode", "structured"),
+        "agent_type": agent_config.get("agent_type", "react_agent"),
+        "persona_style": agent_config.get("persona_style", "professional"),
+        "memory_mode": agent_config.get("memory_mode", "persistent"),
+        "guardrails": agent_config.get("guardrails", {}),
+        "completed_step": agent_config.get("completed_step", 6),
+    }
+
     if not bot_agent:
         bot_agent = Agent(
             tenant_id=tenant_id,
-            agent_name="Bot Agent",
-            agent_description="Primary bot agent for channel workflows",
+            agent_name=bot_name,
+            agent_description=bot_agent_description,
             agent_role="bot_agent",
             llm_provider_id=llm["llm_id"],
             llm_model_id=llm["llm_id"],
-            tool_type="mcp" if has_tools else None,
-            tool_id=None,
+            tool_type=resolved_tool_type if has_tools else "local",
+            tool_id=resolved_tool_id,
             knowledge_base_ids=kb_ids,
             agent_key=bot_agent_key,
             deployment_method="local",
-            del_flg=False
+            agent_instructions=bot_instructions,
+            agent_status=AgentStatusEnum.LIVE,
+            del_flg=False,
+            # ✅ NEW: Set all agent configuration fields
+            temperature=agent_defaults["temperature"],
+            max_tokens=agent_defaults["max_tokens"],
+            greeting_message=agent_defaults["greeting_message"],
+            language=agent_defaults["language"],
+            timezone=agent_defaults["timezone"],
+            tone=agent_defaults["tone"],
+            emoji_mode=agent_defaults["emoji_mode"],
+            availability_mode=agent_defaults["availability_mode"],
+            instruction_mode=agent_defaults["instruction_mode"],
+            agent_type=agent_defaults["agent_type"],
+            persona_style=agent_defaults["persona_style"],
+            memory_mode=agent_defaults["memory_mode"],
+            guardrails=agent_defaults["guardrails"],
+            completed_step=agent_defaults["completed_step"],
         )
         session.add(bot_agent)
         session.flush()
+        logger.info(
+            f"✅ [Agent] Created new agent | agent_id={bot_agent.agent_id} | "
+            f"completed_step={bot_agent.completed_step} | "
+            f"instructions_len={len(bot_instructions or '')} | "
+            f"temperature={bot_agent.temperature}"
+        )
     else:
+        # Update existing agent with new values
+        bot_agent.agent_name = bot_name
+        bot_agent.agent_description = bot_agent_description
         bot_agent.knowledge_base_ids = kb_ids
-        bot_agent.tool_type = "mcp" if has_tools else None
+        bot_agent.tool_type = resolved_tool_type if has_tools else "local"
+        bot_agent.tool_id = resolved_tool_id
+        if bot_instructions is not None:
+            bot_agent.agent_instructions = bot_instructions
+        bot_agent.agent_status = AgentStatusEnum.LIVE
+        # ✅ NEW: Update all agent configuration fields
+        bot_agent.temperature = agent_defaults["temperature"]
+        bot_agent.max_tokens = agent_defaults["max_tokens"]
+        bot_agent.greeting_message = agent_defaults["greeting_message"]
+        bot_agent.language = agent_defaults["language"]
+        bot_agent.timezone = agent_defaults["timezone"]
+        bot_agent.tone = agent_defaults["tone"]
+        bot_agent.emoji_mode = agent_defaults["emoji_mode"]
+        bot_agent.availability_mode = agent_defaults["availability_mode"]
+        bot_agent.instruction_mode = agent_defaults["instruction_mode"]
+        bot_agent.agent_type = agent_defaults["agent_type"]
+        bot_agent.persona_style = agent_defaults["persona_style"]
+        bot_agent.memory_mode = agent_defaults["memory_mode"]
+        bot_agent.guardrails = agent_defaults["guardrails"]
+        bot_agent.completed_step = agent_defaults["completed_step"]
         session.flush()
+        logger.info(
+            f"✅ [Agent] Updated existing agent | agent_id={bot_agent.agent_id} | "
+            f"completed_step={bot_agent.completed_step} | "
+            f"instructions_len={len(bot_instructions or '')} | "
+            f"temperature={bot_agent.temperature}"
+        )
 
     attached_count = 0
     if has_tools:
@@ -5274,11 +5598,14 @@ def build_single_bot_agent_workflow(
     channel: str = "website",
     kb_ids: list | None = None,
     tool_names: list | None = None,
+    bot_name: str | None = None,
+    memory_mode: str | None = None,
 ) -> dict:
     """
     Build a simple trigger -> Bot Agent -> send-message flow.
     """
     normalized_channel = str(channel or "website").strip().lower()
+    agent_label = (bot_name or "").strip() or "Bot Agent"
 
     if normalized_channel == "whatsapp":
         trigger_node_id = "whatsapptrigger-4"
@@ -5349,12 +5676,12 @@ def build_single_bot_agent_workflow(
             "type": "GenericAgentNode",
             "position": {"x": 320, "y": 320},
             "data": {
-                "label": "Bot Agent",
+                "label": agent_label,
                 "id": "genericagent-1",
                 "formData": {
                     "agent_id": str(bot_agent_id),
-                    "agent_name": "Bot Agent",
-                    "agent_description": "Primary bot agent for this workflow",
+                    "agent_name": agent_label,
+                    "agent_description": f"Primary bot agent for {agent_label}",
                     "task": (
                         "You are an intelligent assistant that handles greetings, knowledge base answers, and tool-based actions.\n\n"
                         "Guidelines:\n"
@@ -5372,7 +5699,8 @@ def build_single_bot_agent_workflow(
                     "static_parameters": {"message": f"{trigger_node_id}.message"},
                     "knowledge_base_ids": kb_ids or [],
                     "tool_names": tool_names or [],
-                    "label": "Bot Agent",
+                    "memory_mode": memory_mode or "session",
+                    "label": agent_label,
                 },
                 "details": {
                     "agent_id": bot_agent_id,
@@ -5523,8 +5851,31 @@ def create_specialized_agents(session, tenant_id: int, bot_id: int, bot, core_fe
     4. Tool Agent (tools only, minimal KB)
     5. Response Agent (formatting only)
     """
-    
-    llm = get_default_llm(session, tenant_id)
+    # Prefer the LLM the user selected in the AI Config wizard step.
+    _agent_cfg = getattr(bot, "agent_config", {}) or {}
+    if isinstance(_agent_cfg, str):
+        try:
+            _agent_cfg = json.loads(_agent_cfg)
+        except Exception:
+            _agent_cfg = {}
+
+    _saved_llm_id = _agent_cfg.get("llm_model_id")
+    llm = None
+    if _saved_llm_id:
+        _saved_llm = session.query(LLM).filter_by(
+            llm_id=int(_saved_llm_id),
+            tenant_id=tenant_id,
+            del_flg=False
+        ).first()
+        if _saved_llm:
+            llm = {
+                "llm_id": _saved_llm.llm_id,
+                "provider": _saved_llm.provider,
+                "model_name": _saved_llm.model_name,
+            }
+
+    if not llm:
+        llm = get_default_llm(session, tenant_id)
     kb_ids = bot.kb_ids or []
     if isinstance(kb_ids, str):
         try:
@@ -5538,6 +5889,10 @@ def create_specialized_agents(session, tenant_id: int, bot_id: int, bot, core_fe
     effective_core_features = bot.core_features if core_features is None else core_features
     selected_tools = extract_selected_core_tools(effective_core_features)
     has_tools = len(selected_tools) > 0
+
+    resolved_tool_id, resolved_tool_type = _resolve_agent_tool_id_and_type(
+        session, tenant_id, selected_tools
+    )
 
     logger.info(
         "🧩 [SPECIALIZED_AGENTS] bot_id=%s tenant_id=%s has_kb=%s has_tools=%s selected_tools=%s",
@@ -5571,18 +5926,23 @@ def create_specialized_agents(session, tenant_id: int, bot_id: int, bot, core_fe
             agent_role="router",
             llm_provider_id=llm["llm_id"],
             llm_model_id=llm["llm_id"],
-            tool_type=None,  # NO TOOLS
-            tool_id=None,
+            tool_type="local",
+            tool_id=resolved_tool_id,
             knowledge_base_ids=[],
             agent_key=router_key,
             deployment_method="local",
+            agent_status=AgentStatusEnum.LIVE,
             del_flg=False
         )
         session.add(router)
         session.flush()
-    
+    else:
+        router.tool_id = resolved_tool_id
+        router.agent_status = AgentStatusEnum.LIVE
+        session.flush()
+
     agents["router"] = router.agent_id
-    
+
     # 2. GREETING AGENT (simple responses)
     greeting_key = f"bot-{bot_id}-greeting"
     greeting = session.query(Agent).filter_by(
@@ -5590,7 +5950,7 @@ def create_specialized_agents(session, tenant_id: int, bot_id: int, bot, core_fe
         agent_key=greeting_key,
         del_flg=False
     ).first()
-    
+
     if not greeting:
         greeting = Agent(
             tenant_id=tenant_id,
@@ -5599,18 +5959,23 @@ def create_specialized_agents(session, tenant_id: int, bot_id: int, bot, core_fe
             agent_role="greeting",
             llm_provider_id=llm["llm_id"],
             llm_model_id=llm["llm_id"],
-            tool_type=None,
-            tool_id=None,
+            tool_type="local",
+            tool_id=resolved_tool_id,
             knowledge_base_ids=[],
             agent_key=greeting_key,
             deployment_method="local",
+            agent_status=AgentStatusEnum.LIVE,
             del_flg=False
         )
         session.add(greeting)
         session.flush()
-    
+    else:
+        greeting.tool_id = resolved_tool_id
+        greeting.agent_status = AgentStatusEnum.LIVE
+        session.flush()
+
     agents["greeting"] = greeting.agent_id
-    
+
     # 3. KB AGENT (knowledge retrieval only)
     if has_kb:
         kb_key = f"bot-{bot_id}-kb"
@@ -5619,7 +5984,7 @@ def create_specialized_agents(session, tenant_id: int, bot_id: int, bot, core_fe
             agent_key=kb_key,
             del_flg=False
         ).first()
-        
+
         if not kb_agent:
             kb_agent = Agent(
                 tenant_id=tenant_id,
@@ -5628,21 +5993,24 @@ def create_specialized_agents(session, tenant_id: int, bot_id: int, bot, core_fe
                 agent_role="knowledge_retrieval",
                 llm_provider_id=llm["llm_id"],
                 llm_model_id=llm["llm_id"],
-                tool_type=None,
-                tool_id=None,
+                tool_type="local",
+                tool_id=resolved_tool_id,
                 knowledge_base_ids=kb_ids,
                 agent_key=kb_key,
                 deployment_method="local",
+                agent_status=AgentStatusEnum.LIVE,
                 del_flg=False
             )
             session.add(kb_agent)
             session.flush()
-        elif kb_agent.knowledge_base_ids != kb_ids:
+        else:
             kb_agent.knowledge_base_ids = kb_ids
+            kb_agent.tool_id = resolved_tool_id
+            kb_agent.agent_status = AgentStatusEnum.LIVE
             session.flush()
-        
+
         agents["kb"] = kb_agent.agent_id
-    
+
     # 4. TOOL AGENT (action execution)
     if has_tools:
         tool_key = f"bot-{bot_id}-tools"
@@ -5651,7 +6019,7 @@ def create_specialized_agents(session, tenant_id: int, bot_id: int, bot, core_fe
             agent_key=tool_key,
             del_flg=False
         ).first()
-        
+
         if not tool_agent:
             tool_agent = Agent(
                 tenant_id=tenant_id,
@@ -5660,16 +6028,22 @@ def create_specialized_agents(session, tenant_id: int, bot_id: int, bot, core_fe
                 agent_role="tool_executor",
                 llm_provider_id=llm["llm_id"],
                 llm_model_id=llm["llm_id"],
-                tool_type="mcp",
-                tool_id=None,
+                tool_type=resolved_tool_type,
+                tool_id=resolved_tool_id,
                 knowledge_base_ids=[],
                 agent_key=tool_key,
                 deployment_method="local",
+                agent_status=AgentStatusEnum.LIVE,
                 del_flg=False
             )
             session.add(tool_agent)
             session.flush()
-        
+        else:
+            tool_agent.tool_type = resolved_tool_type
+            tool_agent.tool_id = resolved_tool_id
+            tool_agent.agent_status = AgentStatusEnum.LIVE
+            session.flush()
+
         attached_count = attach_mcp_tools_to_agent(
             session,
             tenant_id,
@@ -5726,16 +6100,21 @@ def create_specialized_agents(session, tenant_id: int, bot_id: int, bot, core_fe
             agent_role="response_formatter",
             llm_provider_id=llm["llm_id"],
             llm_model_id=llm["llm_id"],
-            tool_type=None,
-            tool_id=None,
+            tool_type="local",
+            tool_id=resolved_tool_id,
             knowledge_base_ids=[],
             agent_key=response_key,
             deployment_method="local",
+            agent_status=AgentStatusEnum.LIVE,
             del_flg=False
         )
         session.add(response_agent)
         session.flush()
-    
+    else:
+        response_agent.tool_id = resolved_tool_id
+        response_agent.agent_status = AgentStatusEnum.LIVE
+        session.flush()
+
     agents["response"] = response_agent.agent_id
     
     return {
@@ -5743,6 +6122,144 @@ def create_specialized_agents(session, tenant_id: int, bot_id: int, bot, core_fe
         "kb_ids": kb_ids,
         "tool_names": sorted(list(selected_tools)),
     }
+
+
+def _initialize_workflow_for_bot(bot, tenant_id: int) -> dict:
+    """
+    Creates or regenerates the workflow diagram for a bot without requiring
+    an HTTP request context. Intended to be called after configure-and-publish.
+    Returns dict with diagram_id, status, and architecture.
+    """
+    session = None
+    bot_id = bot.bot_id
+    try:
+        session = next(db_session())
+
+        # Re-fetch bot from this session to avoid DetachedInstanceError
+        bot = session.query(CustomBot).filter_by(bot_id=bot_id, del_flg=False).first()
+        if not bot:
+            raise ValueError(f"Bot {bot_id} not found when initializing workflow")
+
+        workflow_name = _resolve_workflow_name(bot, bot_id)
+        legacy_workflow_name = f"custom_bot_new_{bot_id}"
+        requested_channel = getattr(bot.channel, "value", None) or "website"
+        requested_core_features = bot.core_features
+
+        existing_diagram = (
+            session.query(BotDiagram)
+            .filter(
+                BotDiagram.tenant_id == tenant_id,
+                BotDiagram.workflow_name.in_([workflow_name, legacy_workflow_name]),
+                BotDiagram.del_flg == False,
+                or_(BotDiagram.bot_id == bot_id, BotDiagram.bot_id.is_(None))
+            )
+            .order_by(desc(BotDiagram.diagram_id))
+            .first()
+        )
+
+        channel_key = str(requested_channel or "").strip().lower()
+        architecture = "single_bot_agent"
+
+        if channel_key in {"whatsapp", "slack", "website"}:
+            unified = create_unified_bot_agent(
+                session=session,
+                tenant_id=tenant_id,
+                bot_id=bot_id,
+                bot=bot,
+                core_features=requested_core_features,
+            )
+            agent_ids = {"bot": unified["agent_id"]}
+            diagram = build_single_bot_agent_workflow(
+                bot_id=bot_id,
+                tenant_id=tenant_id,
+                bot_agent_id=unified["agent_id"],
+                channel=requested_channel,
+                kb_ids=unified.get("kb_ids"),
+                tool_names=unified.get("tool_names"),
+                bot_name=(getattr(bot, "bot_name", None) or "").strip() or None,
+                memory_mode=getattr(bot, "memory_mode", None),
+            )
+        else:
+            specialized = create_specialized_agents(
+                session=session,
+                tenant_id=tenant_id,
+                bot_id=bot_id,
+                bot=bot,
+                core_features=requested_core_features,
+            )
+            agent_ids = specialized["agents"]
+            architecture = "multi_agent_router"
+            diagram = build_multi_agent_chat_workflow(
+                bot_id=bot_id,
+                tenant_id=tenant_id,
+                router_agent_id=agent_ids["router"],
+                greeting_agent_id=agent_ids["greeting"],
+                kb_agent_id=agent_ids.get("kb"),
+                tool_agent_id=agent_ids.get("tool"),
+                response_agent_id=agent_ids.get("response"),
+                channel=requested_channel,
+                kb_ids=specialized.get("kb_ids"),
+                tool_names=specialized.get("tool_names"),
+            )
+
+        diagram = _hydrate_trigger_credentials_in_diagram(
+            diagram_data=diagram,
+            session=session,
+            tenant_id=tenant_id,
+            bot_id=bot_id,
+            channel=requested_channel,
+        )
+
+        if existing_diagram:
+            existing_diagram.diagram_json = json.dumps(diagram)
+            existing_diagram.channel = requested_channel
+            existing_diagram.status = "Live"
+            if channel_key == "whatsapp":
+                extract_and_store_whatsapp_triggers(
+                    diagram, bot_id, tenant_id, session, existing_diagram.diagram_id
+                )
+            elif channel_key == "slack":
+                extract_and_store_slack_triggers(
+                    diagram, bot_id, tenant_id, session, existing_diagram.diagram_id
+                )
+            session.commit()
+            return {
+                "diagram_id": existing_diagram.diagram_id,
+                "status": "Live",
+                "architecture": architecture,
+            }
+
+        new_diagram = _create_bot_diagram_with_fk_compat(
+            session=session,
+            bot_id=bot_id,
+            tenant_id=tenant_id,
+            workflow_name=workflow_name,
+            channel=requested_channel,
+            status="Live",
+            diagram_json=json.dumps(diagram),
+        )
+        if channel_key == "whatsapp":
+            extract_and_store_whatsapp_triggers(
+                diagram, bot_id, tenant_id, session, new_diagram.diagram_id
+            )
+        elif channel_key == "slack":
+            extract_and_store_slack_triggers(
+                diagram, bot_id, tenant_id, session, new_diagram.diagram_id
+            )
+        session.commit()
+        return {
+            "diagram_id": new_diagram.diagram_id,
+            "status": "Live",
+            "architecture": architecture,
+        }
+
+    except Exception:
+        if session is not None:
+            session.rollback()
+        raise
+    finally:
+        if session is not None:
+            session.close()
 
 
 @bot_diagram_blueprint.route("/<int:bot_id>/initialize-workflow", methods=["POST"])
@@ -5828,7 +6345,7 @@ def initialize_bot_workflow_v2(bot_id):
         channel_key = str(requested_channel or "").strip().lower()
         architecture = "multi_agent_router"
 
-        if channel_key in {"whatsapp", "slack"}:
+        if channel_key in {"whatsapp", "slack", "website"}:
             unified = create_unified_bot_agent(
                 session=session,
                 tenant_id=tenant_id,
@@ -5855,6 +6372,8 @@ def initialize_bot_workflow_v2(bot_id):
                 channel=requested_channel,
                 kb_ids=unified.get("kb_ids"),
                 tool_names=unified.get("tool_names"),
+                bot_name=(getattr(bot, "bot_name", None) or "").strip() or None,
+                memory_mode=getattr(bot, "memory_mode", None),
             )
             architecture = "single_bot_agent"
         else:
@@ -5909,7 +6428,7 @@ def initialize_bot_workflow_v2(bot_id):
             )
             existing_diagram.diagram_json = json.dumps(diagram)
             existing_diagram.channel = requested_channel
-            existing_diagram.status = "updated"
+            existing_diagram.status = "Live"
             channel_key = str(requested_channel or "").strip().lower()
             if channel_key == "whatsapp":
                 extract_and_store_whatsapp_triggers(
@@ -5930,7 +6449,7 @@ def initialize_bot_workflow_v2(bot_id):
             session.commit()
 
             return jsonify({
-                "status": "updated",
+                "status": "Live",
                 "architecture": architecture,
                 "message": "Existing workflow diagram has been regenerated",
                 "bot_details": bot_details,
@@ -5957,7 +6476,7 @@ def initialize_bot_workflow_v2(bot_id):
             tenant_id=tenant_id,
             workflow_name=workflow_name,
             channel=requested_channel,
-            status="created",
+            status="Live",
             diagram_json=json.dumps(diagram)
         )
 
@@ -5981,7 +6500,7 @@ def initialize_bot_workflow_v2(bot_id):
         session.commit()
 
         return jsonify({
-            "status": "created",
+            "status": "Live",
             "architecture": architecture,
             "bot_details": bot_details,
             "workflow_id": new_diagram.diagram_id,

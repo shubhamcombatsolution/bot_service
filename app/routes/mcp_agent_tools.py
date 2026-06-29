@@ -70,6 +70,8 @@ def add_or_update_mcp_agent_tool():
             existing_tool.action_tools_description = list(
                 set(old_desc) | set(new_desc)
             )
+            # Re-activate if previously soft-deleted
+            existing_tool.del_flag = False
             session.commit()
 
             return jsonify({
@@ -202,37 +204,118 @@ def delete_action_tool(agent_id):
     try:
         claims = get_jwt()
         tenant_id = claims.get("tenant_id")
-        data = request.get_json()
-        tool_name = data.get("tool_name")
+        data = request.get_json() or {}
+        tool_name = (data.get("tool_name") or "").strip()
+        selected_tool = (data.get("selected_tool") or "").strip()
+        mcp_url = (data.get("mcp_url") or "").strip()
+        mcp_id = data.get("mcp_id")
+        action_tools = data.get("action_tools") or []
+        row_id = data.get("id") or data.get("tool_id")
 
-        if not tool_name:
+        if not tool_name and row_id is None:
             return jsonify({
                 "status": "error",
-                "message": "tool_name is required"
+                "message": "tool_name or id is required"
             }), 400
+
+        def _norm(value):
+            return str(value or "").strip().lower()
 
         session = next(db_session())
 
-        # Find the tool record
-        mcp_tool = session.query(McpAgentTools).filter_by(
+        all_candidate_tools = session.query(McpAgentTools).filter_by(
             tenant_id=tenant_id,
-            agent_id=agent_id,
-            tool_name=tool_name
-        ).first()
+            agent_id=agent_id
+        ).all()
+        active_candidate_tools = [tool for tool in all_candidate_tools if not tool.del_flag]
 
-        if not mcp_tool:
+        matched_tools = []
+
+        if row_id is not None:
+            try:
+                row_id_int = int(row_id)
+            except (TypeError, ValueError):
+                row_id_int = None
+            if row_id_int is not None:
+                matched_tools = [
+                    candidate
+                    for candidate in active_candidate_tools
+                    if candidate.id == row_id_int
+                ]
+                if not matched_tools:
+                    matched_tools = [
+                        candidate
+                        for candidate in all_candidate_tools
+                        if candidate.id == row_id_int
+                    ]
+
+        if not matched_tools:
+            target_names = {_norm(tool_name), _norm(selected_tool)}
+            target_names.discard("")
+            target_actions = {_norm(action) for action in (action_tools or [])}
+            target_actions.discard("")
+
+            def _matches(candidate):
+                candidate_name = _norm(candidate.tool_name)
+                if candidate_name and candidate_name in target_names:
+                    return True
+
+                candidate_actions = {
+                    _norm(action)
+                    for action in (candidate.action_tools or [])
+                }
+                if candidate_actions & target_names:
+                    return True
+                if target_actions and candidate_actions & target_actions:
+                    return True
+
+                candidate_desc = {
+                    _norm(action)
+                    for action in (candidate.action_tools_description or [])
+                }
+                if candidate_desc & target_names:
+                    return True
+
+                if mcp_url and _norm(candidate.mcp_url) == _norm(mcp_url):
+                    return True
+
+                if mcp_id is not None:
+                    try:
+                        if candidate.mcp_id == int(mcp_id):
+                            return True
+                    except (TypeError, ValueError):
+                        pass
+
+                return False
+
+            matched_tools = [candidate for candidate in active_candidate_tools if _matches(candidate)]
+            if not matched_tools:
+                matched_tools = [candidate for candidate in all_candidate_tools if _matches(candidate)]
+
+        if not matched_tools and len(all_candidate_tools) == 1:
+            matched_tools = [all_candidate_tools[0]]
+
+        if len(matched_tools) > 1 and row_id is None:
+            return jsonify({
+                "status": "error",
+                "message": "Multiple matching tools found. Please send the tool row id."
+            }), 409
+
+        if not matched_tools:
             return jsonify({
                 "status": "error",
                 "message": "MCP Agent Tool not found"
             }), 404
 
-        # Delete the tool row entirely
-        session.delete(mcp_tool)
+        already_deleted = all(mcp_tool.del_flag for mcp_tool in matched_tools)
+        for mcp_tool in matched_tools:
+            mcp_tool.del_flag = True
+
         session.commit()
 
         return jsonify({
             "status": "success",
-            "message": f"MCP Agent Tool '{tool_name}' deleted successfully"
+            "message": f"MCP Agent Tool '{tool_name}' {'already deleted' if already_deleted else 'deleted successfully'}"
         })
 
     except Exception as e:

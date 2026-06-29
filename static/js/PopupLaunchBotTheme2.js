@@ -335,7 +335,6 @@
     const ldBtn       = root.querySelector("#t2-menu-load");
     const clrBtn      = root.querySelector("#t2-menu-clear");
     const launcher    = root.querySelector("#chat-launcher");
-    const minimizeBtn = root.querySelector("#t2-minimize-btn");
 
     /* ── disable input until validated ── */
     chatInput.disabled     = true;
@@ -388,8 +387,8 @@
           if (authToken) headers["Authorization"] = `Bearer ${authToken}`;
 
           const historyUrl = InstanceId
-            ? `${BASE_URL}/api/custom_bot_new/chat-history/${InstanceId}`
-            : `${BASE_URL}/api/chat_history/${BotId}`;
+            ? `${BASE_URL}/custom_bot_new/chat-history/${InstanceId}`
+            : `${BASE_URL}/chat_history/${BotId}`;
 
           const histRes = await fetch(historyUrl, { headers });
           if (histRes.ok) {
@@ -495,14 +494,6 @@
         setChatOpen(!launcher.classList.contains("is-open"));
       });
     }
-
-    if (minimizeBtn) {
-      minimizeBtn.addEventListener("click", () => {
-        if (dropdown) dropdown.classList.remove("open");
-        setChatOpen(false);
-      });
-    }
-
 
     if (dlBtn) dlBtn.addEventListener("click",  () => { downloadChat();   if (dropdown) dropdown.classList.remove("open"); });
     if (ldBtn) ldBtn.addEventListener("click",  () => { loadChatHistory(); if (dropdown) dropdown.classList.remove("open"); });
@@ -641,9 +632,6 @@
     <div class="header-left-theme2">${avatarImg}</div>
     <div class="header-center-theme2"><span class="bot-name">${botName}</span></div>
     <div class="header-right-theme2">
-      <button type="button" class="chat-minimize-btn-theme2" id="t2-minimize-btn" aria-label="Minimize chat">
-        <span></span>
-      </button>
       <button type="button" class="three-dots-theme2" id="t2-dots-btn"
               aria-label="Menu" aria-expanded="false">
         <span></span><span></span><span></span>

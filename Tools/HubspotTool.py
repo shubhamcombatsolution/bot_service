@@ -20,11 +20,13 @@ logging.basicConfig(level=logging.INFO)
 
 class HubSpotTool(BaseTool):
 
-    AUTH_URL = "https://app.hubspot.com/oauth/authorize"
+    # AUTH_URL = "https://app.hubspot.com/oauth/authorize"
+    AUTH_URL = "https://app-na2.hubspot.com/oauth/authorize"
     TOKEN_URL = "https://api.hubapi.com/oauth/v1/token"
     API_BASE = "https://api.hubapi.com"
 
     SCOPES = [
+        "oauth",
         "crm.objects.contacts.read",
         "crm.objects.contacts.write",
         "crm.objects.companies.read",
@@ -36,7 +38,6 @@ class HubSpotTool(BaseTool):
         "crm.objects.orders.read",
         "crm.objects.orders.write",
         "crm.objects.owners.read",
-        "oauth"
     ]
     
 

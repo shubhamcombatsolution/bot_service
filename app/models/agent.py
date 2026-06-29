@@ -110,6 +110,9 @@ class Agent(db.Model):
     # System
     # ---------------------------------------------------
 
+    # Tracks the highest wizard step saved (0=overview,1=behaviour,2=kb,3=guardrails,4=aiconfig,5=published)
+    completed_step = db.Column(db.Integer, nullable=False, default=0, server_default='0')
+
     import_source = db.Column(db.String(20), nullable=True, default=None)
     imported_at   = db.Column(db.DateTime, nullable=True, default=None)
     additional_instructions = db.Column(db.Text, nullable=True)
@@ -259,5 +262,6 @@ class Agent(db.Model):
             "created_at":    self.created_at.isoformat() if self.created_at else None,
             "updated_at":    self.updated_at.isoformat() if self.updated_at else None,
 
-            "del_flg": self.del_flg
+            "del_flg": self.del_flg,
+            "completed_step": self.completed_step or 0
         }

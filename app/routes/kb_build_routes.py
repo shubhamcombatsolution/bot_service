@@ -10,6 +10,7 @@ from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from qdrant_client import QdrantClient
 from app.models.knowledge_base import KnowledgeBase
+from sqlalchemy import text
 from app.database.DatabaseOperationPostgreSQL import db_session
 from app.services.build_tasks_manager import get_build_tasks_manager, BuildStatus
 from logging_config import setup_logging
@@ -183,28 +184,44 @@ def retry_build(task_id: str):
         
         if old_task.get("status") != BuildStatus.FAILED.value:
             return jsonify({"status": "error", "message": "Only failed builds can be retried"}), 400
-        
+
+        # Validate that the old task had actual content — retrying empty metadata always fails
+        old_metadata = old_task.get("metadata", {})
+        has_files = bool(old_metadata.get("files"))
+        has_urls = bool(old_metadata.get("scrap_urls"))
+        has_text = bool((old_metadata.get("raw_text") or "").strip())
+
+        if not has_files and not has_urls and not has_text:
+            return jsonify({
+                "status": "error",
+                "message": (
+                    "Cannot retry: the original build had no content sources "
+                    "(no files, URLs, or text). "
+                    "Please update the knowledge base with content and rebuild."
+                )
+            }), 400
+
         # Get the knowledge base to retry
         kb_id = old_task.get("knowledge_base_id")
         if not kb_id:
             return jsonify({"status": "error", "message": "No knowledge base associated with this task"}), 400
-        
+
         session = next(db_session())
         try:
             kb = session.query(KnowledgeBase).filter_by(
                 knowledge_base_id=kb_id,
                 tenant_id=tenant_id
             ).first()
-            
+
             if not kb:
                 return jsonify({"status": "error", "message": "Knowledge base not found"}), 404
-            
+
             # Create new task
             new_task_id = manager.create_task(
                 tenant_id=tenant_id,
                 knowledge_base_name=kb.knowledge_base_name,
                 knowledge_base_id=kb_id,
-                metadata=old_task.get("metadata", {})
+                metadata=old_metadata
             )
             
             # Update KB status
@@ -618,6 +635,19 @@ def update_knowledge_base_async(kb_id):
         ]
         scrap_urls = list(dict.fromkeys(scrap_urls))
 
+        from app.routes.knowledge_base_routes import _is_placeholder_crawl_url
+        placeholder_urls = [url for url in scrap_urls if _is_placeholder_crawl_url(url)]
+        if scrap_urls and len(placeholder_urls) == len(scrap_urls) and not saved_files and not raw_text_new:
+            session.close()
+            return jsonify({
+                "status": "error",
+                "message": (
+                    "The submitted URLs are placeholder or local test addresses "
+                    "(for example, example.com), which usually return no crawlable content. "
+                    "Please replace them with a real public URL or upload files/text."
+                )
+            }), 400
+
         # If no URLs are sent in update request, keep existing DB value
         scrap_url_str = ",".join(scrap_urls) if scrap_urls else kb.scrap_url
         existing_files = [x.strip() for x in (kb.upload_pdf or "").split(",") if x.strip()]
@@ -637,12 +667,44 @@ def update_knowledge_base_async(kb_id):
                 "message": f"Total URLs are too long ({len(scrap_url_str)} chars). Please reduce URL count or use shorter URLs."
             }), 400
 
+        # ✅ REMOVED FILES (existing files the user deleted from the chip list)
+        removed_files = request.form.getlist("removed_files")
+        removed_files_alt = request.form.getlist("removed_files[]")
+        if removed_files_alt:
+            removed_files.extend(removed_files_alt)
+        removed_files = [f.strip() for f in removed_files if f.strip()]
+
+        # Remove deleted files from the merged upload_pdf DB value
+        if removed_files and merged_upload_pdf_str:
+            remaining = [f for f in merged_files if f not in removed_files]
+            merged_upload_pdf_str = ",".join(remaining) if remaining else None
+
+        raw_text_new = data.get("raw_text", "").strip()
+
+        # If no new content is provided, skip the background rebuild entirely.
+        # Existing Qdrant embeddings are preserved; only DB metadata fields are updated.
+        if not saved_files and not scrap_urls and not raw_text_new:
+            kb.knowledge_base_name = knowledge_base_name
+            kb.description = description
+            kb.kb_summary = kb_summary
+            if merged_upload_pdf_str is not None:
+                kb.upload_pdf = merged_upload_pdf_str
+            kb.scrap_url = scrap_url_str
+            session.commit()
+            session.close()
+            return jsonify({
+                "status": "success",
+                "message": "Knowledge base updated (no content rebuild needed)",
+                "data": {"knowledge_base_id": kb_id}
+            }), 200
+
         # ✅ METADATA
         metadata = {
             "upload_dir": upload_dir,
             "files": saved_files,
             "scrap_urls": scrap_urls,
-            "raw_text": data.get("raw_text", "").strip(),
+            "removed_files": removed_files,
+            "raw_text": raw_text_new,
             "provider": data.get("provider", "").strip(),
             "embedding_model": data.get("embeddingModel", "").strip(),
             "secret_key": data.get("secretKey", "").strip(),
@@ -754,6 +816,13 @@ def delete_knowledge_base(kb_id):
                 "message": "Knowledge base not found"
             }), 404
 
+        # ✅ NULLIFY FK ON ANY BOTS REFERENCING THIS KB
+        # The column exists in DB but is not mapped in the ORM, so use raw SQL
+        session.execute(
+            text("UPDATE tbl_custombot SET knowledge_base_id = NULL WHERE knowledge_base_id = :kb_id"),
+            {"kb_id": kb_id}
+        )
+
         # ✅ DELETE QDRANT COLLECTION (IMPORTANT)
         if kb.collection_name:
             try:
@@ -783,6 +852,64 @@ def delete_knowledge_base(kb_id):
             "status": "error",
             "message": f"Internal server error: {str(e)}"
         }), 500
+
+    finally:
+        if session:
+            session.close()
+
+
+@kb_build_blueprint.route("/delete-all", methods=["DELETE"])
+@jwt_required()
+def delete_all_knowledge_bases():
+    """Delete all knowledge bases for the authenticated tenant."""
+    session = None
+    try:
+        claims = get_jwt()
+        tenant_id = claims.get("tenant_id")
+
+        if not tenant_id:
+            return jsonify({"status": "error", "message": "Tenant ID not found in token"}), 401
+
+        session = next(db_session())
+
+        kbs = session.query(KnowledgeBase).filter_by(tenant_id=tenant_id).all()
+
+        if not kbs:
+            return jsonify({"status": "success", "message": "No knowledge bases to delete", "deleted": 0}), 200
+
+        kb_ids = [kb.knowledge_base_id for kb in kbs]
+
+        # Nullify FK on any bots referencing these KBs
+        session.execute(
+            text("UPDATE tbl_custombot SET knowledge_base_id = NULL WHERE knowledge_base_id = ANY(:ids)"),
+            {"ids": kb_ids}
+        )
+
+        # Delete Qdrant collections
+        deleted_count = 0
+        for kb in kbs:
+            if kb.collection_name:
+                try:
+                    qdrant.delete_collection(kb.collection_name)
+                except Exception as e:
+                    logger.warning(f"Qdrant delete failed for {kb.collection_name}: {str(e)}")
+            session.delete(kb)
+            deleted_count += 1
+
+        session.commit()
+        logger.info(f"Deleted all {deleted_count} KBs for tenant={tenant_id}")
+
+        return jsonify({
+            "status": "success",
+            "message": f"All knowledge bases deleted successfully",
+            "deleted": deleted_count
+        }), 200
+
+    except Exception as e:
+        if session:
+            session.rollback()
+        logger.error(f"Error deleting all KBs: {str(e)}")
+        return jsonify({"status": "error", "message": f"Internal server error: {str(e)}"}), 500
 
     finally:
         if session:

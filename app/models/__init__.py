@@ -64,3 +64,4 @@ from .agent_versions import AgentVersion
 from .whatsapp_cred import WhatsAppCred
 from .slack_cred import SlackCred
 from .prebuilt_agent_monorepo_log import PrebuiltAgentMonorepoLog
+from .bot_template import BotTemplate

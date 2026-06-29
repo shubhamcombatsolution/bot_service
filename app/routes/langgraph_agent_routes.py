@@ -472,12 +472,16 @@ def create_llm(config: AgentConfig) -> BaseLanguageModel:
 def build_react_prompt(config: AgentConfig, task: str, tools: List[Any]) -> PromptTemplate:
     # tool_names = [tool.name for tool in tools] if tools else []
     # tools_description = "\n".join([f"{tool.name}: {tool.description}" for tool in tools]) if tools else "No tools available."
-    
+
+    # Escape any literal { } in the task so LangChain does not treat them as
+    # PromptTemplate variables (e.g. JSON output blocks in the TASK prompt).
+    safe_task = task.replace("{", "{{").replace("}", "}}")
+
     base_prompt = f"""You are {config.name}, a {config.description} agent. Answer the following questions as best you can. You have access to the following tools:
 
 {{tools}}
 
-Your task is: {task}.
+Your task is: {safe_task}.
 Use the following format:
 
 Question: the input question you must answer

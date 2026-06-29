@@ -36,6 +36,7 @@ from app.models.tenant import Tenant
 import json
 from app.models import db
 from app.routes.helpers.common_utils import compute_snapshot_hash
+from app.utils import check_create_agent
 
 # Load environment variables
 load_dotenv()
@@ -359,6 +360,12 @@ def create_agent():
             return error_response(message = "Tenant ID not found", data = None, code = 401)
 
         session = next(db_session())
+
+        # Check agent creation limit
+        can_create, limit_info = check_create_agent(session, tenant_id)
+        if not can_create:
+            session.close()
+            return error_response(message=limit_info.get("message", "Agent limit reached. Please upgrade your plan."), data=limit_info, code=403)
 
         # Give a default name to satisfy NOT NULL constraint
         default_name = f"New Agent {datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
@@ -742,6 +749,61 @@ def update_agent(agent_id):
             ).all()
             agent.knowledge_base_ids = [kb.knowledge_base_id for kb in valid_kbs]
 
+        selected_tools = data.get("selected_tools")
+        if selected_tools is not None:
+            if not isinstance(selected_tools, list):
+                return error_response(message = "selected_tools must be a list", data = {}, code = 400)
+
+            existing_tools = session.query(McpAgentTools).filter_by(
+                tenant_id=tenant_id,
+                agent_id=agent_id,
+                del_flag=False
+            ).all()
+            for existing_tool in existing_tools:
+                existing_tool.del_flag = True
+
+            for tool in selected_tools:
+                if not isinstance(tool, dict):
+                    continue
+
+                tool_name = (tool.get("tool_name") or "").strip()
+                selected_tool = (tool.get("selected_tool") or "").strip()
+                if tool_name.lower() in ("invoker", "generic", "unknown", "") and selected_tool:
+                    tool_name = selected_tool
+
+                if not tool_name:
+                    continue
+
+                mcp_url = tool.get("mcp_url")
+                mcp_id = tool.get("mcp_id")
+
+                action_tools = tool.get("action_tools", [])
+                action_tools_description = tool.get("action_tools_description", [])
+
+                if action_tools is None:
+                    action_tools = []
+                elif isinstance(action_tools, str):
+                    action_tools = [action_tools]
+                elif not isinstance(action_tools, list):
+                    action_tools = list(action_tools)
+
+                if action_tools_description is None:
+                    action_tools_description = []
+                elif isinstance(action_tools_description, str):
+                    action_tools_description = [action_tools_description]
+                elif not isinstance(action_tools_description, list):
+                    action_tools_description = list(action_tools_description)
+
+                session.add(McpAgentTools(
+                    tenant_id=tenant_id,
+                    agent_id=agent_id,
+                    tool_name=tool_name,
+                    mcp_url=mcp_url,
+                    mcp_id=mcp_id,
+                    action_tools=action_tools,
+                    action_tools_description=action_tools_description
+                ))
+
 
         session.commit()
         
@@ -1023,17 +1085,19 @@ def delete_agent(agent_id):
 
 
 # Middleware to validate API key and fetch tenant details
+# Returns (user, account_name, error_response) — account_name derived from user.account_name
 def validate_api_key():
     api_key = request.headers.get("X-API-Key")
     if not api_key:
-        return None, jsonify({"data": {}, "message": "API key is required", "status": "error"}), 401
+        return None, None, jsonify({"data": {}, "message": "API key is required", "status": "error"}), 401
 
     session = next(db_session())
     try:
         user = session.query(LoginUser).filter_by(api_key=api_key, del_flg=False).first()
         if not user:
-            return None, jsonify({"data": {}, "message": "Invalid API key", "status": "error"}), 401
-        return user, None
+            return None, None, jsonify({"data": {}, "message": "Invalid API key", "status": "error"}), 401
+        account_name = getattr(user, "account_name", None)
+        return user, account_name, None
     finally:
         session.close()
 
@@ -1632,9 +1696,10 @@ def get_agent_api(agent_id):
         llm_config = session.query(LLM).filter_by(llm_id=agent.llm_model_id).first()
         llm_model = llm_config.base_llm if llm_config else None
 
-        # Build API documentation
-        base_url = f"https://{user.account_name}.jnanic.com"
-        
+        # Use api.jnanic.com — stable SSL cert; subdomain URLs may have cert issues
+        base_url = "https://api.jnanic.com"
+        api_key   = user.api_key or ""
+
         api_details = {
             "agent_info": {
                 "agent_id": agent.agent_id,
@@ -1649,7 +1714,7 @@ def get_agent_api(agent_id):
             },
             "api_endpoints": {
                 "chat": {
-                    "endpoint": f"{base_url}/agents/chat/{agent.agent_key}",
+                    "endpoint": f"{base_url}/agents/stream/{agent.agent_key}",
                     "method": "POST",
                     "description": "Send a message to the agent and receive a response"
                 },
@@ -1667,6 +1732,7 @@ def get_agent_api(agent_id):
             "authentication": {
                 "type": "API Key",
                 "header": "X-API-Key",
+                "api_key": api_key,
                 "description": "Include your API key in the X-API-Key header"
             },
             "request_schemas": {
@@ -1699,9 +1765,9 @@ def get_agent_api(agent_id):
             },
             "code_examples": {
                 "curl": {
-                    "chat": f"""curl -X POST '{base_url}/agents/chat/{agent.agent_key}' \\
+                    "chat": f"""curl -X POST '{base_url}/agents/stream/{agent.agent_key}' \\
   -H 'Content-Type: application/json' \\
-  -H 'X-API-Key: <your-api-key>' \\
+  -H 'X-API-Key: {api_key}' \\
   -d '{{
     "message": "Hello, how can you help me?",
     "session_id": "unique-session-id",
@@ -1709,18 +1775,18 @@ def get_agent_api(agent_id):
   }}'""",
                     "stream": f"""curl -X POST '{base_url}/agents/stream/{agent.agent_key}' \\
   -H 'Content-Type: application/json' \\
-  -H 'X-API-Key: <your-api-key>' \\
+  -H 'X-API-Key: {api_key}' \\
   -d '{{
     "message": "Tell me a story"
   }}'""",
                     "info": f"""curl -X GET '{base_url}/agents/info/{agent.agent_key}' \\
-  -H 'X-API-Key: <your-api-key>'"""
+  -H 'X-API-Key: {api_key}'"""
                 },
                 "python": f"""import requests
 import json
 
 # Configuration
-API_KEY = '<your-api-key>'
+API_KEY = '{api_key}'
 AGENT_KEY = '{agent.agent_key}'
 BASE_URL = '{base_url}'
 
@@ -1773,7 +1839,7 @@ try:
 except Exception as e:
     print(f"Error: {{e}}")""",
                 "javascript": f"""// Using fetch API
-const API_KEY = '<your-api-key>';
+const API_KEY = '{api_key}';
 const AGENT_KEY = '{agent.agent_key}';
 const BASE_URL = '{base_url}';
 
@@ -1847,7 +1913,7 @@ async function streamResponse(message) {{
                 "node": f"""const axios = require('axios');
 
 // Configuration
-const API_KEY = '<your-api-key>';
+const API_KEY = '{api_key}';
 const AGENT_KEY = '{agent.agent_key}';
 const BASE_URL = '{base_url}';
 
@@ -1986,6 +2052,12 @@ def create_agent_new():
             logger.warning(f"Invalid tenant | tenant_id={tenant_id}")
             return error_response(message = "Invalid tenant", data = None, code = 401)
 
+        # Check agent creation limit
+        can_create, limit_info = check_create_agent(session, tenant_id)
+        if not can_create:
+            session.close()
+            return error_response(message=limit_info.get("message", "Agent limit reached. Please upgrade your plan."), data=limit_info, code=403)
+
         data = request.get_json() or {}
 
         agent_name = data.get("agent_name")
@@ -2102,7 +2174,8 @@ def create_agent_new():
             data={
                 "agent_id": new_agent.agent_id,
                 "agent_name": new_agent.agent_name,
-                "status": new_agent.agent_status.value
+                "status": new_agent.agent_status.value,
+                "completed_step": new_agent.completed_step or 0
             },
             code=201
         )
@@ -2117,7 +2190,7 @@ def create_agent_new():
 
 @agents_blueprint.route("/<int:agent_id>/overview", methods=["POST", "PATCH"])
 @jwt_required()
-@validate_agent_access(allowed_status=[AgentStatusEnum.DRAFT,AgentStatusEnum.CREATED])
+@validate_agent_access(allowed_status=[AgentStatusEnum.DRAFT, AgentStatusEnum.CREATED, AgentStatusEnum.LIVE])
 def update_overview(agent_id):
 
     session = next(db_session())
@@ -2135,11 +2208,13 @@ def update_overview(agent_id):
         agent.agent_type = data.get("agent_type", agent.agent_type)
         agent.persona_style = data.get("persona_style", agent.persona_style)
 
+        agent.completed_step = max(agent.completed_step or 0, 0)
         session.commit()
 
         return success_response(message = "Overview updated successfully", data = {
                 "agent_id": agent.agent_id,
-                "agent_name": agent.agent_name
+                "agent_name": agent.agent_name,
+                "completed_step": agent.completed_step
             }, code = 200)
 
     except Exception:
@@ -2166,11 +2241,14 @@ def update_behaviour(agent_id):
 
         update_agent_behaviour(agent, data)
 
+        agent.completed_step = max(agent.completed_step or 0, 1)
         session.commit()
 
         logger.info(f"Behaviour saved | agent_id={agent.agent_id}")
 
-        return success_response(message = "Behaviour saved successfully", data = None, code = 200)
+        return success_response(message = "Behaviour saved successfully", data = {
+            "completed_step": agent.completed_step
+        }, code = 200)
 
     except Exception:
         session.rollback()
@@ -2181,7 +2259,7 @@ def update_behaviour(agent_id):
         
 @agents_blueprint.route("/<int:agent_id>/knowledge-base", methods=["POST", "PATCH"])
 @jwt_required()
-@validate_agent_access(allowed_status=[AgentStatusEnum.DRAFT,AgentStatusEnum.CREATED])
+@validate_agent_access(allowed_status=[AgentStatusEnum.DRAFT, AgentStatusEnum.CREATED, AgentStatusEnum.LIVE])
 def update_knowledge_base(agent_id):
 
     session = next(db_session())
@@ -2203,12 +2281,14 @@ def update_knowledge_base(agent_id):
         # Replace (not merge — since wizard step)
         agent.knowledge_base_ids = valid_ids
 
+        agent.completed_step = max(agent.completed_step or 0, 2)
         session.commit()
 
         logger.info(f"Knowledge base updated | agent_id={agent.agent_id}")
 
         return success_response(message = "Knowledge base updated successfully", data = {
-                "knowledge_base_ids": valid_ids
+                "knowledge_base_ids": valid_ids,
+                "completed_step": agent.completed_step
             }, code = 200)
 
     except Exception:
@@ -2221,7 +2301,7 @@ def update_knowledge_base(agent_id):
 
 @agents_blueprint.route("/<int:agent_id>/guardrails", methods=["POST", "PATCH"])
 @jwt_required()
-@validate_agent_access(allowed_status=[AgentStatusEnum.DRAFT,AgentStatusEnum.CREATED])
+@validate_agent_access(allowed_status=[AgentStatusEnum.DRAFT, AgentStatusEnum.CREATED, AgentStatusEnum.LIVE])
 def update_guardrails(agent_id):
 
     session = next(db_session())
@@ -2235,12 +2315,14 @@ def update_guardrails(agent_id):
         data = request.get_json() or {}
         agent.guardrails = build_guardrails_payload(data)
 
+        agent.completed_step = max(agent.completed_step or 0, 3)
         session.commit()
 
         logger.info(f"Guardrails saved | agent_id={agent.agent_id}")
 
         return success_response(message = "Guardrails updated successfully", data = {
-                "guardrails": agent.guardrails
+                "guardrails": agent.guardrails,
+                "completed_step": agent.completed_step
             }, code = 200)
 
     except Exception:
@@ -2256,7 +2338,7 @@ def update_guardrails(agent_id):
 @agents_blueprint.route("/<int:agent_id>/ai-config", methods=["PATCH"])
 @jwt_required()
 @validate_agent_access(
-    allowed_status=[AgentStatusEnum.DRAFT, AgentStatusEnum.CREATED]
+    allowed_status=[AgentStatusEnum.DRAFT, AgentStatusEnum.CREATED, AgentStatusEnum.LIVE]
 )
 def update_ai_config(agent_id):
 
@@ -2319,13 +2401,14 @@ def update_ai_config(agent_id):
         agent.max_tokens = max_tokens
         agent.memory_mode = data.get("memory_mode")
 
+        agent.completed_step = max(agent.completed_step or 0, 4)
         session.commit()
 
         logger.info(f"AI Config updated | agent_id={agent.agent_id}")
 
         return success_response(
             message="AI configuration saved successfully",
-            data=None,
+            data={"completed_step": agent.completed_step},
             code=200
         )
 
@@ -2440,6 +2523,11 @@ def publish_agent_settings(agent_id):
                 deployment_method=deployment_method
             )
 
+        # Step 5 = Conversation saved; step 6 = Publish clicked (even if no snapshot change)
+        if publish_flag:
+            agent.completed_step = max(agent.completed_step or 0, 6)
+        else:
+            agent.completed_step = max(agent.completed_step or 0, 5)
         session.commit()
 
         response_message = "Conversation settings saved successfully"
@@ -2451,7 +2539,10 @@ def publish_agent_settings(agent_id):
 
         return success_response(
             message=response_message,
-            data=publish_response,
+            data={
+                **(publish_response or {}),
+                "completed_step": agent.completed_step
+            },
             code=200
         )
 
@@ -2481,7 +2572,8 @@ def get_behaviour(agent_id):
         return success_response(message = "Success", data = {
                 "agent_instructions": agent.agent_instructions,
                 "instruction_mode": agent.instruction_mode,
-                "agent_type": agent.agent_type
+                "agent_type": agent.agent_type,
+                "completed_step": agent.completed_step or 0
             }, code = 200)
 
     finally:
@@ -2503,13 +2595,14 @@ def get_knowledge_base(agent_id):
         ).first()
 
         return success_response(message = "Success", data = {
-                "knowledge_base_ids": agent.knowledge_base_ids
+                "knowledge_base_ids": agent.knowledge_base_ids,
+                "completed_step": agent.completed_step or 0
             }, code = 200)
 
     finally:
         session.close()
-        
-        
+
+
 @agents_blueprint.route("/<int:agent_id>/guardrails", methods=["GET"])
 @jwt_required()
 @validate_agent_access()
@@ -2523,7 +2616,10 @@ def get_guardrails(agent_id):
             del_flg=False
         ).first()
 
-        return success_response(message = "Success", data = agent.guardrails or {}, code = 200)
+        return success_response(message = "Success", data = {
+            **(agent.guardrails or {}),
+            "completed_step": agent.completed_step or 0
+        }, code = 200)
 
     finally:
         session.close()
@@ -2544,7 +2640,8 @@ def get_ai_config(agent_id):
                 "llm_model_id": agent.llm_model_id,
                 "temperature": agent.temperature,
                 "max_tokens": agent.max_tokens,
-                "memory_mode": agent.memory_mode
+                "memory_mode": agent.memory_mode,
+                "completed_step": agent.completed_step or 0
             }, code = 200)
 
     finally:
@@ -2571,7 +2668,8 @@ def get_conversation(agent_id):
                 "timezone": agent.timezone,
                 "tone": agent.tone,
                 "emoji_mode": agent.emoji_mode,
-                "availability_mode": agent.availability_mode
+                "availability_mode": agent.availability_mode,
+                "completed_step": agent.completed_step or 0
             }, code = 200)
 
     finally:
@@ -2614,14 +2712,22 @@ def get_agent_by_id_new(agent_id):
             return error_response("Agent not found", None, 404)
 
         # ✅ OPTIONAL: fetch tools (like create logic)
-        tools = session.query(McpAgentTools).filter_by(
-            tenant_id=tenant_id,
-            agent_id=agent_id
-        ).all()
+        tools = (
+            session.query(McpAgentTools)
+            .filter(
+                McpAgentTools.tenant_id == tenant_id,
+                McpAgentTools.agent_id == agent_id,
+                McpAgentTools.del_flag == False
+            )
+            .order_by(McpAgentTools.id.desc())
+            .all()
+        )
 
         tools_data = [
             {
+                "id": t.id,
                 "tool_name": t.tool_name,
+                "tool_type": t.tool_type,
                 "mcp_url": t.mcp_url,
                 "mcp_id": t.mcp_id,
                 "action_tools": t.action_tools,
@@ -2662,6 +2768,8 @@ def get_agent_by_id_new(agent_id):
                 "additional_instructions": agent.additional_instructions,
 
                 "tools": tools_data,  # ✅ NEW
+
+                "completed_step": agent.completed_step or 0,
 
                 "created_at": agent.created_at,
                 "updated_at": agent.updated_at
@@ -2832,3 +2940,173 @@ def get_all_agents_new():
     except Exception as e:
         logger.exception("Error fetching agents")
         return error_response(message = str(e), data = [], code = 500)
+
+
+@agents_blueprint.route("/register", methods=["POST"])
+@jwt_required()
+def register_agent():
+    """
+    ✅ NEW ENDPOINT: /agents/register
+    Handles agent creation with comprehensive fields from bot auto-creation
+
+    Accepts:
+    - agent_name (required)
+    - agent_description (required)
+    - agent_role (optional)
+    - agent_instructions (optional)
+    - llm_provider_id (optional, string: 'openai' or integer ID)
+    - llm_model_id (optional, string: 'gpt-4' or integer ID)
+    - completed_step (optional)
+    """
+    session = next(db_session())
+
+    try:
+        claims = get_jwt()
+        tenant_id = claims.get("tenant_id")
+
+        if not tenant_id:
+            logger.warning("Tenant ID missing in JWT")
+            return error_response(message="Unauthorized", data=None, code=401)
+
+        data = request.get_json() or {}
+
+        # Required fields
+        agent_name = data.get("agent_name", "").strip()
+        agent_description = data.get("agent_description", "").strip()
+
+        if not agent_name or not agent_description:
+            return error_response(
+                message="agent_name and agent_description are required",
+                data=None,
+                code=400
+            )
+
+        if len(agent_name) < 3:
+            return error_response(
+                message="Agent name must be at least 3 characters",
+                data=None,
+                code=400
+            )
+
+        # Optional fields with defaults
+        agent_role = data.get("agent_role", "You are a helpful AI assistant.")
+        agent_instructions = data.get("agent_instructions", "")
+        completed_step = data.get("completed_step", 0)
+
+        # LLM Lookup: Accept both string names and IDs
+        llm_provider_name = data.get("llm_provider_id", "openai")
+        llm_model_name = data.get("llm_model_id", "gpt-4")
+
+        # If IDs are passed as integers, use them directly
+        # Otherwise, look them up by name
+        llm_provider_id = None
+
+        if isinstance(llm_provider_name, int):
+            llm_provider_id = llm_provider_name
+        else:
+            # Look up LLM by provider name and model name
+            base_llm = session.query(BaseLLM).filter_by(
+                base_provider=llm_provider_name,
+                base_model_name=llm_model_name
+            ).first()
+
+            if not base_llm:
+                logger.warning(
+                    f"BaseLLM not found | provider={llm_provider_name}, model={llm_model_name}"
+                )
+                return error_response(
+                    message=f"LLM '{llm_provider_name}/{llm_model_name}' not found. Please check available LLMs.",
+                    data=None,
+                    code=400
+                )
+
+            # Find LLM for this tenant with this BaseLLM
+            llm = session.query(LLM).filter_by(
+                tenant_id=tenant_id,
+                base_llm_id=base_llm.base_llm_id,
+                del_flg=False
+            ).first()
+
+            if not llm:
+                logger.warning(
+                    f"LLM not configured for tenant | tenant_id={tenant_id}, base_llm_id={base_llm.base_llm_id}"
+                )
+                return error_response(
+                    message=f"LLM '{llm_provider_name}/{llm_model_name}' not configured for your tenant. Please configure it first.",
+                    data=None,
+                    code=400
+                )
+
+            llm_provider_id = llm.llm_id
+
+        # Get or create a default tool (required by Agent model)
+        # Look for any active tool for this tenant
+        default_tool = session.query(Tools).filter_by(
+            tenant_id=tenant_id,
+            del_flg=False
+        ).first()
+
+        if not default_tool:
+            logger.warning(f"No tools found for tenant {tenant_id}")
+            return error_response(
+                message="No tools available for agent. Please set up tools first.",
+                data=None,
+                code=400
+            )
+
+        tool_id = default_tool.tool_id
+
+        # Create agent with all fields
+        new_agent = Agent(
+            tenant_id=tenant_id,
+            agent_status=AgentStatusEnum.DRAFT,
+            agent_name=agent_name,
+            agent_description=agent_description,
+            agent_role=agent_role,
+            agent_instructions=agent_instructions,
+            llm_provider_id=llm_provider_id,
+            tool_id=tool_id,
+            completed_step=completed_step
+        )
+
+        # Handle knowledge base IDs if provided
+        kb_ids_raw = data.get("knowledge_base_ids")
+        if kb_ids_raw:
+            valid_ids, error = process_agent_kb_ids(session, new_agent, kb_ids_raw)
+            if error:
+                return error_response(message=error, data=None, code=400)
+            new_agent.knowledge_base_ids = valid_ids
+
+        session.add(new_agent)
+        session.commit()
+
+        agent_id = new_agent.agent_id
+        logger.info(
+            f"Agent registered | agent_id={agent_id} | tenant_id={tenant_id} | "
+            f"name={agent_name} | instructions_len={len(agent_instructions)}"
+        )
+
+        return success_response(
+            message="Agent registered successfully",
+            data={
+                "agent_id": agent_id,
+                "agent_name": agent_name,
+                "agent_description": agent_description,
+                "agent_role": agent_role,
+                "agent_instructions": agent_instructions,
+                "status": new_agent.agent_status.value,
+                "completed_step": completed_step or 0
+            },
+            code=201
+        )
+
+    except Exception as e:
+        session.rollback()
+        logger.exception(f"Error registering agent: {str(e)}")
+        return error_response(
+            message=f"Failed to register agent: {str(e)}",
+            data=None,
+            code=500
+        )
+    finally:
+        session.close()

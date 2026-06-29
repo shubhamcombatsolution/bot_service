@@ -15,6 +15,7 @@ from app.models.basellm import BaseLLM
 from app.models.embedding_model import EmbeddingModel
 from app.models.system_embedding_model import SystemEmbeddingModel
 from app.models.knowledge_base import KnowledgeBase
+from app.models.tool_authorization import ToolAuthorization
 from app.services.encryption_utils import decrypt_value
 from logging_config import setup_logging
 
@@ -24,11 +25,104 @@ load_dotenv()
 logger = setup_logging("engine_utils", level="DEBUG")
 
 MCP_SERVICE_URL    = os.getenv("MCP_SERVICE_URL", "http://mcp-service:5006")
-CONSTANT_ENDPOINT = "https://mcp.jnanic.com/call_tool"
-CONSTANT_METHOD   = "POST"
+BB_SERVICE_URL     = os.getenv("BB_SERVICE_URL", "http://bot-builder-service:5000")
+CONSTANT_ENDPOINT  = "https://mcp.jnanic.com/call_tool"
+LOCAL_ENDPOINT     = f"{BB_SERVICE_URL}/local_tool/call"
+CONSTANT_METHOD    = "POST"
 
 # Tools that are always available — no OAuth / MCP record needed
-UTILITY_TOOLS = {"system", "llm", "text", "file", "invoke", "tavily"}
+UTILITY_TOOLS = {"system", "llm", "text", "file", "invoke"}
+
+# Canonical local tool names — quick pre-filter before DB lookup
+_LOCAL_TOOL_NAMES = {
+    "gmail", "calendar", "gcalendar", "gsheets", "sheets", "hubspot",
+}
+
+# Tools routed through the local MCP server (not /local_tool/call, not tbl_mcp_tools)
+_LOCAL_MCP_TOOLS = {"zoom"}
+
+# Inline action definitions for local MCP tools (loaded from tools_config.json equivalent)
+_LOCAL_MCP_TOOL_ACTIONS = {
+    "zoom": [
+        {"action": "create_meeting", "category": "Zoom", "description": "Create a new Zoom meeting and get the join URL and password.", "parameters": [{"name": "topic", "required": True}, {"name": "start_time", "required": True}, {"name": "timezone", "required": False}, {"name": "duration", "required": False}, {"name": "agenda", "required": False}]},
+        {"action": "get_meetings",   "category": "Zoom", "description": "Retrieve all active Zoom meetings.", "parameters": []},
+        {"action": "update_meeting", "category": "Zoom", "description": "Update an existing Zoom meeting by ID.", "parameters": [{"name": "id", "required": True}, {"name": "topic", "required": False}, {"name": "start_time", "required": False}, {"name": "duration", "required": False}, {"name": "timezone", "required": False}]},
+        {"action": "delete_meeting", "category": "Zoom", "description": "Delete an existing Zoom meeting by ID.", "parameters": [{"name": "id", "required": True}]},
+    ],
+}
+
+
+def _get_tool_type_from_agent(tool_name: str, agent_id: int, session) -> str:
+    """
+    Read tool_type directly from tbl_mcp_agent_tools.tool_type column.
+    Returns: 'local' | 'jnanic_mcp' | 'mcp' | 'external'
+    """
+    try:
+        row = session.query(McpAgentTools).filter(
+            McpAgentTools.agent_id == agent_id,
+            McpAgentTools.tool_name.ilike(tool_name),
+            McpAgentTools.del_flag == False,
+        ).first()
+        if row and row.tool_type:
+            return str(row.tool_type).strip().lower()
+    except Exception as e:
+        logger.warning("[TOOL_TYPE_LOOKUP] DB check failed for tool='%s': %s", tool_name, e)
+    return "mcp"  # default
+
+
+def _is_local_tool(tool_name: str, tenant_id: int, session, agent_id: int = None) -> bool:
+    """
+    Returns True if the tool should use the local Python class path (/local_tool/call).
+
+    Priority:
+    1. Read tool_type from tbl_mcp_agent_tools.tool_type (Option A — dedicated column)
+    2. Fallback: check tbl_tool_authorization for tool_type='local'
+    """
+    norm = str(tool_name).strip().lower().replace("jnanic_mcp_", "")
+
+    # Quick reject: only known local-capable tool names
+    if norm not in _LOCAL_TOOL_NAMES:
+        return False
+
+    # ── Priority 1: Read directly from tbl_mcp_agent_tools.tool_type ──
+    if agent_id:
+        ttype = _get_tool_type_from_agent(tool_name, agent_id, session)
+        if ttype == "local":
+            logger.info(
+                "[LOCAL_TOOL_CHECK] tool='%s' agent=%s → local=True (tbl_mcp_agent_tools.tool_type)",
+                tool_name, agent_id,
+            )
+            return True
+        if ttype in ("jnanic_mcp", "mcp", "external"):
+            logger.info(
+                "[LOCAL_TOOL_CHECK] tool='%s' agent=%s → local=False (tool_type=%s)",
+                tool_name, agent_id, ttype,
+            )
+            return False
+
+    # ── Priority 2: Fallback — check tbl_tool_authorization ──
+    # Handles cases where agent_id not provided or tool_type not yet set
+    try:
+        from sqlalchemy import or_
+        # Build name variants to handle mismatches like "Gcalendar" vs "Calendar"
+        name_variants = list({tool_name, norm, norm.replace("g", "", 1).capitalize()})
+        filters = [ToolAuthorization.tool_name.ilike(v) for v in name_variants]
+        row = session.query(ToolAuthorization).filter(
+            ToolAuthorization.tenant_id == tenant_id,
+            ToolAuthorization.tool_type == "local",
+            ToolAuthorization.del_flag == False,
+            or_(*filters),
+        ).first()
+        if row:
+            logger.info(
+                "[LOCAL_TOOL_CHECK] tool='%s' tenant=%s → local=True (fallback tbl_tool_authorization id=%s)",
+                tool_name, tenant_id, row.id,
+            )
+            return True
+    except Exception as e:
+        logger.warning("[LOCAL_TOOL_CHECK] Fallback DB check failed for tool='%s': %s", tool_name, e)
+
+    return False
 
 
 def _normalize_mcp_server_params(mcp_url: str, mcp_json: dict | None) -> dict:
@@ -190,10 +284,14 @@ def _get_mcp_definitions() -> dict:
     Fetch all action definitions from the MCP service.
     Cached per process lifetime (restarted with container).
     Returns: {"gmail": [{"action": ..., "category": ..., "parameters": [...]}], ...}
+    Supplements with tools_config.json so newly added tools (e.g. Tavily) are always
+    known even when the MCP service cache is stale.
     """
     global _mcp_definitions_cache
     if _mcp_definitions_cache is not None:
         return _mcp_definitions_cache
+
+    lookup = {}
 
     try:
         resp = requests.post(
@@ -213,16 +311,34 @@ def _get_mcp_definitions() -> dict:
         if resp.status_code == 200:
             data = resp.json()
             tools_data = data.get("tools", {})
-            lookup = {}
             if isinstance(tools_data, dict):
                 for category, actions in tools_data.items():
                     lookup[category.lower()] = actions
-            _mcp_definitions_cache = lookup
-            logger.info(f"✅ MCP definitions loaded: {list(lookup.keys())}")
-            return lookup
+            logger.info(f"✅ MCP definitions loaded from service: {list(lookup.keys())}")
     except Exception as e:
         logger.warning(f"⚠️ Could not fetch MCP definitions from service: {e}")
-    return {}
+
+    # Supplement with tools_config.json so tools added there are always resolvable
+    # even before the MCP service is restarted (prevents stale cache issues).
+    try:
+        tools_config_path = os.path.join(
+            os.path.dirname(__file__),
+            "../../bb_langgraph_service/tools_config.json",
+        )
+        if os.path.exists(tools_config_path):
+            with open(tools_config_path, "r") as f:
+                tc = json.load(f)
+            for category, tool_list in tc.items():
+                cat_lower = category.lower()
+                if cat_lower not in lookup and isinstance(tool_list, list):
+                    lookup[cat_lower] = tool_list
+                    logger.info("📋 MCP definitions supplemented from tools_config.json: %s", category)
+    except Exception as e:
+        logger.warning("⚠️ Could not load tools_config.json supplement: %s", e)
+
+    _mcp_definitions_cache = lookup
+    logger.info(f"✅ Final MCP definitions: {list(lookup.keys())}")
+    return lookup
 
 
 def _resolve_fallback_actions(tool_base: str, mcp_defs: dict) -> list:
@@ -533,6 +649,10 @@ def prepare_agent_input(
     override_kb_ids: list[int] | None = None,
     agent_type: str = None,  # 🆕 ADD THIS
     llm_model_override: str = None,  # 🆕 ADD THIS FOR DYNAMIC MODEL
+    agent_role_override: str = None,         # 🆕 per-node persona override (bot workflow)
+    agent_instructions_override: str = None, # 🆕 per-node instructions override (bot workflow)
+    tool_names_override: list | None = None, # 🆕 per-node tool subset (bot workflow)
+    memory_mode_override: str = None,        # 🆕 per-node memory mode (bot workflow)
 ) -> dict:
     """
     Prepare the full agent input payload by fetching metadata, MCP tool configs,
@@ -630,6 +750,91 @@ def prepare_agent_input(
             normalized_tool_name = _normalize_tool_name(tool_name)
             logger.info(f"⚙️ Processing agent tool: {tool_name}")
 
+            # ── LOCAL TOOL CHECK ──────────────────────────────────────────
+            # If this tool is registered as type='local' in tbl_tool_authorization,
+            # route it through /local_tool/call (Python class) NOT via MCP server.
+            if _is_local_tool(tool_name, tenant_id, session, agent_id=agent_id):
+                # Fetch action definitions from tbl_mcp_tools (same tenant)
+                # tbl_mcp_tools stores action schemas keyed by tool name
+                tool_base    = tool_name.lower().replace("jnanic_mcp_", "")
+                category_key = tool_name.capitalize()  # e.g. "Gmail", "Gcalendar"
+                local_actions = []
+
+                for mcp_t in tenant_tools:
+                    try:
+                        # Use mcp_action_tools (has full action defs with parameters)
+                        action_field = mcp_t.mcp_action_tools
+                        if isinstance(action_field, str):
+                            action_field = json.loads(action_field)
+                        if isinstance(action_field, dict):
+                            actions_list = (
+                                action_field.get(tool_name)
+                                or action_field.get(tool_name.capitalize())
+                                or action_field.get(category_key)
+                            )
+                            if not actions_list:
+                                for k, v in action_field.items():
+                                    if _normalize_tool_name(k) == _normalize_tool_name(tool_name):
+                                        actions_list = v
+                                        break
+                            if isinstance(actions_list, list) and actions_list:
+                                local_actions = actions_list
+                                break
+                    except Exception:
+                        continue
+
+                # Fallback to MCP service if tbl_mcp_tools had nothing
+                if not local_actions:
+                    mcp_defs      = _get_mcp_definitions()
+                    local_actions = _resolve_fallback_actions(tool_base, mcp_defs) or []
+
+                # Get assigned actions from tbl_mcp_agent_tools
+                assigned_actions = []
+                if isinstance(at.action_tools, list):
+                    assigned_actions = [a for a in at.action_tools if a]
+                elif isinstance(at.action_tools, dict):
+                    assigned_actions = [v for v in at.action_tools.values() if v]
+                else:
+                    try:
+                        parsed = json.loads(at.action_tools or "[]")
+                        assigned_actions = [a for a in parsed if a] if isinstance(parsed, list) else []
+                    except Exception:
+                        assigned_actions = []
+
+                # If no specific actions assigned, use all available
+                if not assigned_actions and local_actions:
+                    assigned_actions = [
+                        a.get("action") for a in local_actions
+                        if isinstance(a, dict) and a.get("action")
+                    ]
+
+                if category_key not in tools_config:
+                    tools_config[category_key] = []
+
+                for action_name in assigned_actions:
+                    raw_def = next(
+                        (a for a in local_actions if isinstance(a, dict) and a.get("action") == action_name),
+                        {"action": action_name, "category": category_key, "parameters": []},
+                    )
+                    action_def = _normalize_action_def(
+                        action_name=action_name,
+                        action_def=raw_def,
+                        default_category=category_key,
+                        default_description=f"{tool_name}:{action_name}",
+                    )
+                    tools_config[category_key].append({
+                        "endpoint": LOCAL_ENDPOINT,   # ← /local_tool/call, NOT mcp
+                        "method":   CONSTANT_METHOD,
+                        **action_def,
+                    })
+
+                logger.info(
+                    "✅ Local tool '%s' → LOCAL_ENDPOINT | %d action(s) | category=%s",
+                    tool_name, len(assigned_actions), category_key,
+                )
+                continue  # skip MCP matching below
+            # ── END LOCAL TOOL CHECK ──────────────────────────────────────
+
             # Match tool in tenant MCP tools
             mcp_tool = None
             for t in tenant_tools:
@@ -679,6 +884,34 @@ def prepare_agent_input(
 
                 if tool_base in UTILITY_TOOLS:
                     logger.info(f"⚠️ Skipping utility tool '{tool_name}' (no MCP record needed)")
+                    continue
+
+                # ── Local MCP tools (e.g. Zoom) — served by local stdio npx process ──
+                if tool_base in _LOCAL_MCP_TOOLS:
+                    local_mcp_actions = _LOCAL_MCP_TOOL_ACTIONS.get(tool_base, [])
+                    assigned_actions = at.action_tools if isinstance(at.action_tools, list) else []
+                    if not assigned_actions:
+                        assigned_actions = [a["action"] for a in local_mcp_actions if isinstance(a, dict)]
+                    category_key = tool_name.capitalize()
+                    if category_key not in tools_config:
+                        tools_config[category_key] = []
+                    for action_name in assigned_actions:
+                        raw_def = next(
+                            (a for a in local_mcp_actions if isinstance(a, dict) and a.get("action") == action_name),
+                            {"action": action_name, "category": category_key, "parameters": []},
+                        )
+                        action_def = _normalize_action_def(
+                            action_name=action_name,
+                            action_def=raw_def,
+                            default_category=category_key,
+                            default_description=f"{tool_name}:{action_name}",
+                        )
+                        tools_config[category_key].append({
+                            "endpoint": f"{MCP_SERVICE_URL}/call_tool",
+                            "method":   CONSTANT_METHOD,
+                            **action_def,
+                        })
+                    logger.info("✅ Local MCP tool '%s' → mcp-service | %d action(s)", tool_name, len(assigned_actions))
                     continue
 
                 logger.warning(
@@ -879,8 +1112,28 @@ def prepare_agent_input(
                 if category_key not in tools_config:
                     tools_config[category_key] = []
 
+                # ── Choose endpoint based on mcp_tool.tool_type ──────────────
+                mcp_tool_type = str(getattr(mcp_tool, "tool_type", "jnanic_mcp") or "jnanic_mcp").strip().lower()
+
+                if mcp_tool_type == "external":
+                    # External MCP: call the tool's own remote URL directly
+                    tool_endpoint = str(mcp_tool.mcp_url or CONSTANT_ENDPOINT).strip()
+                    if not tool_endpoint.endswith("/call_tool"):
+                        tool_endpoint = tool_endpoint.rstrip("/") + "/call_tool"
+                    logger.info(
+                        "[TOOL_ENDPOINT] tool=%s → EXTERNAL endpoint=%s",
+                        tool_name, tool_endpoint,
+                    )
+                else:
+                    # Jnanic MCP (default): route via mcp.jnanic.com
+                    tool_endpoint = CONSTANT_ENDPOINT
+                    logger.info(
+                        "[TOOL_ENDPOINT] tool=%s → JNANIC_MCP endpoint=%s",
+                        tool_name, tool_endpoint,
+                    )
+
                 enriched_action = {
-                    "endpoint": CONSTANT_ENDPOINT,
+                    "endpoint": tool_endpoint,
                     "method": CONSTANT_METHOD,
                     "mcp_server_params": runtime_mcp_server_params,
                     **action_def
@@ -1053,17 +1306,55 @@ def prepare_agent_input(
 
         effective_model = _normalize_model_id(llm_provider, effective_model)
 
+        # 🆕 Per-node persona override (bot workflow): compose description from
+        # form_data agent_role / agent_instructions when supplied. Custom-agent
+        # workflows leave these None, so DB description is preserved.
+        role_txt = (agent_role_override or "").strip() if isinstance(agent_role_override, str) else ""
+        inst_txt = (agent_instructions_override or "").strip() if isinstance(agent_instructions_override, str) else ""
+        if role_txt and inst_txt:
+            effective_description = f"{role_txt}\n\n{inst_txt}"
+        elif role_txt:
+            effective_description = role_txt
+        elif inst_txt:
+            effective_description = inst_txt
+        else:
+            effective_description = agent.agent_description
+
+        # 🆕 Per-node tool subset (bot workflow): filter tools_config by
+        # requested tool_names. Empty/None list = no filter (custom-agent path).
+        effective_tools_config = tools_config
+        if isinstance(tool_names_override, list) and tool_names_override:
+            allowed = {_normalize_tool_name(n) for n in tool_names_override if n}
+            if allowed:
+                effective_tools_config = {
+                    k: v for k, v in tools_config.items()
+                    if _normalize_tool_name(k) in allowed
+                }
+                logger.info(
+                    "🔧 Applied per-node tool filter: requested=%s, kept=%s, dropped=%s",
+                    sorted(allowed),
+                    list(effective_tools_config.keys()),
+                    [k for k in tools_config.keys() if k not in effective_tools_config],
+                )
+
+        # Map agent.memory_mode to remember_now / remember_long for LangGraph
+        _memory_mode = (memory_mode_override or agent.memory_mode or "").strip().lower()
+        _remember_now  = _memory_mode in ("session", "short_term", "conversation", "persistent", "long_term")
+        _remember_long = _memory_mode in ("persistent", "long_term")
+
         config = {
             "name": agent.agent_name,
-            "description": agent.agent_description,
+            "description": effective_description,
             "llm_provider": llm_provider,
             "llm_model": effective_model,
             "llm_api_key": llm_api_key,
-            "tools_config": tools_config,
-            "knowledge_bases": knowledge_bases,   
-            "default_kb_id": default_kb_id, 
+            "tools_config": effective_tools_config,
+            "knowledge_bases": knowledge_bases,
+            "default_kb_id": default_kb_id,
             "examples": examples,
-            "agent_type": resolved_agent_type,  # 🆕 ADD THIS
+            "agent_type": resolved_agent_type,
+            "remember_now": _remember_now,
+            "remember_long": _remember_long,
         }
 
         embedding_cfg = _resolve_embedding_config(

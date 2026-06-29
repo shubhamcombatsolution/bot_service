@@ -729,6 +729,10 @@ def register_user():
 
             print("✅ User created with login_id:", new_user.login_id)
 
+            # Assign free plan subscription to new tenant
+            add_free_subscription(session, new_tenant.tenant_id)
+            print("✅ Free plan subscription created for tenant:", new_tenant.tenant_id)
+
             # -------------------------------
             # FINAL COMMIT
             # -------------------------------
@@ -795,12 +799,19 @@ def get_user_details():
     session = next(db_session())
     try:
         # user_id = get_jwt_identity()
-        
+
         claims = get_jwt()
         user_id = claims.get("user_id")   # ✅ correct
         tenant_id = claims.get("tenant_id")
         role = claims.get("role")
-        
+
+        if not user_id or not tenant_id:
+            return jsonify({
+                "data": {},
+                "status": "error",
+                "message": "Unauthorized"
+            }), 401
+
         user = session.query(LoginUser).filter_by(login_id=int(user_id)).first()
         
         if not user:
@@ -895,6 +906,13 @@ def google_login():
             session.add(new_user)
             session.commit()
             user = new_user
+
+        else:
+            # Existing user — generate api_key if missing
+            if not user.api_key:
+                logger.info(f"Generating missing api_key for existing user tenant_id={user.tenant_id}")
+                user.api_key = user.generate_api_key()
+                session.commit()
 
         # 🔹 Ensure user has a subscription
         existing = session.query(TenantSubscription).filter_by(
@@ -1093,10 +1111,26 @@ def _utcnow() -> datetime:
 def _hash_token(raw: str) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
+
+def _get_smtp_credentials() -> tuple[str, str]:
+    smtp_user = (os.environ.get("SMTP_USER") or "").strip().strip('"').strip("'")
+    smtp_pass = (
+        os.environ.get("SMTP_PASS")
+        or os.environ.get("SMTP_PASSWORD")
+        or ""
+    ).strip().strip('"').strip("'")
+    smtp_pass = re.sub(r"\s+", "", smtp_pass)
+    return smtp_user, smtp_pass
+
+
 def send_reset_email(to_addr: str, reset_url: str) -> None:
+    smtp_user, smtp_pass = _get_smtp_credentials()
+    if not smtp_user or not smtp_pass:
+        raise RuntimeError("SMTP credentials are not configured")
+
     msg = EmailMessage()
     msg["Subject"] = "Reset your password"
-    msg["From"] = os.environ.get("SMTP_FROM")
+    msg["From"] = os.environ.get("SMTP_FROM") or smtp_user
     msg["To"] = to_addr
     msg.set_content(
         f"""Hi,
@@ -1113,10 +1147,12 @@ def send_reset_email(to_addr: str, reset_url: str) -> None:
     """
         )
 
+    smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.environ.get("SMTP_PORT", "587") or 587)
     context = ssl.create_default_context()
-    with smtplib.SMTP("smtp.gmail.com", 587) as server:
+    with smtplib.SMTP(smtp_host, smtp_port) as server:
         server.starttls(context=context)
-        server.login(os.environ.get("SMTP_USER"),os.environ.get("SMTP_PASS"))
+        server.login(smtp_user, smtp_pass)
         server.send_message(msg)
 
 @user_blueprint.route("/forgot-password", methods=["POST"])

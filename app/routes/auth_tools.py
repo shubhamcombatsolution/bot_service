@@ -1,3 +1,5 @@
+import json
+
 from flask import Blueprint, request, jsonify
 from datetime import datetime
 from app.models.role import Role
@@ -9,6 +11,49 @@ authTool_blueprint = Blueprint("auth_tools", __name__)
 from flask_jwt_extended import jwt_required, get_jwt
 from flask import jsonify, current_app
 from collections import defaultdict
+
+
+def _as_dict(value):
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            return parsed if isinstance(parsed, dict) else {}
+        except Exception:
+            return {}
+    return {}
+
+
+def _resolve_mcp_name_from_authorization(tool_auth):
+    """
+    Resolve the MCP name from any field shape we may have stored over time.
+    """
+    mcp_json = _as_dict(getattr(tool_auth, "mcp_json", None))
+
+    if mcp_json.get("mcp_name"):
+        return str(mcp_json.get("mcp_name")).strip()
+
+    nested_creds = _as_dict(mcp_json.get("credentials"))
+    if nested_creds.get("mcp_name"):
+        return str(nested_creds.get("mcp_name")).strip()
+
+    raw_url = str(getattr(tool_auth, "mcp_url", "") or "").strip()
+    if raw_url:
+        if raw_url == "stdio://local" or "mcp.jnanic.com" in raw_url:
+            return "jnanic.com"
+        if raw_url not in ("", "local://builtin"):
+            return raw_url
+
+    tool_name = str(getattr(tool_auth, "tool_name", "") or "")
+    if tool_name.upper().startswith("JNANIC_MCP_"):
+        return "jnanic.com"
+
+    tool_type = str(getattr(tool_auth, "tool_type", "") or "").lower()
+    if tool_type in ("jnanic_mcp", "mcp"):
+        return "jnanic.com"
+
+    return ""
 
 @authTool_blueprint.route("/user/tools", methods=["GET"])
 @jwt_required()
@@ -26,17 +71,13 @@ def get_user_tools():
 
         data = []
         for t in tools:
-            mcp_name = ""
-            if t.tool_type == "mcp":
-                mcp_name = (t.mcp_url or "")
-                if not mcp_name and isinstance(t.mcp_json, dict):
-                    mcp_name = str(t.mcp_json.get("mcp_name") or "")
+            mcp_name = _resolve_mcp_name_from_authorization(t)
 
             data.append({
                 "tool_name": t.tool_name,
-                "tool_id": t.id,
+                "tool_id":   t.id,
                 "tool_type": t.tool_type,
-                "mcp_name": mcp_name,
+                "mcp_name":  mcp_name,
             })
 
         return jsonify({

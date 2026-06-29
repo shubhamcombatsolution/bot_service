@@ -2091,12 +2091,24 @@ def receive_slack_webhook(trigger_node_id: str):
 
             # 4) Avoid routing to wrong tenant when candidate resolution is ambiguous.
             if not matched_by_identity:
+                logger.error(
+                    "[SLACK_WEBHOOK] Ambiguous trigger mapping — %s candidates for trigger_node_id=%s, "
+                    "none matched by signature/team/channel. payload_team_id=%s payload_channel=%s",
+                    len(trigger_candidates), trigger_node_id, payload_team_id, payload_channel,
+                )
                 return jsonify({
                     "status": "error",
                     "message": "Ambiguous Slack trigger mapping across tenants; unable to safely resolve target tenant",
                 }), 409
 
         if not trigger:
+            logger.error(
+                "[SLACK_WEBHOOK] No active trigger found for trigger_node_id=%s — "
+                "check that the Slack app's Event Subscriptions URL matches the node id stored in the diagram. "
+                "candidates_count=%s",
+                trigger_node_id,
+                len(trigger_candidates),
+            )
             return jsonify({
                 "status": "error",
                 "message": f"No active trigger found for node: {trigger_node_id}",
@@ -2109,6 +2121,10 @@ def receive_slack_webhook(trigger_node_id: str):
                 allowed_types={"slack", "webhook"},
             )
             if not fallback:
+                logger.error(
+                    "[SLACK_WEBHOOK] No valid workflow diagram found for trigger_id=%s flow_id=%s trigger_node_id=%s",
+                    trigger.id, trigger.flow_id, trigger_node_id,
+                )
                 return jsonify({
                     "status": "error",
                     "message": f"No valid workflow found for node: {trigger_node_id}",
@@ -2126,6 +2142,10 @@ def receive_slack_webhook(trigger_node_id: str):
         )
 
         if trigger.trigger_type not in {"slack", "webhook"}:
+            logger.error(
+                "[SLACK_WEBHOOK] Trigger type mismatch: trigger_id=%s type=%s does not support Slack webhook",
+                trigger.id, trigger.trigger_type,
+            )
             return jsonify({
                 "status": "error",
                 "message": f"Trigger type {trigger.trigger_type} does not support Slack webhook.",
@@ -2169,6 +2189,7 @@ def receive_slack_webhook(trigger_node_id: str):
         user = event.get("user")
 
         if event.get("bot_id"):
+            logger.debug("[SLACK_WEBHOOK] Ignoring bot message bot_id=%s trigger_id=%s", event.get("bot_id"), trigger.id)
             return "Ignore bot", 200
 
         auth_user_id = str(
@@ -2180,9 +2201,11 @@ def receive_slack_webhook(trigger_node_id: str):
             or ""
         ).strip()
         if auth_user_id and str(event.get("user") or "").strip() == auth_user_id:
+            logger.debug("[SLACK_WEBHOOK] Ignoring self-echo from bot user_id=%s trigger_id=%s", auth_user_id, trigger.id)
             return "Ignore bot user", 200
 
         if not text:
+            logger.info("[SLACK_WEBHOOK] Ignoring event with no text trigger_id=%s event_type=%s", trigger.id, event.get("type"))
             return "No message event", 200
 
         events = _format_slack_events(payload, trigger)
@@ -2211,6 +2234,10 @@ def receive_slack_webhook(trigger_node_id: str):
         )
 
         if not events:
+            logger.info(
+                "[SLACK_WEBHOOK] All events filtered (dedup/replay guard) trigger_id=%s trigger_node_id=%s",
+                trigger.id, trigger_node_id,
+            )
             return jsonify({
                 "status": "success",
                 "message": "Slack webhook received (no new message events)",

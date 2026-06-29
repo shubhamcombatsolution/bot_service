@@ -1,14 +1,16 @@
+import os
+import json
+import requests
 from flask import Blueprint, request, jsonify
 from app.models.mcp_tools import McpTools
 from app.models.tool_authorization import ToolAuthorization
 from app.models.tool import Tools
+from app.models.related_tools import RelatedTools
 from app.database.DatabaseOperationPostgreSQL import db_session
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
-mcp_blueprint = Blueprint("mcp_tools", __name__, url_prefix="/mcp_tools")
-import json
-import requests
 from sqlalchemy import func
 from sqlalchemy.exc import SQLAlchemyError
+mcp_blueprint = Blueprint("mcp_tools", __name__, url_prefix="/mcp_tools")
 
 
 def _norm(value):
@@ -142,11 +144,16 @@ def add_or_update_mcp():
         transport = config.get("transport")
 
         # =====================================================
-        # DETECT TYPE (NO DB STORAGE)
+        # DETECT TYPE + URL
         # =====================================================
+
+        # Allow caller to explicitly pass tool_type ("jnanic_mcp" | "external")
+        # Otherwise derive it from the transport/url
+        explicit_tool_type = str(data.get("tool_type") or "").strip().lower()
 
         if transport == "stdio":
             mcp_url = "stdio://local"
+            inferred_tool_type = "jnanic_mcp"
 
         elif transport in ["http", "sse", "streamable-http"]:
             mcp_url = config.get("url")
@@ -157,12 +164,21 @@ def add_or_update_mcp():
                     "message": "url required for remote MCP",
                     "data": {}
                 }), 400
+
+            # jnanic-hosted public gateway stays as jnanic_mcp
+            if "mcp.jnanic.com" in mcp_url:
+                inferred_tool_type = "jnanic_mcp"
+            else:
+                inferred_tool_type = "external"
         else:
             return jsonify({
                 "status": "error",
                 "message": f"Unsupported transport: {transport}",
                 "data": {}
             }), 400
+
+        # Explicit caller value takes priority over inferred
+        final_tool_type = explicit_tool_type if explicit_tool_type in ("jnanic_mcp", "external", "mcp") else inferred_tool_type
 
         # =====================================================
         # DB OPERATIONS
@@ -181,6 +197,7 @@ def add_or_update_mcp():
             existing_mcp.mcp_json = config
             existing_mcp.mcp_tools = mcp_tools
             existing_mcp.mcp_action_tools = mcp_action_tools
+            existing_mcp.tool_type = final_tool_type
 
             message = "MCP updated successfully"
             status_code = 200
@@ -192,7 +209,8 @@ def add_or_update_mcp():
                 mcp_url=mcp_url,
                 mcp_json=config,
                 mcp_tools=mcp_tools,
-                mcp_action_tools=mcp_action_tools
+                mcp_action_tools=mcp_action_tools,
+                tool_type=final_tool_type,
             )
             session.add(new_mcp)
 
@@ -281,6 +299,22 @@ def connect_mcp_proxy():
                 server_env = server_params.setdefault("env", {})
                 server_env.pop("GMAIL_ACCESS_TOKEN", None)
                 server_env["GMAIL_TOKEN_FILE"] = json.dumps(gmail_token_json)
+                server_env.setdefault(
+                    "MONGO_URI",
+                    "mongodb://demo_admin:demo_admin_pass@mongo:27017/?authSource=admin",
+                )
+                server_env.setdefault("MONGO_DB_NAME", "banking_demo")
+                payload["mcpServers"][server_name] = server_params
+        else:
+            mcp_servers = payload.get("mcpServers") or {}
+            if mcp_servers:
+                server_name, server_params = next(iter(mcp_servers.items()))
+                server_env = server_params.setdefault("env", {})
+                server_env.setdefault(
+                    "MONGO_URI",
+                    "mongodb://demo_admin:demo_admin_pass@mongo:27017/?authSource=admin",
+                )
+                server_env.setdefault("MONGO_DB_NAME", "banking_demo")
                 payload["mcpServers"][server_name] = server_params
 
         response = requests.post(mcp_url, json=payload, timeout=70)
@@ -417,7 +451,7 @@ def get_mcps():
     tenant_id = claims.get("tenant_id")
     session = next(db_session())
     try:
-        # Include local tool connections for tool-config page.
+        # ── 1. Build connected-tool set from tbl_tool_authorization ──────────
         auth_rows = (
             session.query(ToolAuthorization)
             .filter_by(tenant_id=tenant_id, del_flag=False)
@@ -425,39 +459,71 @@ def get_mcps():
             .all()
         )
 
-        local_tool_names = []
-        for row in auth_rows:
-            if (row.tool_type or "local").lower() != "local":
-                continue
-            if row.tool_name:
-                local_tool_names.append(str(row.tool_name).strip())
+        # Normalised set of tool names the tenant has connected
+        connected_local_norms = {
+            _norm(row.tool_name)
+            for row in auth_rows
+            if row.tool_name and (row.tool_type or "local").lower() == "local"
+        }
 
-        # Build local catalog lookup for descriptions.
+        # ── 2. Load FULL local catalog (ALL tools, configured or not) ─────────
         local_catalog_rows = session.query(Tools).filter_by(del_flg=False).all()
-        local_catalog = {_norm(t.tool_name): t for t in local_catalog_rows}
-
-        unique_local_tools = []
+        # Build list of ALL catalog tools with connected flag
+        all_local_tools = []
         seen_local = set()
-        for tool_name in local_tool_names:
-            key = _norm(tool_name)
+        for tool in local_catalog_rows:
+            key = _norm(tool.tool_name)
             if not key or key in seen_local:
                 continue
             seen_local.add(key)
-            unique_local_tools.append(tool_name)
+            all_local_tools.append({
+                "tool_name":        tool.tool_name,
+                "tool_description": tool.tool_description or "",
+                "tool_logo":        tool.tool_logo or "",
+                "connected":        key in connected_local_norms,
+            })
+
+        # Build action map for local tools using tbl_related_tools
+        related_rows = (
+            session.query(RelatedTools, Tools)
+            .join(Tools, RelatedTools.tool_id == Tools.tool_id)
+            .filter(RelatedTools.del_flg == False)
+            .all()
+        )
+        tool_action_map = {}
+        for related, tool in related_rows:
+            tool_action_map.setdefault(tool.tool_name, []).append(related.relationship_type)
 
         local_action_tools = {}
-        for tool_name in unique_local_tools:
-            key = _norm(tool_name)
-            tool_meta = local_catalog.get(key)
-            local_action_tools[tool_name] = [{
-                "action": tool_name,
-                "category": tool_name,
-                "description": getattr(tool_meta, "tool_description", "") if tool_meta else "",
-                "parameters": []
-            }]
+        for t in all_local_tools:
+            actions = tool_action_map.get(t["tool_name"], [])
+            if actions:
+                local_action_tools[t["tool_name"]] = [
+                    {
+                        "action":      action,
+                        "category":    t["tool_name"],
+                        "description": t["tool_description"],
+                        "parameters":  [],
+                    }
+                    for action in actions
+                ]
+            else:
+                local_action_tools[t["tool_name"]] = [{
+                    "action":      t["tool_name"],
+                    "category":    t["tool_name"],
+                    "description": t["tool_description"],
+                    "parameters":  [],
+                }]
 
+        # ── 3. Legacy tgi-based scope (used only for MCP tool-name filtering) ─
         auth_scope = _authorization_scope_by_mcp(session, tenant_id)
-        enabled_mcp_names = set(auth_scope.keys())
+
+        # Connected MCP tool names (for marking MCP tools as connected)
+        connected_mcp_norms = {
+            _norm(row.tool_name)
+            for row in auth_rows
+            if row.tool_name and (row.tool_type or "local").lower() == "mcp"
+        }
 
         mcps = session.query(McpTools).filter_by(
             tenant_id=tenant_id,
@@ -465,46 +531,71 @@ def get_mcps():
         ).order_by(McpTools.created_at.desc()).all()
 
         data = []
-        if unique_local_tools:
+
+        # Tools that run through local MCP server (not local_tool/call route)
+        _mcp_native_tools = {"zoom"}
+
+        builtin_tools = [t for t in all_local_tools if _norm(t["tool_name"]) not in _mcp_native_tools]
+        mcp_native_tools = [t for t in all_local_tools if _norm(t["tool_name"]) in _mcp_native_tools]
+
+        mcp_service_url = os.environ.get("MCP_BASE_URL", "http://mcp-service:5006")
+
+        # ── Local tools group — builtin tools only ────────────────────────────
+        if builtin_tools:
+            builtin_action_tools = {k: v for k, v in local_action_tools.items()
+                                    if _norm(k) not in _mcp_native_tools}
             data.append({
-                "tool_type": "local",
-                "mcp_name": "local",
-                "mcp_tools": unique_local_tools,
-                "mcp_action_tools": local_action_tools,
-                "mcp_id": 0,
-                "mcp_url": "local://builtin",
+                "tool_type":        "local",
+                "mcp_name":         "local",
+                "mcp_tools":        [t["tool_name"] for t in builtin_tools],
+                "mcp_action_tools": builtin_action_tools,
+                "mcp_id":           0,
+                "mcp_url":          "local://builtin",
+                "tools_detail":     builtin_tools,
             })
+
+        # ── MCP-native local tools group (e.g. Zoom) ─────────────────────────
+        if mcp_native_tools:
+            mcp_native_action_tools = {k: v for k, v in local_action_tools.items()
+                                       if _norm(k) in _mcp_native_tools}
+            data.append({
+                "tool_type":        "local_mcp",
+                "mcp_name":         "local_mcp",
+                "mcp_tools":        [t["tool_name"] for t in mcp_native_tools],
+                "mcp_action_tools": mcp_native_action_tools,
+                "mcp_id":           -1,
+                "mcp_url":          f"{mcp_service_url}/call_tool",
+                "tools_detail":     mcp_native_tools,
+            })
+
         for mcp in mcps:
-            # show only configured+enabled MCPs from tbl_tool_authorization JSON
-            if _norm(mcp.mcp_name) not in enabled_mcp_names:
-                continue
-
-            selected_tools = mcp.mcp_tools or []
+            all_tools  = mcp.mcp_tools or []
             all_actions = mcp.mcp_action_tools or {}
-            filtered_actions = {}
 
-            selected_tools_norm = {_norm(t) for t in selected_tools if _norm(t)}
-            authorized_tools = auth_scope.get(_norm(mcp.mcp_name), set())
+            # Mark each tool as connected based on tbl_tool_authorization
+            mcp_tool_type = str(getattr(mcp, "tool_type", None) or "jnanic_mcp").strip().lower()
 
-            # If tool names exist in authorization rows for this MCP, enforce them.
-            if authorized_tools:
-                selected_tools_norm = selected_tools_norm.intersection(authorized_tools)
+            # No filtering — show ALL tools in this MCP catalog
+            # connected flag is informational only
+            tools_detail = [
+                {
+                    "tool_name": t,
+                    "connected": _norm(t) in connected_mcp_norms,
+                }
+                for t in all_tools
+            ]
 
-            for tool_name, actions in all_actions.items():
-                if _norm(tool_name) in selected_tools_norm:
-                    filtered_actions[tool_name] = actions
-
-            filtered_tool_names = [t for t in selected_tools if _norm(t) in selected_tools_norm]
-            if not filtered_tool_names:
+            if not all_tools:
                 continue
 
             data.append({
-                "tool_type": "mcp",
-                "mcp_name": mcp.mcp_name,
-                "mcp_tools": filtered_tool_names,
-                "mcp_action_tools": filtered_actions,
-                "mcp_id": mcp.id,
-                "mcp_url": mcp.mcp_url,
+                "tool_type":        mcp_tool_type,
+                "mcp_name":         mcp.mcp_name,
+                "mcp_tools":        all_tools,          # ALL tools, no filter
+                "mcp_action_tools": all_actions,        # ALL actions
+                "mcp_id":           mcp.id,
+                "mcp_url":          mcp.mcp_url,
+                "tools_detail":     tools_detail,       # per-tool connected flag
             })
 
         return jsonify({
@@ -607,10 +698,11 @@ def get_mcp_tools():
 
         # Local tools showcase
         for row in auth_rows:
-            if (row.tool_type or "local").lower() == "mcp":
+            row_tool_type = str(row.tool_type or "local").strip().lower()
+            if row_tool_type == "mcp":
                 continue
             data.append({
-                "tool_type": "local",
+                "tool_type": row_tool_type,   # ← from DB, not hardcoded
                 "tool_id": row.id,
                 "tool_name": row.tool_name,
                 "tools": [
@@ -652,7 +744,7 @@ def get_mcp_tools():
                     })
 
             data.append({
-                "tool_type": "mcp",
+                "tool_type": str(getattr(mcp, "tool_type", None) or "jnanic_mcp").strip().lower(),
                 "mcp_id": mcp.id,
                 "mcp_name": mcp.mcp_name,
                 "tool_name": mcp.mcp_name,

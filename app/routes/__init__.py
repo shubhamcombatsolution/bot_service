@@ -43,6 +43,8 @@ from app.routes.system_embedding_model_routes import system_embedding_model_blue
 from app.routes.system_llm_routes import system_llm_blueprint
 from app.routes.tool_validation_routes import tool_validation_blueprint
 from app.routes.webhook_routes import webhook_bp
+from app.routes.local_tool_routes import local_tool_blueprint
+from app.routes.superadmin_bot_template_routes import bot_template_blueprint
 
 try:
     from app.routes.whatsapp_routes import whatsapp_bp
@@ -98,6 +100,8 @@ api_blueprint.register_blueprint(system_llm_blueprint, url_prefix="/system_llm")
 api_blueprint.register_blueprint(tools_blueprint, url_prefix="/tools")
 api_blueprint.register_blueprint(tool_validation_blueprint)
 api_blueprint.register_blueprint(webhook_bp)
+api_blueprint.register_blueprint(local_tool_blueprint, url_prefix="/local_tool")
 if whatsapp_bp:
     api_blueprint.register_blueprint(whatsapp_bp)
+api_blueprint.register_blueprint(bot_template_blueprint, url_prefix="/bot_template")
     

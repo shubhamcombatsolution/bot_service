@@ -3,6 +3,7 @@ from flask import Blueprint, request, jsonify, redirect, session, current_app
 from datetime import datetime,timedelta
 import os
 from app.models import CustomBot,KnowledgeBase
+from app.models.bot_diagram import BotDiagram
 from app.models import ToolAuthorization
 from app.models.mcp_tools import McpTools
 from app.utils import update_remaining_messages
@@ -41,6 +42,7 @@ from logging_config import setup_logging
 from app.routes.helpers.tool_utils import get_enabled_tools_for_tenant
 from app.routes.helpers.custom_bot_utils import resolve_bot_config
 from app.models.custombot_access_restriction import CustomBotAccessRestriction
+from app.models.new_models.custom_bot import ChannelEnum
 
 logger = setup_logging("multi-agent-system-routes", level="DEBUG")
 
@@ -272,14 +274,14 @@ def hubspot_auth():
             "details": str(e)
         }), 401
 
-    redirect_uri = os.getenv("GOOGLE_REDIRECT_URL")
+    hubspot_redirect_uri = os.getenv("HUBSPOT_REDIRECT_URL")
 
     # ✅ FIXED — Use correct parameter names (client_id, client_secret)
     hubspot_tool = HubSpotTool(
         tenant_id=tenant_id,
         client_id=os.getenv("HUBSPOT_CLIENT_ID"),
         client_secret=os.getenv("HUBSPOT_CLIENT_SECRET"),
-        redirect_uri=redirect_uri,
+        redirect_uri=hubspot_redirect_uri,
         auth_mode="manual",
     )
 
@@ -432,7 +434,7 @@ def hubspot_callback():
             "grant_type": "authorization_code",
             "client_id": os.getenv("HUBSPOT_CLIENT_ID"),
             "client_secret": os.getenv("HUBSPOT_CLIENT_SECRET"),
-            "redirect_uri":redirect_uri,
+            "redirect_uri": os.getenv("HUBSPOT_REDIRECT_URL"),
             "code": code,
         }
 
@@ -941,14 +943,14 @@ def gmail_list_labels():
 
 @multi_agents_blueprint.route("/connect/hubspot")
 def connect_hubspot():
-    client_id = "7933b042-0952-4e7d-a327dab-3dc"
-    redirect_uri = os.getenv("GOOGLE_REDIRECT_URL")
+    client_id = os.getenv("HUBSPOT_CLIENT_ID")
+    hubspot_redirect_uri = os.getenv("HUBSPOT_REDIRECT_URL")
     scopes = "crm.objects.contacts.read crm.objects.contacts.write"
 
     auth_url = (
-        f"https://app.hubspot.com/oauth/authorize"
+        f"https://app-na2.hubspot.com/oauth/authorize"
         f"?client_id={client_id}"
-        f"&redirect_uri={redirect_uri}"
+        f"&redirect_uri={hubspot_redirect_uri}"
         f"&scope={scopes}"
         f"&state=hubspot"
     )
@@ -1241,7 +1243,76 @@ def get_or_create_multi_agent_system(
     memory_mode: str = None
 ) -> MultiAgentSystem:
 
-    cache_key = f"{tenant_id}_{bot_id or 'default'}_{session_id}_{memory_mode or 'session'}"
+    # 🆕 Bump cache key whenever the bot's saved workflow (tbl_bot_diagrams)
+    # has been updated. Without this, edits the user makes in the workflow
+    # designer would not take effect until the cached MultiAgentSystem
+    # instance is evicted by TTL/LRU.
+    diagram_version = "0"
+    try:
+        if bot_id:
+            _dv_session = next(db_session())
+            try:
+                # Primary: latest diagram linked to this bot.
+                latest = (
+                    _dv_session.query(BotDiagram.updated_at)
+                    .filter(
+                        BotDiagram.bot_id == int(bot_id),
+                        BotDiagram.tenant_id == int(tenant_id),
+                        BotDiagram.del_flg == False,
+                    )
+                    .order_by(
+                        BotDiagram.updated_at.desc().nullslast(),
+                        BotDiagram.diagram_id.desc(),
+                    )
+                    .first()
+                )
+
+                # Fallback for legacy environments where tbl_bot_diagrams.bot_id
+                # cannot be set due to a stale FK constraint. Find the latest
+                # detached diagram whose workflow_name matches the bot's name —
+                # this mirrors the MAS self-heal lookup so workflow edits still
+                # invalidate the cache.
+                if not latest:
+                    from app.models.new_models.custom_bot import CustomBotNew
+                    _bot = (
+                        _dv_session.query(CustomBotNew)
+                        .filter(
+                            CustomBotNew.bot_id == int(bot_id),
+                            CustomBotNew.tenant_id == int(tenant_id),
+                        )
+                        .first()
+                    )
+                    bot_name_norm = (getattr(_bot, "bot_name", "") or "").strip().lower()
+                    legacy_name_norm = f"custom_bot_new_{bot_id}".lower()
+                    if bot_name_norm or legacy_name_norm:
+                        detached = (
+                            _dv_session.query(BotDiagram.updated_at, BotDiagram.workflow_name)
+                            .filter(
+                                BotDiagram.tenant_id == int(tenant_id),
+                                BotDiagram.bot_id.is_(None),
+                                BotDiagram.del_flg == False,
+                            )
+                            .order_by(
+                                BotDiagram.updated_at.desc().nullslast(),
+                                BotDiagram.diagram_id.desc(),
+                            )
+                            .all()
+                        )
+                        for upd_at, wn in detached:
+                            wn_norm = (wn or "").strip().lower()
+                            if wn_norm and (wn_norm == bot_name_norm or wn_norm == legacy_name_norm):
+                                latest = (upd_at,)
+                                break
+
+                if latest and latest[0]:
+                    diagram_version = str(int(latest[0].timestamp()))
+            finally:
+                _dv_session.close()
+    except Exception as _dv_err:
+        logger.debug(f"[get_or_create_mas] diagram_version lookup skipped: {_dv_err}")
+        diagram_version = "0"
+
+    cache_key = f"{tenant_id}_{bot_id or 'default'}_{session_id}_{memory_mode or 'session'}_{diagram_version}"
     logger.info(
         f"[get_or_create_mas] Request | cache_key={cache_key} | "
         f"kb_ids={kb_ids} | kb_ids_type={type(kb_ids).__name__} | "
@@ -1306,7 +1377,164 @@ def get_or_create_multi_agent_system(
         _agent_cache[cache_key] = (instance, time.time())
         logger.info(f"[get_or_create_mas] Cached | key={cache_key} | cache_size={len(_agent_cache)}")
         return instance
-    
+
+
+def _execute_website_workflow(bot_id, tenant_id, query, session_id):
+    """
+    Execute the bot's workflow diagram for website channel.
+
+    Returns the agent response string on success.
+    Returns None if no diagram exists (caller should fallback to MultiAgentSystem).
+    Raises on unexpected errors.
+    """
+    from engine.workflow_executor import WorkflowExecutor
+    from sqlalchemy import desc
+
+    # 1. Fetch latest active diagram for this bot
+    db = next(db_session())
+    try:
+        diagram = (
+            db.query(BotDiagram)
+            .filter(
+                BotDiagram.bot_id == int(bot_id),
+                BotDiagram.tenant_id == int(tenant_id),
+                BotDiagram.del_flg == False,
+            )
+            .order_by(desc(BotDiagram.diagram_id))
+            .first()
+        )
+    finally:
+        db.close()
+
+    if not diagram or not diagram.diagram_json:
+        logger.info(
+            "[_execute_website_workflow] No diagram found for bot_id=%s tenant_id=%s",
+            bot_id, tenant_id,
+        )
+        return None
+
+    # 2. Parse workflow JSON
+    try:
+        workflow_json = json.loads(diagram.diagram_json) if isinstance(diagram.diagram_json, str) else diagram.diagram_json
+    except Exception as e:
+        logger.error("[_execute_website_workflow] Failed to parse diagram_json: %s", e)
+        return None
+
+    # 3. Inject workflow metadata
+    workflow_json["bot_id"]     = int(bot_id)
+    workflow_json["tenant_id"]  = int(tenant_id)
+    workflow_json["diagram_id"] = diagram.diagram_id
+
+    # 4. Find ChatTriggerNode in workflow nodes
+    nodes = workflow_json.get("nodes", [])
+    trigger_node_id = None
+    for node in nodes:
+        if node.get("type") == "ChatTriggerNode":
+            trigger_node_id = node["id"]
+            break
+
+    if not trigger_node_id:
+        logger.warning(
+            "[_execute_website_workflow] No ChatTriggerNode found in diagram_id=%s bot_id=%s",
+            diagram.diagram_id, bot_id,
+        )
+        return None
+
+    # 5. Build trigger_data
+    trigger_data = {
+        trigger_node_id: {
+            "tenant_id": int(tenant_id),
+            "query":      query,
+            "user_query": query,
+            "message":    query,
+            "session_id": session_id,
+        }
+    }
+
+    logger.info(
+        "[_execute_website_workflow] Executing workflow | bot_id=%s diagram_id=%s trigger_node=%s query=%s",
+        bot_id, diagram.diagram_id, trigger_node_id, query[:60],
+    )
+
+    # 6. Execute workflow
+    executor = WorkflowExecutor(workflow_json)
+    result   = executor.execute(trigger_data=trigger_data, return_context=True)
+
+    # 7. Extract agent response from node_outputs
+    node_outputs = getattr(result, "node_outputs", {}) or {}
+
+    # Walk outputs in reverse order — last GenericAgentNode / ResponseAgentNode wins
+    agent_response = None
+    AGENT_NODE_TYPES = {"GenericAgentNode", "ResponseAgentNode", "GreetingAgentNode"}
+
+    # Build a node-type lookup from the workflow
+    node_type_by_id = {n["id"]: n.get("type", "") for n in nodes}
+
+    def _pick_text(value):
+        """Extract a plain string from an output field that may be str or nested dict."""
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+        if isinstance(value, dict):
+            candidate = (
+                value.get("llm_response")
+                or value.get("response")
+                or value.get("text")
+                or value.get("output")
+            )
+            if isinstance(candidate, str) and candidate.strip():
+                return candidate.strip()
+        return None
+
+    # node_outputs keys are "Label-[node_id]" — extract node_id via rfind
+    ordered_outputs = list(node_outputs.items())
+    for label_key, output in reversed(ordered_outputs):
+        idx = label_key.rfind("-[")
+        raw_node_id = label_key[idx + 2:].rstrip("]") if idx != -1 else label_key
+
+        node_type = node_type_by_id.get(raw_node_id, "")
+        if node_type not in AGENT_NODE_TYPES:
+            continue
+
+        if not isinstance(output, dict):
+            continue
+
+        # output["output"] may itself be a dict like {"llm_response": "..."}
+        raw = (
+            output.get("output")
+            or output.get("response")
+            or output.get("llm_response")
+            or output.get("text")
+        )
+        response_text = _pick_text(raw)
+        if response_text:
+            agent_response = response_text
+            break
+
+    if agent_response is None:
+        # Last-resort: any node output that yields a non-empty string
+        for label_key, output in reversed(ordered_outputs):
+            if not isinstance(output, dict):
+                continue
+            raw = output.get("output") or output.get("response") or output.get("llm_response")
+            response_text = _pick_text(raw)
+            if response_text:
+                agent_response = response_text
+                break
+
+    if agent_response is None:
+        logger.warning(
+            "[_execute_website_workflow] Could not extract agent response from workflow output | bot_id=%s keys=%s",
+            bot_id, list(node_outputs.keys()),
+        )
+        return None
+
+    logger.info(
+        "[_execute_website_workflow] Got response | bot_id=%s length=%s",
+        bot_id, len(agent_response),
+    )
+    return agent_response
+
+
 @multi_agents_blueprint.route('/get_chat', methods=['POST', 'OPTIONS'])
 def get_chat():
 
@@ -1452,19 +1680,51 @@ def get_chat():
         if not tenant_id:
             return jsonify({"error": "Tenant ID not found for this bot."}), 500
 
-        # Ã¢â€ Â CHANGED: pass config fields into agent
-        multi_agent = get_or_create_multi_agent_system(
-            tenant_id=tenant_id,
-            bot_id=bot_id,
-            session_id=session_id,
-            kb_ids=config.get("kb_ids", []),
-            instructions=config.get("instructions", []),
-            core_features=config.get("core_features", []),
-            kb_functionalities=config.get("kb_functionalities", []),
-            memory_mode=config.get("memory_mode")
-        )
+        # Detect bot channel
+        bot_channel = getattr(bot.channel, "value", None) or str(bot.channel or "")
+        is_website_channel = bot_channel.strip().lower() == "website"
 
-        agent_response = multi_agent.ask(query)
+        # WEBSITE CHANNEL → WorkflowExecutor path
+        if is_website_channel:
+            agent_response = _execute_website_workflow(
+                bot_id=bot_id,
+                tenant_id=tenant_id,
+                query=query,
+                session_id=session_id,
+            )
+
+            # Fallback: workflow not found or failed → use MultiAgentSystem
+            if agent_response is None:
+                logger.info(
+                    "[get_chat] Website workflow not found for bot_id=%s — falling back to MultiAgentSystem",
+                    bot_id,
+                )
+                multi_agent = get_or_create_multi_agent_system(
+                    tenant_id=tenant_id,
+                    bot_id=bot_id,
+                    session_id=session_id,
+                    kb_ids=config.get("kb_ids", []),
+                    instructions=config.get("instructions", []),
+                    core_features=config.get("core_features", []),
+                    kb_functionalities=config.get("kb_functionalities", []),
+                    memory_mode=config.get("memory_mode")
+                )
+                agent_response = multi_agent.ask(query)
+
+        else:
+            # NON-WEBSITE (WhatsApp / Slack / API) → MultiAgentSystem
+            multi_agent = get_or_create_multi_agent_system(
+                tenant_id=tenant_id,
+                bot_id=bot_id,
+                session_id=session_id,
+                kb_ids=config.get("kb_ids", []),
+                instructions=config.get("instructions", []),
+                core_features=config.get("core_features", []),
+                kb_functionalities=config.get("kb_functionalities", []),
+                memory_mode=config.get("memory_mode")
+            )
+            agent_response = multi_agent.ask(query)
+
         # Skip message decrement in test mode
         if not is_test:
             try:
@@ -1487,7 +1747,7 @@ def get_chat():
 
         return jsonify({
             "response":  agent_response,
-            "test_mode": is_test      # useful for frontend testing banner
+            "test_mode": is_test
         }), 200
 
     except Exception as e:

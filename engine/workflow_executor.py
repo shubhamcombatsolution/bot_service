@@ -480,6 +480,17 @@ class WorkflowExecutor:
             if slack_thread_ts:
                 wait_output["thread_ts"] = slack_thread_ts
 
+        elif safe_event_payload.get("gmail_reply") or "reply_received" in safe_event_payload:
+            gmail_reply = safe_event_payload.get("gmail_reply") or {}
+            wait_output["reply_received"] = bool(safe_event_payload.get("reply_received"))
+            wait_output["timed_out"] = bool(safe_event_payload.get("timed_out"))
+            if gmail_reply:
+                wait_output["gmail_reply"] = gmail_reply
+                wait_output["message"] = gmail_reply.get("body_text") or gmail_reply.get("subject") or ""
+                wait_output["from"] = gmail_reply.get("from", "")
+                wait_output["subject"] = gmail_reply.get("subject", "")
+                wait_output["thread_id"] = gmail_reply.get("thread_id", "")
+
         # Expose webhook response data directly as the wait node output,
         # so downstream nodes can resolve `wait_node_id.field` like a normal node.
         if isinstance(wait_output.get("response_data"), dict):
@@ -1092,6 +1103,26 @@ class WorkflowExecutor:
             result = self._execute_node_safe(node_def, inputs, context)
             context.node_results[node_id] = result
 
+            # Trigger nodes with no trigger_data (inactive for this run) should be
+            # skipped — not kill the whole workflow.  Example: a diagram with both
+            # a SlackTrigger and a WhatsAppTrigger; when a WhatsApp message arrives
+            # only the WhatsApp trigger has data, so the Slack trigger has nothing
+            # to execute.  Failing it would stop the WhatsApp flow.
+            NodeClass = NODE_REGISTRY.get(node_def.get("type", ""))
+            is_trigger = getattr(NodeClass, "is_trigger_node", False)
+            no_trigger_data = not (trigger_data and node_id in trigger_data)
+            if (
+                result.status != NodeStatus.COMPLETED
+                and is_trigger
+                and no_trigger_data
+            ):
+                logger.info(
+                    "[SEQUENTIAL] Trigger node %s skipped (no trigger_data for this run): %s",
+                    node_id, result.error,
+                )
+                context.node_outputs[node_id] = {}
+                continue
+
             if result.status == NodeStatus.COMPLETED:
                 output = result.output or {}
                 context.node_outputs[node_id] = output
@@ -1279,6 +1310,24 @@ class WorkflowExecutor:
                                 ):
                                     ready_nodes.append(next_node)
                         else:
+                            # Trigger nodes that have no trigger_data for this run
+                            # (e.g. SlackTrigger when a WhatsApp message arrives)
+                            # should be skipped, not kill the whole workflow.
+                            NodeClass = NODE_REGISTRY.get(
+                                (self._find_node(nodes, node_id) or {}).get("type", "")
+                            )
+                            is_trigger = getattr(NodeClass, "is_trigger_node", False)
+                            no_trigger_data = not (trigger_data and node_id in trigger_data)
+                            if is_trigger and no_trigger_data:
+                                logger.info(
+                                    "[EXECUTOR] Trigger node %s skipped (no trigger_data for this run): %s",
+                                    node_id, result.error,
+                                )
+                                completed.add(node_id)
+                                context.node_outputs[node_id] = {}
+                                del futures[node_id]
+                                continue
+
                             # ✅ CHANGE: Store failed node in node_outputs
                             failed.add(node_id)
                             logger.error(f"[EXECUTOR] Node {node_id} failed: {result.error} - STOPPING WORKFLOW")
@@ -1393,8 +1442,8 @@ class WorkflowExecutor:
             except TypeError:
                 is_generic_agent_alias = False
         
-        # Hard rule: WaitNode and GenericAgentNode are non-retriable
-        if node_type == "WaitNode" or is_generic_agent_alias:
+        # Hard rule: WaitNode, gmailWaitForReplyNode and GenericAgentNode are non-retriable
+        if node_type in ("WaitNode", "gmailWaitForReplyNode") or is_generic_agent_alias:
             max_retries = 0
         else:
             max_retries = self.max_retries

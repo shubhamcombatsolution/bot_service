@@ -307,10 +307,23 @@ class BaseAgentNode(BaseNode, abc.ABC):
         if isinstance(raw_result, str):
             return raw_result.strip()
 
-        # Case 2: "result" key holds a plain string
+        # Case 2: "result" key — may be plain string OR LangGraph's
+        #         {"llm_response": "...", "tool_result": ...} dict
         result_val = raw_result.get("result")
         if isinstance(result_val, str) and result_val.strip():
             return result_val.strip()
+
+        # Case 2b: result is the {"llm_response":..., "tool_result":...} dict
+        #          produced by AgentResponseHandler.build_success_response
+        if isinstance(result_val, dict):
+            inner = (
+                result_val.get("llm_response")
+                or result_val.get("response")
+                or result_val.get("text")
+                or result_val.get("output")
+            )
+            if isinstance(inner, str) and inner.strip():
+                return inner.strip()
 
         # Case 3: "output" key holds a plain string
         output_val = raw_result.get("output")
@@ -545,7 +558,7 @@ class BaseAgentNode(BaseNode, abc.ABC):
 
             # Step 6: Post-process
             output = self.post_process_result(raw_result)
-            tool_output_params = raw_result.get("tool_output_parameters", [])
+            tool_output_params = raw_result.get("tool_outputs", raw_result.get("tool_output_parameters", []))
 
             # Step 6b: Persist this turn so the agent can remember it next time.
             # Save ONLY the user message — not the full task (system prompt + user query).

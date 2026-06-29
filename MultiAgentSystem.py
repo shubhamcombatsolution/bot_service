@@ -474,6 +474,221 @@ class MultiAgentSystem:
             )
             logger.info(f"[_load_config_from_db] Instructions extracted | count={len(self.bot_instructions)}")
 
+            # ─── 🆕 Diagram overlay ────────────────────────────────────────
+            # Read the bot's latest saved workflow (tbl_bot_diagrams) and
+            # apply any per-bot edits the user made in the workflow designer
+            # on top of the values just loaded from tbl_custombot_new.
+            #
+            # Backward compatibility: when no diagram exists, or the Bot Agent
+            # node has no override fields, nothing changes — MAS keeps the
+            # core_features / kb_ids / instructions it just resolved.
+            try:
+                # Primary: diagrams already linked to this bot.
+                diagram = (
+                    session.query(BotDiagram)
+                    .filter(
+                        BotDiagram.bot_id == self.bot_id,
+                        BotDiagram.tenant_id == self.tenant_id,
+                        BotDiagram.del_flg == False,
+                    )
+                    .order_by(
+                        BotDiagram.updated_at.desc().nullslast(),
+                        BotDiagram.diagram_id.desc(),
+                    )
+                    .first()
+                )
+
+                # 🆕 Fallback for legacy detached rows (bot_id IS NULL).
+                # If we can identify a detached diagram in this tenant that
+                # matches the bot by workflow_name (== bot_name) or by the
+                # legacy `custom_bot_new_{bot_id}` pattern, opportunistically
+                # re-link it so subsequent loads find it directly.
+                if not diagram:
+                    bot_name_norm = (
+                        (custom_bot.bot_name or "").strip().lower()
+                        if custom_bot is not None else ""
+                    )
+                    legacy_name = f"custom_bot_new_{self.bot_id}"
+                    detached = (
+                        session.query(BotDiagram)
+                        .filter(
+                            BotDiagram.tenant_id == self.tenant_id,
+                            BotDiagram.bot_id.is_(None),
+                            BotDiagram.del_flg == False,
+                        )
+                        .order_by(
+                            BotDiagram.updated_at.desc().nullslast(),
+                            BotDiagram.diagram_id.desc(),
+                        )
+                        .all()
+                    )
+                    for cand in detached:
+                        wn_norm = (cand.workflow_name or "").strip().lower()
+                        if wn_norm and (wn_norm == bot_name_norm or wn_norm == legacy_name.lower()):
+                            try:
+                                cand.bot_id = self.bot_id
+                                session.commit()
+                                logger.info(
+                                    f"[_load_config_from_db] Healed detached diagram | "
+                                    f"diagram_id={cand.diagram_id} → bot_id={self.bot_id} "
+                                    f"(matched workflow_name='{cand.workflow_name}')"
+                                )
+                                diagram = cand
+                                break
+                            except Exception as heal_err:
+                                # Persistent link failed (commonly because the
+                                # legacy FK `tbl_bot_diagrams_bot_id_fkey` still
+                                # references `tbl_custombot` while this bot lives
+                                # in `tbl_custombot_new`). Don't give up — use
+                                # the matched diagram for this run's overlay so
+                                # the user's workflow edits still take effect.
+                                session.rollback()
+                                logger.warning(
+                                    f"[_load_config_from_db] Failed to heal diagram link "
+                                    f"(legacy FK?) | diagram_id={cand.diagram_id} | "
+                                    f"using diagram for this run only | err={heal_err}"
+                                )
+                                # Re-fetch a clean instance after rollback so
+                                # the row is usable on the active session.
+                                try:
+                                    diagram = session.query(BotDiagram).filter(
+                                        BotDiagram.diagram_id == cand.diagram_id,
+                                        BotDiagram.del_flg == False,
+                                    ).first()
+                                except Exception:
+                                    diagram = cand
+                                if diagram:
+                                    break
+                if diagram and diagram.diagram_json:
+                    try:
+                        diagram_data = (
+                            json.loads(diagram.diagram_json)
+                            if isinstance(diagram.diagram_json, str)
+                            else diagram.diagram_json
+                        )
+                    except Exception as parse_err:
+                        logger.warning(
+                            f"[_load_config_from_db] Diagram JSON parse failed | "
+                            f"diagram_id={diagram.diagram_id} | err={parse_err}"
+                        )
+                        diagram_data = None
+
+                    agent_node = None
+                    if isinstance(diagram_data, dict):
+                        for _node in diagram_data.get("nodes", []) or []:
+                            if isinstance(_node, dict) and _node.get("type") == "GenericAgentNode":
+                                agent_node = _node
+                                break
+
+                    if agent_node:
+                        node_data = agent_node.get("data") or {}
+                        form_data = node_data.get("formData") or {}
+                        logger.info(
+                            f"[_load_config_from_db] Diagram overlay | "
+                            f"diagram_id={diagram.diagram_id} | "
+                            f"node_id={agent_node.get('id')} | "
+                            f"formData_keys={list(form_data.keys())}"
+                        )
+
+                        # 1) tool_names → replace enabled_tools when provided.
+                        raw_tool_names = form_data.get("tool_names")
+                        if isinstance(raw_tool_names, list) and raw_tool_names:
+                            overlay_tools = {
+                                str(t).strip().lower()
+                                for t in raw_tool_names
+                                if isinstance(t, str) and t.strip()
+                            }
+                            if overlay_tools:
+                                logger.info(
+                                    f"[_load_config_from_db] Diagram overlay | "
+                                    f"tool_names from formData={sorted(overlay_tools)} | "
+                                    f"replacing feature-derived tools="
+                                    f"{sorted(self.enabled_tools) if isinstance(self.enabled_tools, set) else self.enabled_tools}"
+                                )
+                                self.enabled_tools = overlay_tools
+
+                        # 2) agent_role / agent_instructions → append to bot_instructions.
+                        overlay_lines = []
+                        role_txt = form_data.get("agent_role")
+                        if isinstance(role_txt, str) and role_txt.strip():
+                            overlay_lines.append(role_txt.strip())
+                        instr_txt = form_data.get("agent_instructions")
+                        if isinstance(instr_txt, str) and instr_txt.strip():
+                            overlay_lines.append(instr_txt.strip())
+                        task_txt = form_data.get("task")
+                        if isinstance(task_txt, str) and task_txt.strip():
+                            overlay_lines.append(task_txt.strip())
+                        if overlay_lines:
+                            self.bot_instructions = list(self.bot_instructions or []) + overlay_lines
+                            logger.info(
+                                f"[_load_config_from_db] Diagram overlay | "
+                                f"appended {len(overlay_lines)} persona/instruction line(s) from formData"
+                            )
+
+                        # 3) knowledge_base_ids → replace KB catalog when provided.
+                        overlay_kb_raw = form_data.get("knowledge_base_ids")
+                        if isinstance(overlay_kb_raw, list) and overlay_kb_raw:
+                            overlay_kb_ids = []
+                            for raw_id in overlay_kb_raw:
+                                try:
+                                    overlay_kb_ids.append(int(raw_id))
+                                except (TypeError, ValueError):
+                                    continue
+                            overlay_kb_ids = list(dict.fromkeys(overlay_kb_ids))
+                            current_ids = {kb["kb_id"] for kb in self.kb_catalog}
+                            if overlay_kb_ids and set(overlay_kb_ids) != current_ids:
+                                logger.info(
+                                    f"[_load_config_from_db] Diagram overlay | "
+                                    f"reloading KBs from formData kb_ids={overlay_kb_ids}"
+                                )
+                                new_catalog, new_names, new_summaries = [], [], []
+                                kbs = (
+                                    session.query(KnowledgeBase)
+                                    .filter(
+                                        KnowledgeBase.knowledge_base_id.in_(overlay_kb_ids),
+                                        KnowledgeBase.tenant_id == self.tenant_id,
+                                        KnowledgeBase.del_flg == False,
+                                    )
+                                    .all()
+                                )
+                                for kb in kbs:
+                                    if not kb.collection_name:
+                                        continue
+                                    try:
+                                        self.qdrant_client.get_collection(kb.collection_name)
+                                    except Exception:
+                                        continue
+                                    new_catalog.append({
+                                        "kb_id": kb.knowledge_base_id,
+                                        "collection_name": kb.collection_name,
+                                        "summary": getattr(kb, "kb_summary", None),
+                                    })
+                                    new_names.append(kb.collection_name)
+                                    new_summaries.append(getattr(kb, "kb_summary", None))
+                                if new_catalog:
+                                    self.kb_catalog = new_catalog
+                                    self.collection_names = new_names
+                                    self.kb_summaries = new_summaries
+                                    self.collection_name = new_names[0]
+                                    self.kb_summary = new_summaries[0]
+                                    self.default_kb_id = new_catalog[0]["kb_id"]
+                    else:
+                        logger.info(
+                            f"[_load_config_from_db] Diagram overlay skipped | "
+                            f"no GenericAgentNode found in diagram_id={diagram.diagram_id}"
+                        )
+                else:
+                    logger.info(
+                        f"[_load_config_from_db] Diagram overlay skipped | "
+                        f"no diagram for bot_id={self.bot_id}"
+                    )
+            except Exception as overlay_err:
+                logger.warning(
+                    f"[_load_config_from_db] Diagram overlay skipped due to error: {overlay_err}",
+                    exc_info=True,
+                )
+            # ─── end overlay ──────────────────────────────────────────────
+
             logger.info(
                 f"[_load_config_from_db] COMPLETE | bot={self.bot_id} | "
                 f"kbs={len(self.kb_catalog)} | "
@@ -787,6 +1002,27 @@ Provide only the rephrased query.
         )
         if map_intent_pattern.search(query):
             logger.info("[Decision Agent] Map/location intent detected → routing to tools")
+            return {"next_agent": "tools"}
+
+        card_keywords_pattern = re.compile(
+            r"\b(status|blocked|block|active|freeze|frozen|hotlist|lost|stolen|activate|deactivate)\b",
+            re.IGNORECASE,
+        )
+        if re.search(r"\b(card|debit card|credit card)\b", query, re.IGNORECASE) and card_keywords_pattern.search(query):
+            logger.info("[Decision Agent] Card management intent detected → routing to tools")
+            return {"next_agent": "tools"}
+
+        banking_state_pattern = re.compile(
+            r"\b("
+            r"balance|statement|mini statement|transactions?|transaction history|"
+            r"account details|account status|card details|card status|"
+            r"unblock|unfreeze|reactivate|block|freeze|hotlist|"
+            r"account number|last \d+ transactions"
+            r")\b",
+            re.IGNORECASE,
+        )
+        if banking_state_pattern.search(query):
+            logger.info("[Decision Agent] Banking state query detected → routing to tools")
             return {"next_agent": "tools"}
 
         # Deterministic informational routing: pure question/info queries should go to KB.

@@ -74,6 +74,21 @@ def _domain_variants(url: str) -> List[str]:
     return sorted(variants)
 
 
+def _is_placeholder_crawl_url(url: str) -> bool:
+    """Detect obvious placeholder or local test URLs that usually produce no crawlable content."""
+    host = (urlsplit(url).netloc or "").lower().strip()
+    if host.startswith("www."):
+        host = host[4:]
+    return host in {
+        "example.com",
+        "example.org",
+        "example.net",
+        "localhost",
+        "127.0.0.1",
+        "0.0.0.0",
+    }
+
+
 def _resolve_redirect_url(url: str, timeout: int = 15) -> Tuple[str, bool]:
     """Resolve HTTP redirects so crawling starts from the final destination."""
     headers = {"User-Agent": "Mozilla/5.0"}
@@ -3103,6 +3118,7 @@ def process_knowledge_base_async(app, task_id: str, kb_id: int, tenant_id: int, 
                 max_crawl_pages = metadata.get("max_crawl_pages", "")
                 max_crawl_depth = metadata.get("max_crawl_depth", "")
                 dynamic_wait = metadata.get("dynamic_wait", "")
+                removed_files = metadata.get("removed_files", [])
                 
                 knowledge_base_name = kb.knowledge_base_name
                 
@@ -3119,7 +3135,7 @@ def process_knowledge_base_async(app, task_id: str, kb_id: int, tenant_id: int, 
                 processed_urls = []
                 failed_urls = []
                 media_type = None
-                
+
                 # Process files
                 total_files = len(files_info)
                 processed_content_info = []  # Track content details for View Content feature
@@ -3167,19 +3183,19 @@ def process_knowledge_base_async(app, task_id: str, kb_id: int, tenant_id: int, 
                                     failed_urls.append({"file": filename, "error": message})
                                     manager.update_progress(task_id, progress, f"Processing document {i+1}/{total_files}", f"❌ Failed: {filename} - {message}")
                                     continue
-                                chunks.extend([{"text": chunk, "source_type": "pdf"} for chunk in file_chunks])
+                                chunks.extend([{"text": chunk, "source_type": "pdf", "source_file": filename} for chunk in file_chunks])
                                 processed_files.append(filename)
-                                
+
                             elif file_ext == '.docx' and DOCX_AVAILABLE:
                                 text = process_docx_file(file_path)
                                 file_chunks = chunk_text(text, chunk_size, chunk_overlap, source_type='docx')
-                                chunks.extend(file_chunks)
+                                chunks.extend([{**c, "source_file": filename} for c in file_chunks])
                                 processed_files.append(filename)
-                                
+
                             elif file_ext == '.txt':
                                 text = process_txt_file(file_path)
                                 file_chunks = chunk_text(text, chunk_size, chunk_overlap, source_type='txt')
-                                chunks.extend(file_chunks)
+                                chunks.extend([{**c, "source_file": filename} for c in file_chunks])
                                 processed_files.append(filename)
                             
                             # Log success with chunk count
@@ -3365,6 +3381,29 @@ def process_knowledge_base_async(app, task_id: str, kb_id: int, tenant_id: int, 
                     "[KB DB STATS] task_id=%s kb_id=%s chunks_stored=%s embeddings_success_rate=%.2f%%",
                     task_id, kb_id, len(chunks), 100.0
                 )
+
+                # Remove deleted source files only after the new build has succeeded.
+                # This avoids permanently dropping old vectors when the replacement crawl fails.
+                if removed_files:
+                    from qdrant_client.models import Filter, FieldCondition, MatchValue
+                    target_collection = kb.collection_name or collection_name
+                    manager.update_progress(
+                        task_id,
+                        88,
+                        "Syncing removed files...",
+                        f"🗑️ Removing {len(removed_files)} file(s) from vector store"
+                    )
+                    for fname in removed_files:
+                        try:
+                            qdrant.delete(
+                                collection_name=target_collection,
+                                points_selector=Filter(
+                                    must=[FieldCondition(key="source_file", match=MatchValue(value=fname))]
+                                )
+                            )
+                            logger.info(f"[KB UPDATE] Deleted vectors for removed file: {fname}")
+                        except Exception as e:
+                            logger.warning(f"[KB UPDATE] Could not delete vectors for {fname}: {e}")
                 
                 manager.update_progress(task_id, 90, "Generating KB summary...", "Analyzing content for summary")
                 

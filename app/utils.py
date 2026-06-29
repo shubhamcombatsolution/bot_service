@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.models import Tenant, TenantSubscription, BotPlan, Agent
 # If your models use different names, replace Agent and custome_bot accordingly.
 from app.models.custome_bot import CustomBot  # Use actual model class name
+from app.models.new_models.custom_bot import CustomBotNew
 from dateutil.relativedelta import relativedelta
 logger = logging.getLogger(__name__)
 
@@ -182,9 +183,10 @@ def check_create_bot(session: Session, tenant_id: int) -> Tuple[bool, Dict[str, 
         if not plan:
             return False, {"error_code": "PLAN_NOT_FOUND", "message": "Plan not found."}
 
-        # count existing bots
-        bot_count = session.query(CustomBot).filter_by(
-            tenant_id=tenant_id, bot_status='Created'
+        # count existing bots (new table, all non-deleted statuses)
+        bot_count = session.query(CustomBotNew).filter(
+            CustomBotNew.tenant_id == tenant_id,
+            CustomBotNew.del_flg == False
         ).count()
 
         max_bots = getattr(plan, "no_bot", None) or getattr(plan, "plan_max_bots", None)
@@ -312,18 +314,20 @@ def update_remaining_messages(session: Session, tenant_id: int, message_count: i
 
 def get_basic_plan(session):
     """Fetch the basic plan dynamically (prefer price=0, fallback to name)."""
-    # 1. Try free plan (price = 0)
+    # 1. Try free plan (price = 0, not deleted)
     plan = session.query(BotPlan).filter(
         BotPlan.plan_price == 0,
-        BotPlan.plan_status.is_(True)         # ✅ if True = active
-    ).first()
+        BotPlan.plan_status.is_(True),
+        BotPlan.del_flg.is_(False),
+    ).order_by(BotPlan.plan_id.asc()).first()
     if plan:
         return plan
 
-    # 2. Fallback: plan name "Basic Plan" (case-insensitive)
+    # 2. Fallback: plan name "Basic Plan" (case-insensitive, not deleted)
     return session.query(BotPlan).filter(
         BotPlan.plan_name.ilike("basic plan"),
-        BotPlan.plan_status.is_(True) 
+        BotPlan.plan_status.is_(True),
+        BotPlan.del_flg.is_(False),
     ).first()
 
 

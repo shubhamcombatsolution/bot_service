@@ -49,7 +49,10 @@ class GenericAgentNode(BaseAgentNode):
         # Support workflow template placeholders like {{sys_rfq_id}}
         task_template = self._resolve_placeholders(task_template, context)
 
-        placeholders = re.findall(r'\{([^}]+)\}', task_template)
+        # Only match simple {identifier} patterns — NOT {{...json...}} double-brace blocks.
+        # The greedy r'\{([^}]+)\}' was eating entire JSON template blocks like
+        # {{"status": "COMPLETE", ...}} and replacing them with "" (destroying the output format).
+        placeholders = re.findall(r'(?<!\{)\{([A-Za-z_][A-Za-z0-9_.]*)\}(?!\})', task_template)
         replacements = {}
 
         for placeholder in placeholders:
@@ -91,6 +94,11 @@ class GenericAgentNode(BaseAgentNode):
             )
             logger.error(msg)
             raise ValueError(msg)
+
+        # Unescape remaining double-brace literals so agents see proper JSON.
+        # After variable resolution, any surviving {{...}} is a literal brace escape
+        # (e.g. JSON templates written as {{ "status": "COMPLETE" }} in the editor).
+        task = task.replace('{{', '{').replace('}}', '}')
 
         return task
 
@@ -539,6 +547,24 @@ class GenericAgentNode(BaseAgentNode):
         else:
             llm_model_override = None
 
+        # 🆕 Per-node persona/tool overrides (bot workflow). Custom-agent
+        # workflows author a distinct agent_id per node and typically omit
+        # these fields, so absent values fall back to DB.
+        raw_role = self.form_data.get("agent_role")
+        agent_role_override = raw_role.strip() if isinstance(raw_role, str) and raw_role.strip() else None
+
+        raw_instr = self.form_data.get("agent_instructions")
+        agent_instructions_override = raw_instr.strip() if isinstance(raw_instr, str) and raw_instr.strip() else None
+
+        raw_tool_names = self.form_data.get("tool_names")
+        if isinstance(raw_tool_names, list):
+            tool_names_override = [str(n).strip() for n in raw_tool_names if str(n).strip()]
+        else:
+            tool_names_override = None
+
+        raw_memory_mode = self.form_data.get("memory_mode")
+        memory_mode_override = raw_memory_mode.strip() if isinstance(raw_memory_mode, str) and raw_memory_mode.strip() else None
+
         full_input = prepare_agent_input(
             agent_id=self.agent_id,
             task="",
@@ -546,8 +572,12 @@ class GenericAgentNode(BaseAgentNode):
             use_temp_mcp_endpoint=True,
             override_tenant_id=running_tenant_id,
             override_kb_ids=override_kb_ids,
-            agent_type=agent_type,  # 🆕 PASS DYNAMIC VALUE
-            llm_model_override=llm_model_override,  # 🆕 PASS DYNAMIC MODEL
+            agent_type=agent_type,
+            llm_model_override=llm_model_override,
+            agent_role_override=agent_role_override,
+            agent_instructions_override=agent_instructions_override,
+            tool_names_override=tool_names_override,
+            memory_mode_override=memory_mode_override,
         )
         self.tenant_id = full_input.get("tenant_id")
         return full_input["config"]

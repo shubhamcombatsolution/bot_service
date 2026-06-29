@@ -84,10 +84,11 @@ class GmailTool(BaseTool):
     def _load_token(self) -> Optional[Credentials]:
         db_sess: Session = next(db_session())
         try:
-            auth = db_sess.query(ToolAuthorization).filter_by(
-                tenant_id=self.tenant_id,
-                tool_name="gmail",
-                del_flag=False
+            # Case-insensitive match — DB may store "Gmail" or "gmail"
+            auth = db_sess.query(ToolAuthorization).filter(
+                ToolAuthorization.tenant_id == self.tenant_id,
+                ToolAuthorization.tool_name.ilike("gmail"),
+                ToolAuthorization.del_flag == False,
             ).first()
             if auth and auth.token_json:
                 return Credentials.from_authorized_user_info(auth.token_json, self.SCOPES)
@@ -371,7 +372,7 @@ class GmailTool(BaseTool):
 
             from_addr = self.authenticated_email or self._extract_email_from_id_token() or "me"
 
-            return {"message": f"Email sent successfully to {to}", "id": sent_message.get("id"), "from": from_addr, "raw_response": sent_message}
+            return {"message": f"Email sent successfully to {to}", "id": sent_message.get("id"), "threadId": sent_message.get("threadId"), "from": from_addr, "raw_response": sent_message}
         except HttpError as error:
             err_str = str(error)
             try:
@@ -466,6 +467,21 @@ class GmailTool(BaseTool):
         except Exception as e:
             logger.exception("Unexpected error listing emails")
             return {"error": str(e)}
+
+    def get_thread_messages(self, thread_id: str) -> List[Dict[str, Any]]:
+        try:
+            self.authenticate()
+            thread = self.service.users().threads().get(
+                userId="me", id=thread_id, format="metadata",
+                metadataHeaders=["From", "To", "Subject", "Date"],
+            ).execute()
+            return thread.get("messages", [])
+        except HttpError as error:
+            logger.error("Gmail API error getting thread %s: %s", thread_id, error)
+            return []
+        except Exception as e:
+            logger.exception("Unexpected error getting thread %s", thread_id)
+            return []
 
     def get_message(self, message_id: str) -> Dict[str, Any]:
         try:

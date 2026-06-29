@@ -31,6 +31,12 @@ class McpAgentTools(db.Model):
     tool_name = db.Column(db.String(255), nullable=False)
     mcp_url = db.Column(db.String(255), nullable=True)
 
+    # 'local'      → Python class via /local_tool/call (GmailTool, CalendarTool, etc.)
+    # 'jnanic_mcp' → mcp.jnanic.com via stdio MCP server
+    # 'mcp'        → alias for jnanic_mcp (backward compat)
+    # 'external'   → direct HTTP call to external URL
+    tool_type = db.Column(db.String(20), nullable=False, default="mcp")
+
     tool_config = db.Column(
         MutableDict.as_mutable(JSONB),
         default=dict

@@ -216,9 +216,11 @@ def execute_workflow():
                     "slackTriggerNode",
                     "slackSendMessageNode",
                     "slackSendAndWaitNode",
+                    # Gmail wait node
+                    "gmailWaitForReplyNode",
                 ):
                     trigger_data[node["id"]] = {
-                        "tenant_id": tenant_id,      
+                        "tenant_id": tenant_id,
                         "formData": node.get("data", {}).get("formData", {})
                     }
         else:

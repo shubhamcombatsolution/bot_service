@@ -177,11 +177,22 @@ def upsert_tool_credentials(tool_name: str):
 
         session.commit()
 
+        # Resolve mcp_name from saved state for response
+        saved_mcp_json  = auth.mcp_json if isinstance(auth.mcp_json, dict) else {}
+        resolved_mcp_name = (
+            saved_mcp_json.get("mcp_name")
+            or (auth.mcp_url if auth.mcp_url not in (None, "", "stdio://local", "local://builtin") else "")
+            or ("jnanic.com" if str(auth.tool_type or "").lower() in ("jnanic_mcp", "mcp") else "")
+            or ""
+        )
+
         return jsonify({
-            "status": "success",
-            "message": message,
+            "status":    "success",
+            "message":   message,
             "tool_name": tool_name,
             "tenant_id": int(tenant_id),
+            "mcp_name":  resolved_mcp_name,
+            "tool_type": auth.tool_type or "local",
             "credentials": auth.token_json or {},
         }), 200
     except Exception as e:

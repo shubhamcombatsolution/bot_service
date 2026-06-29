@@ -297,7 +297,7 @@ import os
 import time
 import json
 import redis
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Dict, Any
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -808,5 +808,195 @@ def start_trigger_service() -> None:
             if session is not None:
                 session.close()
 
+        # ── Gmail wait-state tick ─────────────────────────
+        try:
+            _tick_gmail_wait_states()
+        except Exception:
+            logger.exception("[TRIGGER_SERVICE] Error in gmail wait-state tick")
+
         time.sleep(TRIGGER_POLL_INTERVAL)
+
+
+# ---------------------------
+# GMAIL WAIT-STATE TICKER
+# ---------------------------
+
+GMAIL_RECHECK_MINUTES = 5
+
+
+def _tick_gmail_wait_states() -> None:
+    """
+    Check gmail_thread wait states that are due for polling.
+    For each: query Gmail API for replies. Resume on reply or timeout.
+    """
+    from app.models.workflow_wait_state import WorkflowWaitState
+    from engine.workflow_executor import WorkflowExecutor
+
+    session = None
+    try:
+        session = next(db_session())
+        now = datetime.utcnow()
+
+        due_states = (
+            session.query(WorkflowWaitState)
+            .filter(
+                WorkflowWaitState.status == "waiting",
+                WorkflowWaitState.tracking_type == "gmail_thread",
+                WorkflowWaitState.next_poll_at <= now,
+            )
+            .all()
+        )
+
+        if not due_states:
+            return
+
+        logger.info("[GMAIL_TICK] Found %d due gmail_thread wait state(s)", len(due_states))
+
+        for ws in due_states:
+            try:
+                _check_gmail_wait_state(session, ws, now)
+            except Exception:
+                logger.exception(
+                    "[GMAIL_TICK] Error checking wait_state id=%s thread=%s",
+                    ws.id, ws.tracking_key,
+                )
+        session.commit()
+    except Exception:
+        logger.exception("[GMAIL_TICK] Fatal error in tick loop")
+        if session:
+            session.rollback()
+    finally:
+        if session:
+            session.close()
+
+
+def _check_gmail_wait_state(session, ws, now: datetime) -> None:
+    """Check a single gmail_thread wait state for reply or timeout."""
+    from app.models.workflow_wait_state import WorkflowWaitState
+    from engine.workflow_executor import WorkflowExecutor
+
+    thread_id = ws.tracking_key
+    tenant_id = int(ws.tenant_id)
+    created_at = ws.created_at
+
+    logger.info(
+        "[GMAIL_TICK] Checking wait_state id=%s thread=%s tenant=%s",
+        ws.id, thread_id, tenant_id,
+    )
+
+    reply = _find_gmail_reply(tenant_id, thread_id, created_at)
+
+    if reply:
+        logger.info(
+            "[GMAIL_TICK] Reply found for wait_state id=%s from=%s",
+            ws.id, reply.get("from", ""),
+        )
+        _resume_gmail_wait_state(session, ws, {
+            "reply_received": True,
+            "timed_out": False,
+            "gmail_reply": reply,
+        })
+        return
+
+    is_timed_out = ws.timeout_at and now >= ws.timeout_at
+    if is_timed_out:
+        logger.info("[GMAIL_TICK] Timeout for wait_state id=%s", ws.id)
+        _resume_gmail_wait_state(session, ws, {
+            "reply_received": False,
+            "timed_out": True,
+        })
+        return
+
+    next_check = now + timedelta(minutes=GMAIL_RECHECK_MINUTES)
+    ws.next_poll_at = next_check
+    ws.retry_count = (ws.retry_count or 0) + 1
+    session.add(ws)
+    logger.debug(
+        "[GMAIL_TICK] No reply yet for wait_state id=%s, next_poll_at=%s",
+        ws.id, next_check.isoformat(),
+    )
+
+
+def _find_gmail_reply(tenant_id: int, thread_id: str, since: datetime) -> dict | None:
+    """Query Gmail API for new messages in thread from someone other than the sender."""
+    try:
+        from Tools.GmailTool import GmailTool
+
+        gmail = GmailTool(tenant_id=tenant_id, auth_mode="manual")
+        gmail.authenticate()
+        if not gmail.service:
+            logger.error("[GMAIL_TICK] Auth failed for tenant %s", tenant_id)
+            return None
+
+        messages = gmail.get_thread_messages(thread_id)
+        if not messages:
+            return None
+
+        sender_email = (gmail.authenticated_email or "").lower().strip()
+
+        for msg in messages:
+            headers = {
+                h["name"].lower(): h["value"]
+                for h in msg.get("payload", {}).get("headers", [])
+            }
+            msg_from = (headers.get("from") or "").lower()
+            msg_date_str = headers.get("date", "")
+
+            if sender_email and sender_email in msg_from:
+                continue
+
+            msg_epoch_ms = int(msg.get("internalDate", 0))
+            if msg_epoch_ms > 0:
+                msg_time = datetime.utcfromtimestamp(msg_epoch_ms / 1000)
+                if msg_time <= since:
+                    continue
+
+            return {
+                "message_id": msg.get("id"),
+                "thread_id": msg.get("threadId"),
+                "from": headers.get("from", ""),
+                "to": headers.get("to", ""),
+                "subject": headers.get("subject", ""),
+                "date": msg_date_str,
+            }
+
+        return None
+    except Exception:
+        logger.exception("[GMAIL_TICK] Error querying Gmail for thread %s", thread_id)
+        return None
+
+
+def _resume_gmail_wait_state(session, ws, event_payload: dict) -> None:
+    """Load workflow and resume execution from the gmail wait state."""
+    from engine.workflow_executor import WorkflowExecutor
+
+    try:
+        workflow_json = _load_latest_workflow_for_bot(
+            session,
+            int(ws.diagram_id),
+            int(ws.tenant_id),
+            int(ws.bot_id),
+        )
+        workflow_json.update({
+            "bot_id": int(ws.bot_id),
+            "tenant_id": int(ws.tenant_id),
+            "diagram_id": int(ws.diagram_id),
+            "trigger_id": ws.trigger_id,
+        })
+
+        executor = WorkflowExecutor(workflow_json)
+        executor.session_ref = session
+
+        result = executor.resume_from_wait_state(
+            wait_state_id=ws.id,
+            event_payload=event_payload,
+        )
+
+        if result is None:
+            logger.info("[GMAIL_TICK] Wait state id=%s already claimed", ws.id)
+        else:
+            logger.info("[GMAIL_TICK] Resumed wait_state id=%s successfully", ws.id)
+
+    except Exception:
+        logger.exception("[GMAIL_TICK] Failed to resume wait_state id=%s", ws.id)
 
